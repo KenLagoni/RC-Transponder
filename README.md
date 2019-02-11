@@ -2,6 +2,7 @@
 After spending hours/days/weeks searching for downed RC Planes, I decided to design a single piece of hardware which should be able to survive a crash and keep transmitting the GPS location.
 
 ## Design
+The latest version is version 11, but I'm pending the new hardware.
 
 ### Goals
 The hardware must:
@@ -37,7 +38,7 @@ Schematic and layout is done in Cadence/Allegro. The version 10 has a size of (4
 
 10 prototypes PCB was ordered with stencil and then it's "just" pick and place the components (I only made two).
 
-Board after pick and place but before reflow (see [RocketScream for DIY reflow own](http://www.rocketscream.com/blog/product/tiny-reflow-controller/)
+Board after pick and place but before reflow (see [RocketScream for DIY reflow own](http://www.rocketscream.com/blog/product/tiny-reflow-controller/)).
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-solderpaste-with-components.png)
 
@@ -60,7 +61,13 @@ The transponder in the plane was set to sent every second and the PC on the grou
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-second-flight-test.png)
 
 It worked very well, and there where no problem with the range.
-To push the system to the limits, I then mounted the transponder from the plane in my car, and away. I found a point ~2km away which (almost line of sight) where the transponder still worked, but the RSSI was very low and some of the incomming packages had CRC errors:
+To push the system to the limits, I then mounted the transponder from the plane in my car, and drove away. I found a point ~2km away which (almost line of sight) where the transponder still worked, but the RSSI was very low and some of the incomming packages had CRC errors:
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-car-test.png)
+
+## Low Power Test
+TBD (Pending hardware version 11)
+
+## Low Temperature Test
+TBD (Pending hardware version 11)
 
