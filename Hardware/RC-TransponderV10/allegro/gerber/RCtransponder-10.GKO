@@ -1,0 +1,30 @@
+G04 ================== begin FILE IDENTIFICATION RECORD ==================*
+G04 Layout Name:  transponderRC2_4-10.brd*
+G04 Film Name:    Board_outline*
+G04 File Format:  Gerber RS274X*
+G04 File Origin:  Cadence Allegro 17.2-S042*
+G04 Origin Date:  Fri Nov 23 21:07:11 2018*
+G04 *
+G04 Layer:  BOARD GEOMETRY/DESIGN_OUTLINE*
+G04 Layer:  BOARD GEOMETRY/CUTOUT*
+G04 *
+G04 Offset:    (0.0000 0.0000)*
+G04 Mirror:    No*
+G04 Mode:      Positive*
+G04 Rotation:  0*
+G04 FullContactRelief:  No*
+G04 UndefLineWidth:     0.1500*
+G04 ================== end FILE IDENTIFICATION RECORD ====================*
+%FSAX55Y55*MOMM*%
+%IR0*IPPOS*OFA0.00000B0.00000*MIA0B0*SFA1.00000B1.00000*%
+%ADD10C,.15*%
+G75*
+%LPD*%
+G75*
+G54D10*
+G01X0Y0D02*
+X0Y0002000000D01*
+X0004400000Y0002000000D01*
+X0004400000Y0D01*
+X0Y0D01*
+M02*

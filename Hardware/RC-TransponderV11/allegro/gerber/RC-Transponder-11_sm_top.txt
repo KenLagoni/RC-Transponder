@@ -1,0 +1,17 @@
+***************************************************************************
+*
+* Pick and place data for SMD on Top Layer
+*
+* Design name is: "transponderRC2_4-11"
+*
+* Date: 24 Jan 2019
+*
+* Data units = millimeters and Data are space separated
+*
+***************************************************************************
+REFDES  X        Y        ROT      FOOTPRINT                VALUE                       
+---------------------------------------------------------------------------
+J1      -40.650  9.000    90.000   R_CONN_DF13A-10P-1_25H   10x1_1.25mm DF13 connector  
+U8      -3.900   9.350    90.000   R_RFE28-2G4M20S          E28-2G4M20S                 
+D4      -1.350   0.800    180.000  R_0603                   LSQ976-Z                    
+U10     -26.900  9.000    0.000    R_GPS_PA6H               PA6H                        
