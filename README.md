@@ -71,3 +71,17 @@ TBD (Pending hardware version 11)
 ## Low Temperature Test
 TBD (Pending hardware version 11)
 
+# Software
+The Software reflects that I started out using Arduino MKRZERO and the Arduino program and then imported it to Atmel Studio.
+
+## Radio driver (EBYTE E28-2G4M20S) (Samtech SX1280)
+I was not able to find any arduino libaries for the SX1280 chip, and thus I started out using the demo code from Samtech, which I had to make some changes to until I got somthing which worked.
+
+## GPS NMEA decoder (GSP80Lite)
+Was a libary I once made for the Arduino ATMEGA328P, so i reused it and added some more features. It still onlu decode GPGGA strings, which means that Date, COG and speed is not read yet. (Used in the FrSky GPS sensor.)
+
+## Frsky SPORT libary
+I used this great libary from [pawelsky](https://www.rcgroups.com/forums/showthread.php?2245978-FrSky-S-Port-telemetry-library-easy-to-use-and-configurable)) However the ATSAMD21 chip is not supported and futher more, I don't use single wire serial.
+I did som dirty changes to his libary to get it to work with my hardware. One of which is the single wire serial, where I just disable the RX input when transmitting, to avoid loopback.
+
+ 
