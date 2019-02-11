@@ -3,7 +3,7 @@ After spending hours/days/weeks searching for downed RC Planes, I decided to des
 
 ## Design
 
-### Goals
+###Goals
 The hardware must:
 
 1. Get GPS coordinates from on-board GPS sensor.
