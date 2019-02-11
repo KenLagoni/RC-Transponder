@@ -3,7 +3,7 @@ After spending hours/days/weeks searching for downed RC Planes, I decided to des
 
 ## Design
 
-###Goals
+### Goals
 The hardware must:
 
 1. Get GPS coordinates from on-board GPS sensor.
@@ -37,9 +37,11 @@ Schematic and layout is done in Cadence/Allegro. The version 10 has a size of (4
 
 10 prototypes PCB was ordered with stencil and then it's "just" pick and place the components (I only made two).
 After pick and place but before reflow:
+
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-solderpaste-with-components.png)
 
 After reflow:
+
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-after-relow.png)
 
 Then the top side is soldered (GPS/Radio/battery/connector and one LED) (MicroSD Card for scale):
