@@ -36,7 +36,8 @@ The PA6H only transmit NMEA strings, so the CPU has some extra Work here.
 Schematic and layout is done in Cadence/Allegro. The version 10 has a size of (44mmx20mm) and Version 11 is (43.5mmx18mm).
 
 10 prototypes PCB was ordered with stencil and then it's "just" pick and place the components (I only made two).
-After pick and place but before reflow:
+
+Board after pick and place but before reflow (see [RocketScream for DIY reflow own](http://www.rocketscream.com/blog/product/tiny-reflow-controller/)
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-solderpaste-with-components.png)
 
