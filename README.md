@@ -51,3 +51,15 @@ Finished unit with heat shrink (alongside the first 433MHz prototype):
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-top-vs-433.png)
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-back.png)
+
+## Range Testing
+I did some tests at my local flying club. One transponder was mounted on a chair with a laptop on the field and the other was mounted in a plane.
+The transponder in the plane was set to sent every second and the PC on the ground logged all the data.
+
+![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-second-flight-test.png)
+
+It worked very well, and there where no problem with the range.
+To push the system to the limits, I then mounted the transponder from the plane in my car, and away. I found a point ~2km away which (almost line of sight) where the transponder still worked, but the RSSI was very low and some of the incomming packages had CRC errors:
+
+![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-car-test.png)
+
