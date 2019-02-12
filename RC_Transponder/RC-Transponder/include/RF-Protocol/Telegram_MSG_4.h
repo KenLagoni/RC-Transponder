@@ -1,8 +1,8 @@
 /*
- * Telegram_MSG_4.h
- *
- * Created: 08-02-2019 12:23:57
- *  Author: klo
+	Telegram_MSG_4.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
 
 

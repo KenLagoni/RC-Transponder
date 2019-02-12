@@ -1,3 +1,10 @@
+/*
+	GPSL80Lite.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
+ */ 
+
 #ifndef GPSL80Lite_h
 #define GPSL80Lite_h
 

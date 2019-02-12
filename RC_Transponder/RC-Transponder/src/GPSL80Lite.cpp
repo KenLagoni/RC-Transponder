@@ -1,3 +1,9 @@
+/*
+	GPS80Lite.cpp
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
+ */ 
 #include "GPSL80Lite.h"
 #include "Arduino.h" // Needed for Serial.print
 #if defined (__AVR__) || (__avr__)

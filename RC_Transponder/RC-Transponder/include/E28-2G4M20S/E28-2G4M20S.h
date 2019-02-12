@@ -1,3 +1,9 @@
+/*
+	E28-2G4M20S.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
+ */ 
 #ifndef __E28_2G4M20S_H__
 #define __E28_2G4M20S_H__
 

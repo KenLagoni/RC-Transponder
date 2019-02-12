@@ -1,8 +1,8 @@
 /*
- * timer.h
- *
- * Created: 15-Dec-18 22:32:48
- *  Author: Kenneth
+	timer.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
 
 

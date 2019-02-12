@@ -1,3 +1,10 @@
+/*
+	E28-2G4M20S.cpp
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
+ */ 
+
 #include "E28-2G4M20S.h"
 #include "radio.h"
 #include "sx1280-hal.h"

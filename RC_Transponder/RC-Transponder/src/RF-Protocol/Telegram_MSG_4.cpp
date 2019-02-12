@@ -1,9 +1,10 @@
 /*
- * Telegram_MSG_2.cpp
- *
- * Created: 08-02-2019 12:24:17
- *  Author: klo
+	Telegram_MSG_4.cpp
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
+
 #include "Telegram_MSG_4.h"
 
 Telegram_MSG_4::Telegram_MSG_4(uint16_t _from, uint32_t _utc, int32_t _lat, int32_t _long, uint8_t _status)

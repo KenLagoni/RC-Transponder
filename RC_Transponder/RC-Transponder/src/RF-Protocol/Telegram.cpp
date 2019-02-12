@@ -1,8 +1,8 @@
 /*
- * Telegram.cpp
- *
- * Created: 08-02-2019 11:28:50
- *  Author: klo
+	Telegram.cpp
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
  #include "Telegram.h"
  #include "Arduino.h" // for serial.print

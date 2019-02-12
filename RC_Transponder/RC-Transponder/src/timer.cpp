@@ -1,8 +1,8 @@
 /*
- * timer.cpp
- *
- * Created: 15-Dec-18 22:32:20
- *  Author: Kenneth
+	timer.cpp
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
 #include "timer.h"
 #include "hw.h"

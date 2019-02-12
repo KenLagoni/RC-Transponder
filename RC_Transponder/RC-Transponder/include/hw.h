@@ -1,8 +1,8 @@
 /*
- * hw.h
- *
- * Created: 16-Dec-18 10:29:32
- *  Author: Kenneth
+	hw.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
 
 

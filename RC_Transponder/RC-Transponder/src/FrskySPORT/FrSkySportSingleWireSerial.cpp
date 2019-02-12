@@ -1,8 +1,13 @@
 /*
-  FrSky single wire serial class for Teensy 3.x/LC and 328P based boards (e.g. Pro Mini, Nano, Uno)
+  Original file made from Pawelsky 20180402:  
+  "FrSky single wire serial class for Teensy 3.x/LC and 328P based boards (e.g. Pro Mini, Nano, Uno)
   (c) Pawelsky 20180402
+  Not for commercial use"
+
+  Modified by Lagoni 12022019
+  (c) Lagoni 2019
   Not for commercial use
-*/
+ */
 
 #include "FrSkySportSingleWireSerial.h"
 //#include "Arduino.h"

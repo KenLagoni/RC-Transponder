@@ -1,8 +1,8 @@
 /*
- * main.h
- *
- * Created: 15-Dec-18 22:58:01
- *  Author: Kenneth
+	main.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
 
 

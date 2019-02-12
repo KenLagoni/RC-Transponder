@@ -1,4 +1,5 @@
 /*
+Original File:"
   ______                              _
  / _____)             _              | |
 ( (____  _____ ____ _| |_ _____  ____| |__
@@ -11,7 +12,13 @@ Description: Handling of the node configuration protocol
 
 License: Revised BSD License, see LICENSE.TXT file include in the project
 
-Maintainer: Miguel Luis and Gregory Cristian
+Maintainer: Miguel Luis and Gregory Cristian"
+
+Modified by Lagoni 12022019
+(c) Lagoni 2019
+Not for commercial use
+
+I downloaded the source code from Semtech website: "https://os.mbed.com/teams/Semtech/code/SX1280Lib/" But no LICENSE.TXT was included in the project.
 */
 #ifndef __SX1280_HAL_H__
 #define __SX1280_HAL_H__

@@ -1,9 +1,10 @@
 /*
- * Telegram_MSG_1.h
- *
- * Created: 08-02-2019 12:23:57
- *  Author: klo
+	Telegram_MSG_1.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
+
 
 
 #ifndef TELEGRAM_MSG_1_H_

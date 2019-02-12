@@ -1,9 +1,10 @@
 /*
- * Telegram.h
- *
- * Created: 08-02-2019 11:31:34
- *  Author: klo
+	Telegram.h
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
+
 
 
 #ifndef TELEGRAM_H_

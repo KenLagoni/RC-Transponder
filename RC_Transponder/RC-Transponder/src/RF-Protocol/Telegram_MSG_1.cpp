@@ -1,8 +1,8 @@
 /*
- * Telegram_MSG_1.cpp
- *
- * Created: 08-02-2019 12:24:17
- *  Author: klo
+	Telegram_MSG_1.cpp
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
   #include "Telegram_MSG_1.h"
 

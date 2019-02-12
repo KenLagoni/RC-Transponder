@@ -1,8 +1,8 @@
 /*
- * hw.cpp
- *
- * Created: 16-Dec-18 10:28:46
- *  Author: Kenneth
+	hw.cpp
+
+	Copyright (c) 2019 Lagoni
+	Not for commercial use
  */ 
 #include <Arduino.h>
 #include "wiring_private.h"
