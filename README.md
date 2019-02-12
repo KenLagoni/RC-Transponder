@@ -56,11 +56,11 @@ Finished unit with heat shrink (alongside the first 433MHz prototype):
 
 ## Range Testing
 I did some tests at my local flying club. One transponder was mounted on a chair with a laptop on the field and the other was mounted in a plane.
-The transponder in the plane was set to sent every second and the PC on the ground logged all the data.
+The transponder in the plane was set to send every second and the PC on the ground logged all the data.
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-second-flight-test.png)
 
-It worked very well, and there where no problem with the range.
+It worked very well, and there were no problem with the range.
 To push the system to the limits, I then mounted the transponder from the plane in my car, and drove away. I found a point ~2km away which (almost line of sight) where the transponder still worked, but the RSSI was very low and some of the incomming packages had CRC errors:
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-car-test.png)
@@ -74,14 +74,12 @@ TBD (Pending hardware version 11)
 # Software
 The Software reflects that I started out using Arduino MKRZERO and the Arduino program and then imported it to Atmel Studio.
 
-## Radio driver (EBYTE E28-2G4M20S) (Samtech SX1280)
-I was not able to find any arduino libaries for the SX1280 chip, and thus I started out using the demo code from Samtech, which I had to make some changes to until I got somthing which worked.
+## Radio driver (EBYTE E28-2G4M20S) (Semtech SX1280)
+I was not able to find any Arduino libraries for the SX1280 chip, and thus I started out using the demo code from Semtech, which I had to make some changes to until I got something which worked.
 
 ## GPS NMEA decoder (GSP80Lite)
-Was a libary I once made for the Arduino ATMEGA328P, so i reused it and added some more features. It still onlu decode GPGGA strings, which means that Date, COG and speed is not read yet. (Used in the FrSky GPS sensor.)
+Was a library I once made for the Arduino ATMEGA328P, so i reused it and added some more features. It still only decode GPGGA strings, which means that Date, COG and speed is not read yet. (Used in the FrSky GPS sensor.)
 
-## Frsky SPORT libary
-I used this great libary from [pawelsky](https://www.rcgroups.com/forums/showthread.php?2245978-FrSky-S-Port-telemetry-library-easy-to-use-and-configurable)) However the ATSAMD21 chip is not supported and futher more, I don't use single wire serial.
-I did som dirty changes to his libary to get it to work with my hardware. One of which is the single wire serial, where I just disable the RX input when transmitting, to avoid loopback.
-
- 
+## Frsky SPORT library
+I used this great library from [pawelsky](https://www.rcgroups.com/forums/showthread.php?2245978-FrSky-S-Port-telemetry-library-easy-to-use-and-configurable) However the ATSAMD21 chip is not supported and furthermore, I don't use single wire serial.
+I did some dirty changes to his library to get it to work with my hardware. One of which is the single wire serial, where I just disable the RX input when transmitting, to avoid loopback.
