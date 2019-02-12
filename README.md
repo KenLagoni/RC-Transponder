@@ -1,4 +1,4 @@
-# RC Transponder (Beacon Locator)
+# RC Transponder (Locator Beacon)
 After spending hours/days/weeks searching for lost RC Planes, I decided to design a single piece of hardware which should be able to survive a crash and keep transmitting the GPS location.
 
 ## Design
