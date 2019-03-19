@@ -17,7 +17,7 @@
 //#define MODE_FLRC
 
 // Defines the buffer size, i.e. the payload size
-#define MAX_PAYLOAD_LENGTH                          25
+#define MAX_PAYLOAD_LENGTH                          45
 
 #define TX_TIMEOUT_VALUE                            50 // ms
 

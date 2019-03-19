@@ -14,15 +14,16 @@ enum TRANSPONDER_STATES {
 	NORMAL,
 	WAIT_FOR_RX,
 	SEND_TX_PACKAGE,
+	GET_READY_TO_RUN_ON_BATTERY,
 	RUNNING_ON_BATTERY,
 	POWER_OFF
 };
 enum TRANSPONDER_STATES state;
 
 // Hardware and Software version defines
-const float FIRMWARE_VERSION = 0.90;
-uint16_t UNIT_ID=1;
-const uint8_t PCB_VERSION=10;
-const bool isGroundStation=false; // set to false if Mounted in plane
+const float FIRMWARE_VERSION = 0.95;
+
+#define MAX_NUMBER_OF_BEACONS_TO_SAVE 10
+
 
 #endif /* MAIN_H_ */

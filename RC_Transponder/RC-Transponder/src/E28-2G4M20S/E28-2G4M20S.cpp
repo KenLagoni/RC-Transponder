@@ -160,20 +160,24 @@ void E28_2G4M20S::OnRxDone( void )
 		{
 			case PACKET_TYPE_GFSK:
 			Buffer[BufferSize]	 = PacketStatus.Gfsk.RssiSync;
+			BufferSize=BufferSize+1;
 			break;
 
 			case PACKET_TYPE_LORA:
 			case PACKET_TYPE_RANGING:
 			Buffer[BufferSize] = PacketStatus.LoRa.RssiPkt;
 			Buffer[BufferSize+1] = PacketStatus.LoRa.SnrPkt;
+			BufferSize=BufferSize+2;
 			break;
 
 			case PACKET_TYPE_FLRC:
 			Buffer[BufferSize] = PacketStatus.Flrc.RssiSync;
+			BufferSize=BufferSize+1;
 			break;
 
 			case PACKET_TYPE_BLE:
 			Buffer[BufferSize] = PacketStatus.Ble.RssiSync;
+			BufferSize=BufferSize+1;
 			break;
 
 			case PACKET_TYPE_NONE:
@@ -246,17 +250,16 @@ void E28_2G4M20S::OnRxDone( void )
 void E28_2G4M20S::HandleIRQ( void )
 {
 	Radio->ProcessIrqs();	
-//	Serial.println("E28 Radio Interrupt!");
+	//Serial.println("E28 Radio Interrupt!");
 	
 	if(Radio->RadioPacketStatus.txDone == true){
-//		Serial.println("TX Done!");
+		//Serial.println("TX Done!");
 		this->OnTxDone();
 	}    
 	if(Radio->RadioPacketStatus.rxDone == true){
-//		Serial.println("RX Done!");
+		//Serial.println("RX Done!");
 		this->OnRxDone();
 		// read the message, check CRC if ok, make available.
-
 	}
 	if(Radio->RadioPacketStatus.rxSyncWordDone == true){
 		Serial.println("rxSyncWordDone!");

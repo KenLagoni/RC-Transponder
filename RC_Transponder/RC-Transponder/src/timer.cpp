@@ -10,7 +10,7 @@
 
 uint8_t SecondCounter = 0;
 uint8_t BeaconSecondCounter = 0;
-
+uint8_t SecondCounterSinceLasteGroundStationContact = 0;
 
 void setTimerFrequency(int frequencyHz) {
 	
@@ -72,45 +72,7 @@ void startTimer3(int frequencyHz){
 	TC->CTRLA.reg |= TC_CTRLA_ENABLE;
 	while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
 }
-/*
-void startTimer(int frequencyHz) {
-	
-	REG_GCLK_CLKCTRL = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 | GCLK_CLKCTRL_ID_TCC2_TC3) ;
-	
-	//REG_GCLK_CLKCTRL = (uint16_t) (GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK5 | GCLK_CLKCTRL_ID_TCC2_TC3 | GCLK_GENCTRL_RUNSTDBY) ;
-	GCLK->GENCTRL.reg = (GCLK_GENCTRL_GENEN | GCLK_GENCTRL_SRC_OSCULP32K | GCLK_GENCTRL_ID(5) | GCLK_GENCTRL_DIVSEL ); // use internal ultral low power 32khz
- 
 
-	while ( GCLK->STATUS.bit.SYNCBUSY == 1 ); // wait for sync
-	TcCount16* TC = (TcCount16*) TC3;
-
-	TC->CTRLA.reg &= ~TC_CTRLA_ENABLE;
-	while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
-
-	TC->CTRLA.bit.RUNSTDBY = 1;
-
-	// Use the 16-bit timer
-	TC->CTRLA.reg |= TC_CTRLA_MODE_COUNT16;
-	while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
-
-	// Use match mode so that the timer counter resets when the count matches the compare register
-	TC->CTRLA.reg |= TC_CTRLA_WAVEGEN_MFRQ;
-	while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
-	
-	// Set prescaler to 1024
-//	TC->CTRLA.reg |= TC_CTRLA_PRESCALER_DIV1024;
-	TC->CTRLA.reg |= TC_CTRLA_PRESCALER_DIV16;
-	while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
-	setTimerFrequency(frequencyHz);
-
-	// Enable the compare interrupt
-	TC->INTENSET.reg = 0;
-	TC->INTENSET.bit.MC0 = 1;
-	NVIC_EnableIRQ(TC3_IRQn);
-	TC->CTRLA.reg |= TC_CTRLA_ENABLE;
-	while (TC->STATUS.bit.SYNCBUSY == 1); // wait for sync
-}
-*/
 // ISR function doe timer 3
 void TC3_Handler() {
 	TcCount16* TC = (TcCount16*) TC3;
@@ -120,7 +82,15 @@ void TC3_Handler() {
 		TC->INTFLAG.bit.MC0 = 1;
 		// Write callback here!!!
 		
-		SecondCounter++;
+	
+		if(SecondCounterSinceLasteGroundStationContact < 254){
+			SecondCounterSinceLasteGroundStationContact++;
+		}
+		
+		if(SecondCounter < 254){
+			SecondCounter++;
+		}
+		
 		if(BeaconSecondCounter < 20){
 			BeaconSecondCounter++;
 		}

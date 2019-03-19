@@ -952,7 +952,7 @@ void SX1280::ProcessIrqs( void )
 */
     packetType = GetPacketType( true );
     uint16_t irqRegs = GetIrqStatus( );
-//	Serial.println("IRQ Register Status: " + String(irqRegs));
+	//Serial.println("IRQ Register Status: " + String(irqRegs));
     ClearIrqStatus( IRQ_RADIO_ALL );
 	ClearPacketStatus();
 /*
