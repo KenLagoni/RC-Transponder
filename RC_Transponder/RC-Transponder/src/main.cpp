@@ -64,9 +64,12 @@ float getBatteryVoltage(void);
 float getInputVoltage(void);
 bool BeaconService(void);
 void GoToSleep(void);
+String base64_encode(byte[], int);
 
 //Global variables
 Telegram_MSG_1 SavedBeacons[MAX_NUMBER_OF_BEACONS_TO_SAVE];
+
+
 uint8_t NumberOfBeaconsToRelay = 0;
 float BatteryVoltage = 0;
 
@@ -97,11 +100,6 @@ void Radio_isr(void){
 }
 
 void setup() {
-	
-	pinMode(led2Pin, OUTPUT);
-	digitalWrite(led2Pin, HIGH);  // Low=off, High=On
-	
-	do{}while(1);
 			
 	hwInit(); // Setup all pins according to hardware.
 	
@@ -119,6 +117,27 @@ void setup() {
 	Serial.println("Chip unique serial number part 3:" + String(SerialNumber3));
 	Serial.println("Chip unique serial number part 4:" + String(SerialNumber4));
 	Serial.println("Chip unique serial number: \"" + String(SerialNumber1) + String(SerialNumber2) + String(SerialNumber3) + String(SerialNumber4)+"\"");
+	#define SERIALNUMBER_SIZE 16
+	uint8_t data[SERIALNUMBER_SIZE];
+	data[0] = (byte)((SerialNumber1 >> 24) & 0xFF);
+	data[1] = (byte)((SerialNumber1 >> 16) & 0xFF);
+	data[2] = (byte)((SerialNumber1 >> 8) & 0xFF);
+	data[3] = (byte)(SerialNumber1 & 0xFF);
+	data[4] = (byte)((SerialNumber2 >> 24) & 0xFF);
+	data[5] = (byte)((SerialNumber2 >> 16) & 0xFF);
+	data[6] = (byte)((SerialNumber2 >> 8) & 0xFF);
+	data[7] = (byte)(SerialNumber2 & 0xFF);
+	data[8] = (byte)((SerialNumber3 >> 24) & 0xFF);
+	data[9] = (byte)((SerialNumber3 >> 16) & 0xFF);
+	data[10] = (byte)((SerialNumber3 >> 8) & 0xFF);
+	data[11] = (byte)(SerialNumber3 & 0xFF);
+	data[12] = (byte)((SerialNumber4 >> 24) & 0xFF);
+	data[13] = (byte)((SerialNumber4 >> 16) & 0xFF);
+	data[14] = (byte)((SerialNumber4 >> 8) & 0xFF);
+	data[15] = (byte)(SerialNumber4 & 0xFF);
+	Serial.println("Chip unique serial number in Base64 encode:\"" + base64_encode(data,SERIALNUMBER_SIZE) +"\"");
+	
+	
 	/*
 	for(int a = 0;a<35;a++){
 		if(!((a == 22) || (a == 23))){
@@ -153,6 +172,7 @@ void setup() {
 	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin);
 	Radio->Init();
 	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
+	//attachInterrupt(dio1Pin, Radio->Init, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
 	
 	// Init Frsky Smart port:
 	SerialfrskySPort = new Uart(&sercom3, fryskySmartPortRXPin, fryskySmartPortTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the Frsky SPORT module
@@ -249,7 +269,7 @@ void loop() {
 			}
 	
 			////// Below this line, code is executed fast! 
-//			HandelSerial();	 // Communication via USB (only if used as groundstation
+			HandelSerial();	 // Communication via USB (only if used as groundstation
 			HandelRadio();  // Read new messages and reply as needed.  
 			GPS->update();  // Function empty serial buffer and analyzes string.
 			// RCin->read();  // SBUS, PPM or PWM. 
@@ -335,6 +355,9 @@ void Do_ground_station_loop(void){
 	}while(1);
 }
 
+
+uint8_t Serialmsg[50];
+
 void HandelRadio(void){
 	if(Radio->NewPackageReady()){
 //		Serial.println("New Messages received!");
@@ -359,19 +382,21 @@ void HandelRadio(void){
 			{				
 				Telegram_MSG_1 msg = Telegram_MSG_1(data, size);
 				
-				if(msg.TelegramValid()){
+				if(msg.CRCValid()){
+						
+					volatile uint8_t crc_test_radiomsg_length = msg.GetSerialMSGLength();								
+					volatile uint16_t crc_test = msg.CalculateCRC(msg.GetRadioMSG(),41);						
+							
+					memcpy(&Serialmsg[0], msg.GetSerialMSG(), msg.GetSerialMSGLength());									
+					Serial.write(Serialmsg, msg.GetSerialMSGLength());
+					uint8_t *data = Serialmsg;
+					for(int a =0;a<msg.GetSerialMSGLength();a++){
+						SerialAUX->println("Data["+ String(a) + "]=" + String(*data++));					
+					}					
+
 				
-					uint8_t Serialmsg[msg.GetPayloadLength()+2];
-					Serialmsg[0] = 0x1E;
-					Serialmsg[1] = msg.GetPayloadLength();
-					memcpy(&Serialmsg[2], msg.GetPayload(), msg.GetPayloadLength());									
-					Serial.write(Serialmsg, msg.GetPayloadLength()+2);
-				uint8_t *data = Serialmsg;
-				for(int a =0;a<msg.GetPayloadLength()+2;a++){
-					SerialAUX->println("Data["+ String(a) + "]=" + String(*data));					
-					data++;
-				}
-				SerialAUX->println("-------------------");
+				
+				
 
 		
 
@@ -387,14 +412,15 @@ void HandelRadio(void){
 						for(int a=0;a<NumberOfBeaconsToRelay; a++){
 	//						Serial.print("Is memory location "+ String(a) + " from the same beacon?... ");
 						
-							if( SavedBeacons[a].TelegramMatchUniqueID(msg.Unique_ID_1, msg.Unique_ID_2, msg.Unique_ID_3, msg.Unique_ID_4) == true ){
+							if( SavedBeacons[a].TelegramMatchUniqueID(msg.GetUniqueID1(), msg.GetUniqueID2(), msg.GetUniqueID3(), msg.GetUniqueID4()) == true ){
 	//							Serial.println("Yes! - Updating!");	
 								SavedBeacons[a] = msg;
 								updateComplete = true;
 								break;
 							}else{
 			//					Serial.println("No!");
-							}													
+							}	
+																	
 						}
 						
 						if(updateComplete)
@@ -413,11 +439,11 @@ void HandelRadio(void){
 						
 							for(int a=0;a<MAX_NUMBER_OF_BEACONS_TO_SAVE; a++){
 					//			Serial.println("Messages number: " + String(a));
-					//			SavedBeacons[a].SerialPrintMessage();								
+								SavedBeacons[a].SerialPrintMessage();								
 							}							
 						}									
 					}
-				}
+				} // CRC Valid
 			}
 			break;
 			
@@ -430,16 +456,16 @@ void HandelRadio(void){
 			case MSG_Command:
 			{
 				Telegram_MSG_3 msg = Telegram_MSG_3(data, size);
-				if(msg.TelegramValid()){
+				if(msg.CRCValid()){
 					Serial.println("Message 3 Received!...");
 					if(msg.TelegramMatchUniqueID(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4)){
 						Serial.println("For me! - Reading command ID: " + String(msg.GetCommand()));
-							ProtocolCMD_t cmd = msg.GetCommand();	
+							ProtocolCMD_t messageCMD = msg.GetCommand();	
 							
 							// A command was received for us (reset counter for last ground station contact..  also what to do now:
 							SecondCounterSinceLasteGroundStationContact = 0;
 							
-							switch(newMessageID)
+							switch(messageCMD)
 							{								
 								case CMD_Request_Transponder_Beacon:
 								{
@@ -451,7 +477,7 @@ void HandelRadio(void){
 																			0, 0,
 																			SecondCounterSinceLasteGroundStationContact, BatteryVoltage, FIRMWARE_VERSION, PCB_VERSION, NumberOfBeaconsToRelay);
 									do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-									Radio->SendPackage(msgReply.GetPayload(), msgReply.GetPayloadLength());						
+									Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());						
 								}
 								break;
 
@@ -459,12 +485,14 @@ void HandelRadio(void){
 								{
 										Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(NumberOfBeaconsToRelay));
 										// Reply with transponder beacon:
+										
 										if(NumberOfBeaconsToRelay != 0){
 											Telegram_MSG_2 msgReply = Telegram_MSG_2(&SavedBeacons[NumberOfBeaconsToRelay-1]);
 											NumberOfBeaconsToRelay--;
 											do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-											Radio->SendPackage(msgReply.GetPayload(), msgReply.GetPayloadLength());
+											Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());
 										}
+										
 								}
 								break;
 
@@ -496,6 +524,7 @@ void HandelRadio(void){
 	}
 }
 
+
 // Ensure a beacon is transmitted every N second.
 bool BeaconService(void){
 	if(BeaconSecondCounter == 5){
@@ -516,7 +545,7 @@ bool BeaconService(void){
 		
 		do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.													
 		
-		Radio->SendPackage(msg.GetPayload(), msg.GetPayloadLength());
+		Radio->SendPackage(msg.GetRadioMSG(), msg.GetRadioMSGLength());
 		return true;	
 	}	
 	return false;
@@ -538,7 +567,7 @@ uint8_t incommingData[INPUT_BUFFER_SIZE];
 uint8_t dataLength;
 uint8_t dataIndex;
 int NumberOfBytesToRead;
-/*
+
 void HandelSerial(void){
 	
 	do
@@ -588,6 +617,8 @@ void HandelSerial(void){
 					
 					if(dataIndex >= dataLength){
 					
+					
+					
 						// Analyse input data.						
 						
 						SerialAUX->println("Reading Complete - Analysinging data!");
@@ -596,9 +627,11 @@ void HandelSerial(void){
 							SerialAUX->println("Inputdata " + String(a) + ":" + String(incommingData[a]));
 						}
 						
-						switch(incommingData[0]) // MSG ID
+						ProtocolMSG_t newMessageID = (ProtocolMSG_t)incommingData[0];
+						
+						switch(newMessageID) // MSG ID
 						{
-							case 0: // UART Identify
+							case MSG_UART_GORUNDSTATION: // UART Identify
 							{
 								SerialAUX->println("Send UART ID reply message");
 								// Groundstation needs a reply to indicate this devices is a ground station.
@@ -610,9 +643,26 @@ void HandelSerial(void){
 							}
 							break;
 							
-							case 1:
+							case MSG_Beacon_Broadcast: 
 							{
-								// Don't do anything with relay messages.
+																
+							}
+							break;
+							
+							case MSG_Beacon_Relay: 
+							{								
+								
+							}
+							break;
+							
+							case MSG_Command:
+							{
+								SerialAUX->println("Ping transponder!");
+								Telegram_MSG_3 msg = Telegram_MSG_3(incommingData, dataLength);
+								if(msg.CRCValid()){
+									do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
+									Radio->SendPackage(msg.GetRadioMSG(), msg.GetRadioMSGLength());
+								}
 							}
 							break;
 							
@@ -630,4 +680,50 @@ void HandelSerial(void){
 		}
 	}while(NumberOfBytesToRead); // loop until buffer is empty
 	
-}*/
+}
+
+  static String base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+  String base64_encode(byte bytes_to_encode[], int in_len)
+  {
+	  String ret = "";
+	  int i = 0;
+	  int j = 0;
+	  byte char_array_3[3];
+	  byte char_array_4[4];
+	  int place = 0;
+
+	  while (in_len-- > 0) {
+		  char_array_3[i++] = bytes_to_encode[place++];
+		  if (i == 3) {
+			  char_array_4[0] = (byte)((char_array_3[0] & 0xfc) >> 2);
+			  char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
+			  char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
+			  char_array_4[3] = (byte)(char_array_3[2] & 0x3f);
+
+			  for(i = 0; (i<4) ; i++)
+				 ret += base64_chars[char_array_4[i]];
+				 
+			  i = 0;
+		  }
+	  }
+
+	  if (i > 0) {
+		  for(j = i; j< 3; j++)
+			char_array_3[j] = 0;
+
+		  char_array_4[0] = (byte)(( char_array_3[0] & 0xfc) >> 2);
+		  char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
+		  char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
+
+		  for (j = 0; (j<i + 1); j++)
+			ret += base64_chars[char_array_4[j]];
+
+		  while((i++ < 3))
+			ret += '=';
+
+	  }
+
+	  return ret;
+
+  }

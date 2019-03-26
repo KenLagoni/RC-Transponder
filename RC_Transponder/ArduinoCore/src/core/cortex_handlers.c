@@ -25,6 +25,8 @@ extern void svcHook(void);
 extern void pendSVHook(void);
 extern int sysTickHook(void);
 
+uint32_t phantomISR = 9999;
+
 /* Default empty handler */
 void Dummy_Handler(void)
 {

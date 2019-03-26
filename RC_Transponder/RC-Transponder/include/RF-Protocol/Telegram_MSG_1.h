@@ -13,11 +13,15 @@
 #include "Arduino.h" // Needed for uint8 types mf.
 #include "Telegram.h"
 
+#define MSG_1_PAYLOAD_SIZE 22
+
 class Telegram_MSG_1 : public Telegram
 {
 	public:
-	virtual void SerialPrintMessage( void ); // Function for each massage to print out the data to Serial.print.	
-	
+	virtual void SerialPrintMessage( void );    // Function for each massage to print out the data to Serial.print.	
+	virtual uint8_t * GetRadioMSG(void);		 // Function which returns pointer to the payload for Radio transmittion. 
+	virtual uint8_t * GetSerialMSG(void);        // Function which returns pointer to the payload for Serial transmittion. 
+		
 	// Constructor to create empty messages. (only used for compile to allocate memmory)
 	Telegram_MSG_1();
 	
@@ -46,9 +50,12 @@ class Telegram_MSG_1 : public Telegram
 
 	protected:
 	virtual void ReadPayload( void );		 // Each messages should be able to parse/decode the payload to specific cases.
-	virtual void GeneratePayload( void );	 // Each messages should be able to generate a payload based on values.
-
+	virtual void GeneratePayload( uint8_t *data );	 // Each messages should be able to generate a payload based on values.
+	
+	void FixedPayload(); // debug
+											
 	private:
+	void SetMSGLength();
 	uint32_t UTCTime;				    	// UTC time Zulu in seconds 130032.000 -> 130032
 	int32_t Latitude;						//  5550.0898N -> 55500898 ||  5550.0898S -> -55500898
 	int32_t Longitude;						// 01224.0718E -> 12240718 || 01224.0718W -> -12240718
@@ -62,7 +69,6 @@ class Telegram_MSG_1 : public Telegram
 	float FirmwareVersion;
 	uint8_t PCBVersion;
 	uint8_t NumberOfBeaconsToRelay;
-	
 };
 
 

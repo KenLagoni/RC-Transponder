@@ -18,6 +18,7 @@
 
 // Defines the buffer size, i.e. the payload size
 #define MAX_PAYLOAD_LENGTH                          45
+//#define FIFO_SIZE									10
 
 #define TX_TIMEOUT_VALUE                            50 // ms
 
@@ -64,7 +65,7 @@ class E28_2G4M20S
 	// New functions:
 	bool NewPackageReady(void);
 	void SendPackage(uint8_t *payload, uint8_t payloadLength);
-	uint8_t GetPackage(uint8_t *payload, uint8_t maxSize); // returns the payload length
+//	uint8_t GetPackage(uint8_t *payload, uint8_t maxSize); // returns the payload length
 	uint8_t * GetPayload(uint8_t &len);
 	void SetBufferReady(bool _set);
 		
@@ -100,6 +101,12 @@ class E28_2G4M20S
 	
 	////////////////////
 	
+	// Define buffers:
+//	uint8_t InputFIFO[FIFO_SIZE][MAX_PAYLOAD_LENGTH];
+//	uint8_t OutputFIFO[FIFO_SIZE][MAX_PAYLOAD_LENGTH];
+//	uint8_t InputFifoIndex = 0;
+//	uint8_t OutputFifoIndex = 0;
+		
 	// Define the possible message type for this application
 	uint8_t BufferSize = MAX_PAYLOAD_LENGTH; //The size of the buffer
 	uint8_t Buffer[MAX_PAYLOAD_LENGTH]; //The buffer

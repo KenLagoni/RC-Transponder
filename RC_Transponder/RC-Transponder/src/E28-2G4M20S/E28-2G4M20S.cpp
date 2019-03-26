@@ -30,6 +30,18 @@ E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1P
 	digitalWrite(_txEnablePin, LOW);	
 	pinMode(_rxEnablePin, OUTPUT);
 	digitalWrite(_rxEnablePin, HIGH);		
+	
+	// clear FIFO
+	/*
+	for(int a = 0; a < FIFO_SIZE; a ++){
+		for(int b = 0; b < MAX_PAYLOAD_LENGTH; b ++){
+			InputFIFO[a][b]=0;
+			OutputFIFO[a][b]=0;
+		}
+	}
+	InputFifoIndex = 0;
+	OutputFifoIndex = 0;
+	*/
 }
 
 void E28_2G4M20S::SetTxModeActive( void )
@@ -284,9 +296,8 @@ void E28_2G4M20S::HandleIRQ( void )
 	if(Radio->RadioPacketStatus.cadDone == true){
 		Serial.println("CAD Done!");
 	}
-	
 }
-
+/*
 uint8_t E28_2G4M20S::GetPackage(uint8_t *payload, uint8_t maxSize){
 	if(this->BufferReady){
 		if(this->BufferSize < maxSize){
@@ -298,16 +309,29 @@ uint8_t E28_2G4M20S::GetPackage(uint8_t *payload, uint8_t maxSize){
 		}
 	}
 }
+*/
 
 void E28_2G4M20S::SendPackage(uint8_t *payload, uint8_t payloadLength)
 {
+	/*
+	// Copy package to payload.
+	if((InputFifoIndex < FIFO_SIZE) && (payloadLength < MAX_PAYLOAD_LENGTH)){
+		for(int a = 0; a < MAX_PAYLOAD_LENGTH; a ++){
+			if(a<payloadLength)
+				InputFIFO[InputFifoIndex][a]=*payload++;
+			else
+				InputFIFO[InputFifoIndex][a]=0;
+		}		
+		InputFifoIndex++;
+	}	*/
+
    this->SetTxModeActive(); // Switch the hardware amplifier to TX mode.
    Radio->SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on TX complete on DI01.
    this->PacketParams.Params.LoRa.PayloadLength = payloadLength;
    Radio->SetPacketParams( &PacketParams );
    Radio->SendPayload(payload, payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
    radioIdle = false;
-   digitalWrite(21, HIGH);
+   digitalWrite(21, HIGH);	
 }
 
 void E28_2G4M20S::Debug(void){
