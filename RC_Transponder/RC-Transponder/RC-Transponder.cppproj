@@ -351,6 +351,12 @@
     <Compile Include="include\main.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="include\RF-Protocol\RFProtocol.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="include\RF-Protocol\RingBuf.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="include\RF-Protocol\Telegram.h">
       <SubType>compile</SubType>
     </Compile>
@@ -394,6 +400,9 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\main.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\RF-Protocol\RFProtocol.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\RF-Protocol\Telegram.cpp">

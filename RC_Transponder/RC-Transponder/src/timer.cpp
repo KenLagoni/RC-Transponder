@@ -6,11 +6,9 @@
  */ 
 #include "timer.h"
 #include "hw.h"
+#include "main.h"
 #include "Arduino.h"
 
-uint8_t SecondCounter = 0;
-uint8_t BeaconSecondCounter = 0;
-uint8_t SecondCounterSinceLasteGroundStationContact = 0;
 
 void setTimerFrequency(int frequencyHz) {
 	
@@ -83,16 +81,16 @@ void TC3_Handler() {
 		// Write callback here!!!
 		
 	
-		if(SecondCounterSinceLasteGroundStationContact < 254){
-			SecondCounterSinceLasteGroundStationContact++;
+		if(SystemStatus.SecondCounterSinceLasteGroundStationContact < 254){
+			SystemStatus.SecondCounterSinceLasteGroundStationContact++;
 		}
 		
-		if(SecondCounter < 254){
-			SecondCounter++;
+		if(SystemStatus.SecondCounter < 254){
+			SystemStatus.SecondCounter++;
 		}
 		
-		if(BeaconSecondCounter < 20){
-			BeaconSecondCounter++;
+		if(SystemStatus.BeaconSecondCounter < 20){
+			SystemStatus.BeaconSecondCounter++;
 		}
 	}
 }

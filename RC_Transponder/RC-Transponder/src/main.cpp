@@ -40,6 +40,7 @@ Generic Clock Generator 4-8 - Disabled
 #include "timer.h"
 #include "main.h"
 #include "hw.h"
+#include "RFProtocol.h"
 
 // Radio
 #include "E28-2G4M20S.h"
@@ -69,9 +70,8 @@ String base64_encode(byte[], int);
 //Global variables
 Telegram_MSG_1 SavedBeacons[MAX_NUMBER_OF_BEACONS_TO_SAVE];
 
-
-uint8_t NumberOfBeaconsToRelay = 0;
-float BatteryVoltage = 0;
+// System information
+SystemInfomation SystemStatus;
 
 // FRSKY SPORT GPS
 FrSkySportSensorGps FrskyGPS;                 // Create GPS sensor with default ID
@@ -87,7 +87,8 @@ FrSkySportTelemetry FrskySport;           // Create telemetry object without pol
 
 // Object and varibels for SX1280/E28_2G4 radio chip
 E28_2G4M20S *Radio = NULL;
-//Telegram *msg = NULL;
+RFProtocol *RadioProtocol = NULL;
+
 
 // $GPGGA,193648.000,5550.0838,N,01224.0718,E,2,8,0.96,32.7,M,41.5,M,0000,0000*62
 GPSL80Lite *GPS = NULL; // GPS class, defined in GPSL80.h
@@ -96,7 +97,9 @@ GpsDataLite *GPSData = NULL;  // GPGGA GPS data:
 //ISR for radio
 void Radio_isr(void){
 //	Serial.println("Time:" + String(millis()));
-  Radio->HandleIRQ(); // The radio module has something for us.
+  //Radio->HandleIRQ(); // The radio module has something for us.
+
+  RadioProtocol->IRQHandler();
 }
 
 void setup() {
@@ -108,7 +111,7 @@ void setup() {
 	// Init USB serial debug /setup:
 	Serial.begin(115200);
 	delay(500);
-	Serial.println("Starting RC Transponder ver. " + String((int)FIRMWARE_VERSION) + "." + String((int)((FIRMWARE_VERSION-((int)FIRMWARE_VERSION))*100)));
+	Serial.println("Starting RC Transponder ver. " + String((int)SystemStatus.FIRMWARE_VERSION) + "." + String((int)((SystemStatus.FIRMWARE_VERSION-((int)SystemStatus.FIRMWARE_VERSION))*100)));
 	
 	// Read and store the 128 bit serial number.
 	ReadSerialNumberFromChipFlash();
@@ -170,9 +173,10 @@ void setup() {
 	
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data rtained, it costs ~70uA.
 	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin);
-	Radio->Init();
+
+	RadioProtocol = new RFProtocol(Radio, GPSData, &SystemStatus);
 	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
-	//attachInterrupt(dio1Pin, Radio->Init, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
+	
 	
 	// Init Frsky Smart port:
 	SerialfrskySPort = new Uart(&sercom3, fryskySmartPortRXPin, fryskySmartPortTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the Frsky SPORT module
@@ -188,7 +192,7 @@ void setup() {
 	//startTimer(1); // 1Hz
 	startTimer3(1); // 1Hz
 	
-	state=STARTING_UP;
+	SystemStatus.state=STARTING_UP;
 	/*
 	if(isGroundStation){
 		Serial.println("I am a groundstation");
@@ -199,7 +203,7 @@ void setup() {
 	*/
 	PowerON(); // Ensure transponder keeps running from battery if external power is lost.
 	PowerONGPSBackup(); // Enable backup power for GPS.
-	BatteryVoltage = getBatteryVoltage();
+	SystemStatus.BatteryVoltage = getBatteryVoltage();
 }
 
 void Recharge(void){
@@ -239,19 +243,19 @@ void loop() {
 	Serial.println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
 	
 	do{
-		if(state == NORMAL)
+		if(SystemStatus.state == NORMAL)
 		{	
 			//// only every second (check status)
-			while(SecondCounter){
+			while(SystemStatus.SecondCounter){
 //				Serial.println("Seccond passed!");
 //				digitalWrite(led2Pin, HIGH);
-				SecondCounter--;
+				SystemStatus.SecondCounter--;
 	
-				BatteryVoltage = getBatteryVoltage();
+				SystemStatus.BatteryVoltage = getBatteryVoltage();
 	
 				// Measure all stuff here:
 				if(getInputVoltage() <= 4.3){
-					state=GET_READY_TO_RUN_ON_BATTERY;				
+					SystemStatus.state=GET_READY_TO_RUN_ON_BATTERY;				
 				}
 		
 			
@@ -275,31 +279,31 @@ void loop() {
 			// RCin->read();  // SBUS, PPM or PWM. 
 			FrskySport.send(); // Service the Serial for SPORT. 	
 			
-		}else if(state == GET_READY_TO_RUN_ON_BATTERY){ // Power off GPS
+		}else if(SystemStatus.state == GET_READY_TO_RUN_ON_BATTERY){ // Power off GPS
 			PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
 			PowerOFFGPS();// Turn OFF GPS.
-			state=RUNNING_ON_BATTERY;
-		}else if(state == RUNNING_ON_BATTERY){
+			SystemStatus.state=RUNNING_ON_BATTERY;
+		}else if(SystemStatus.state == RUNNING_ON_BATTERY){
 			BeaconService();
 			
-			if(BatteryVoltage > 4.3){
-				state=STARTING_UP;
-			}else if(BatteryVoltage <= 3.0){
+			if(SystemStatus.BatteryVoltage > 4.3){
+				SystemStatus.state=STARTING_UP;
+			}else if(SystemStatus.BatteryVoltage <= 3.0){
 					PowerOFF(); // No more battery left, power off.
 					do{}while(1);
 			}else{
 				do{}while(!Radio->IsIdle()); // Wait for Beacon to be transmitted before sleep.
 				GoToSleep(); // Sleep until 1 sec interrupt will wake us up.		
-				BatteryVoltage = getBatteryVoltage();
+				SystemStatus.BatteryVoltage = getBatteryVoltage();
 			}
 			
-		}else if(state == STARTING_UP){
+		}else if(SystemStatus.state == STARTING_UP){
 			PowerONGPS();// Turn on GPS. 			
 			
 			// Set the radio to RX mode without timeout.
-			Radio->SetRXMode(false); // No timeout
-			SecondCounter=0; // reset second counter.
-			state=NORMAL;
+			//Radio->SetRXMode(false); // No timeout
+			SystemStatus.SecondCounter=0; // reset second counter.
+			SystemStatus.state=NORMAL;
 		}
 
 	}while(1); 
@@ -409,7 +413,7 @@ void HandelRadio(void){
 						bool updateComplete = false;
 						
 						// Have we saved a beacon from this unit before? if so updated is:
-						for(int a=0;a<NumberOfBeaconsToRelay; a++){
+						for(int a=0;a<SystemStatus.NumberOfBeaconsToRelay; a++){
 	//						Serial.print("Is memory location "+ String(a) + " from the same beacon?... ");
 						
 							if( SavedBeacons[a].TelegramMatchUniqueID(msg.GetUniqueID1(), msg.GetUniqueID2(), msg.GetUniqueID3(), msg.GetUniqueID4()) == true ){
@@ -427,11 +431,11 @@ void HandelRadio(void){
 							break;
 																		
 						// We should save this if room 
-						if(NumberOfBeaconsToRelay < MAX_NUMBER_OF_BEACONS_TO_SAVE){					
+						if(SystemStatus.NumberOfBeaconsToRelay < MAX_NUMBER_OF_BEACONS_TO_SAVE){					
 				//			Serial.println("Message is saved in memory slot: " + String(NumberOfBeaconsToRelay));						
 						
-							SavedBeacons[NumberOfBeaconsToRelay] = msg;
-							NumberOfBeaconsToRelay++;	
+							SavedBeacons[SystemStatus.NumberOfBeaconsToRelay] = msg;
+							SystemStatus.NumberOfBeaconsToRelay++;	
 						}else{
 						//	Serial.println("Memory is full! - can't save message" + String(NumberOfBeaconsToRelay));						
 					//		Serial.println("");
@@ -463,7 +467,7 @@ void HandelRadio(void){
 							ProtocolCMD_t messageCMD = msg.GetCommand();	
 							
 							// A command was received for us (reset counter for last ground station contact..  also what to do now:
-							SecondCounterSinceLasteGroundStationContact = 0;
+							SystemStatus.SecondCounterSinceLasteGroundStationContact = 0;
 							
 							switch(messageCMD)
 							{								
@@ -473,9 +477,9 @@ void HandelRadio(void){
 									// Reply with transponder beacon:
 									Telegram_MSG_1 msgReply = Telegram_MSG_1(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4,
 																			(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
-																			GPSData->NumberOfSatellites, GPSData->FixDecimal, (state==RUNNING_ON_BATTERY),
+																			GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemStatus.state==RUNNING_ON_BATTERY),
 																			0, 0,
-																			SecondCounterSinceLasteGroundStationContact, BatteryVoltage, FIRMWARE_VERSION, PCB_VERSION, NumberOfBeaconsToRelay);
+																			SystemStatus.SecondCounterSinceLasteGroundStationContact, SystemStatus.BatteryVoltage, SystemStatus.FIRMWARE_VERSION, PCB_VERSION, SystemStatus.NumberOfBeaconsToRelay);
 									do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
 									Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());						
 								}
@@ -483,12 +487,12 @@ void HandelRadio(void){
 
 								case CMD_Request_NEXT_Beacon_Relay:
 								{
-										Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(NumberOfBeaconsToRelay));
+										Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(SystemStatus.NumberOfBeaconsToRelay));
 										// Reply with transponder beacon:
 										
-										if(NumberOfBeaconsToRelay != 0){
-											Telegram_MSG_2 msgReply = Telegram_MSG_2(&SavedBeacons[NumberOfBeaconsToRelay-1]);
-											NumberOfBeaconsToRelay--;
+										if(SystemStatus.NumberOfBeaconsToRelay != 0){
+											Telegram_MSG_2 msgReply = Telegram_MSG_2(&SavedBeacons[SystemStatus.NumberOfBeaconsToRelay-1]);
+											SystemStatus.NumberOfBeaconsToRelay--;
 											do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
 											Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());
 										}
@@ -527,12 +531,14 @@ void HandelRadio(void){
 
 // Ensure a beacon is transmitted every N second.
 bool BeaconService(void){
-	if(BeaconSecondCounter == 5){
+	if(SystemStatus.BeaconSecondCounter == 5){
 		// Send a Standard beacon:
-		BeaconSecondCounter =  0; // Reset Beacon counter.
+		SystemStatus.BeaconSecondCounter =  0; // Reset Beacon counter.
+
+		RadioProtocol->SendBeacon();
 
 		//Serial.println("Send Beacon!");
-
+/*
 		// Make beacon msg
 		float pressure=0;
 		float groundspeed=0;
@@ -546,6 +552,7 @@ bool BeaconService(void){
 		do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.													
 		
 		Radio->SendPackage(msg.GetRadioMSG(), msg.GetRadioMSGLength());
+		*/
 		return true;	
 	}	
 	return false;
