@@ -31,6 +31,11 @@ E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1P
 	pinMode(_rxEnablePin, OUTPUT);
 	digitalWrite(_rxEnablePin, HIGH);		
 	
+	RadioStatusData.rxDone=false;
+	RadioStatusData.txDone=false;
+	RadioStatusData.rxTimeout=false;
+	RadioStatusData.txTimeout=false;
+	
 	// clear FIFO
 	/*
 	for(int a = 0; a < FIFO_SIZE; a ++){
@@ -259,19 +264,27 @@ void E28_2G4M20S::OnRxDone( void )
 */
 
 // Only call this when interrupt has occured.
-void E28_2G4M20S::HandleIRQ( void )
+void E28_2G4M20S::IRQHandler( void )
 {
 	Radio->ProcessIrqs();	
+	
+	// reset all flags.
+	this->RadioStatusData.rxDone=false;
+	this->RadioStatusData.txDone=false;
+	this->RadioStatusData.rxTimeout=false;
+	this->RadioStatusData.txTimeout=false;
 	//Serial.println("E28 Radio Interrupt!");
 	
 	if(Radio->RadioPacketStatus.txDone == true){
 		//Serial.println("TX Done!");
-		this->OnTxDone();
+		//this->OnTxDone();
+		RadioStatusData.txDone = true;	
 	}    
 	if(Radio->RadioPacketStatus.rxDone == true){
 		//Serial.println("RX Done!");
-		this->OnRxDone();
+		//this->OnRxDone();
 		// read the message, check CRC if ok, make available.
+		RadioStatusData.rxDone = true;	
 	}
 	if(Radio->RadioPacketStatus.rxSyncWordDone == true){
 		Serial.println("rxSyncWordDone!");
@@ -281,11 +294,13 @@ void E28_2G4M20S::HandleIRQ( void )
 	}
 	if(Radio->RadioPacketStatus.txTimeout == true){
 		Serial.println("TX Timeout!");
-		radioIdle = true;
+//		radioIdle = true;
+		RadioStatusData.txTimeout = true;	
 	}
 	if(Radio->RadioPacketStatus.rxTimeout == true){
 		Serial.println("RX Timeout!");
-		this->SetRXMode(true); // Do it again!
+//		this->SetRXMode(true); // Do it again!
+		RadioStatusData.rxTimeout = true;	
 	}	
 	if(Radio->RadioPacketStatus.rxError > 0x00){
 		Serial.println("IRQ Error! " + String(Radio->RadioPacketStatus.rxError));
@@ -531,7 +546,64 @@ uint8_t * E28_2G4M20S::GetPayload(uint8_t &len){
 	return Buffer;
 }
 
+RadioData * E28_2G4M20S::GetRadioData()
+{
+	RadioData *newdata = new RadioData;
+	
+	delete newdata;
+	/*
+	if(BufferReady==true){
+		// If buffer us ready, means application is not done reading the data.
+		return;
+	}
+	memset(&Buffer, 0x00, MAX_PAYLOAD_LENGTH);
+	BufferSize=0;
+	if(Radio->GetPayload(Buffer, &BufferSize, MAX_PAYLOAD_LENGTH-2)){
+		// If return 1, then package size is larger than MAX_PAYLOAD_LENGTH
+		Serial.println("Oops! - New package is to big. Length="+String(BufferSize)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
+		}else{
+		// New data has been copied to buffer.
+		Radio->GetPacketStatus(&PacketStatus);
+		switch( PacketStatus.packetType )
+		{
+			case PACKET_TYPE_GFSK:
+			Buffer[BufferSize]	 = PacketStatus.Gfsk.RssiSync;
+			BufferSize=BufferSize+1;
+			break;
+
+			case PACKET_TYPE_LORA:
+			case PACKET_TYPE_RANGING:
+			Buffer[BufferSize] = PacketStatus.LoRa.RssiPkt;
+			Buffer[BufferSize+1] = PacketStatus.LoRa.SnrPkt;
+			BufferSize=BufferSize+2;
+			break;
+
+			case PACKET_TYPE_FLRC:
+			Buffer[BufferSize] = PacketStatus.Flrc.RssiSync;
+			BufferSize=BufferSize+1;
+			break;
+
+			case PACKET_TYPE_BLE:
+			Buffer[BufferSize] = PacketStatus.Ble.RssiSync;
+			BufferSize=BufferSize+1;
+			break;
+
+			case PACKET_TYPE_NONE:
+			Buffer[BufferSize] = 0;
+			break;
+		}
+		
+		//Serial.println("New package received. Length="+String(BufferSize));
+		BufferReady=true;
+	}
+	*/
+}
+
+
 void E28_2G4M20S::SetBufferReady(bool _set){
 	this->BufferReady = _set;
 }
 
+RadioStatus E28_2G4M20S::GetRadioStatus(){
+	return this->RadioStatusData;
+}

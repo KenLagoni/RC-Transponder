@@ -177,5 +177,9 @@ uint16_t Telegram::CalculateCRC(uint8_t *data, uint8_t length){
         return (uint16_t)(crc ^ 0x0000);
 }	
 
+ProtocolMSG_t Telegram::GetRadioMSG_ID(){
+	return MSG_ID;
+}
+
         
        

@@ -30,31 +30,29 @@
 // Size of ticks (used for Tx and Rx timeout)
 #define RX_TIMEOUT_TICK_SIZE                        RADIO_TICK_SIZE_1000_US
 
-/*
-struct RadioTelegram_t
+
+struct RadioStatus
 {	
-	uint8_t receiver_ID;						// ID for the receiver.
-	uint8_t transmitter_ID;						// ID for this unit.
-	uint32_t UTCTime;  					    	// UTC time Zulu in seconds 130032.000 -> 130032
-	int32_t Latitude;							//  5550.0898N -> 55500898 ||  5550.0898S -> -55500898
-	int32_t Longitude;							// 01224.0718E -> 12240718 || 01224.0718W -> -12240718
-	uint8_t Fix;								// 0 = Invalid, 1=GPS fix, 2=DGPS
-	uint8_t NumberOfSatellites;					// Satellites in view.
-	float HDOP;				   					// Horizontal Dilution of Precision (HDOP) 
-	float Altitude;								// Altitude in meters above sea level.
-	
-	float BatteryVoltage;						// Battery voltage on transponder battery
-	float FirmwwareVersion;
-	uint8_t PCBVersion;
-	int8_t rssi;
+	bool txDone;
+	bool rxDone;
+	bool txTimeout;
+	bool rxTimeout;	
 };
-*/
+
+struct RadioData
+{
+	uint8_t payload[MAX_PAYLOAD_LENGTH];
+	uint8_t payloadLength;
+	uint8_t rssi;
+	uint8_t snr;	
+};
+
 class E28_2G4M20S
 {
   public:
     E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin);
 	void Init(); 
-	void HandleIRQ();
+	void IRQHandler();
 	void SetRXMode(bool useTimeout); 
 	void Debug();
 	void Sleep();
@@ -67,7 +65,9 @@ class E28_2G4M20S
 	void SendPackage(uint8_t *payload, uint8_t payloadLength);
 //	uint8_t GetPackage(uint8_t *payload, uint8_t maxSize); // returns the payload length
 	uint8_t * GetPayload(uint8_t &len);
+	RadioData * GetRadioData();
 	void SetBufferReady(bool _set);
+	RadioStatus GetRadioStatus();
 		
   private:
     // Pins:
@@ -98,6 +98,8 @@ class E28_2G4M20S
     ModulationParams_t modulationParams;
   	
     SX1280Hal *Radio = NULL;
+	
+	RadioStatus RadioStatusData;
 	
 	////////////////////
 	

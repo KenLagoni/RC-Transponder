@@ -82,7 +82,8 @@ class Telegram
 
 	
 	uint16_t CalculateCRC(uint8_t *data, uint8_t length);  // should be protected, but public for debug
-		
+
+	ProtocolMSG_t GetRadioMSG_ID();
 	
 				
 	// General helper functions and varibels only used by inherited MSG classes.

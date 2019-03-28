@@ -62,10 +62,26 @@ class RFProtocol
 
 	RingBuf<Telegram*, FIFO_SIZE> rxFIFO;
 	RingBuf<Telegram*, FIFO_SIZE> txFIFO;
-	RingBuf<Telegram*, FIFO_SIZE> RelayTelegrams;
+	//RingBuf<Telegram*, FIFO_SIZE> RelayTelegrams; // must be 
+	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
+	
+	//void ServiceStateMachine();
+	bool IncommingPackageHandler(); // return true if reply is required Else false.
+	void SendTelegram(Telegram *msg);
 
-
-
+	enum RFProtocolStates_t {
+		RX_IDLE = 0,
+		WAITING_FOR_REPLY,
+		TX_WITHOUT_REPLY,
+		TX_WITH_REPLY,
+		SLEEP
+	}state = RX_IDLE;
+	
+	struct RFProtocolStatus_t
+	{
+		uint8_t NumberOfBeaconsToRelay = 0;
+		uint8_t SecondCounterSinceLasteGroundStationContact = 0;
+	}RFProtocolStatus;	
 };
 
 
