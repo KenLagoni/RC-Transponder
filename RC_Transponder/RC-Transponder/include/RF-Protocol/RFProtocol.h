@@ -38,10 +38,11 @@ class RFProtocol
 {
 	// Public functions to be used on all Messages
 	public:
-	RFProtocol(E28_2G4M20S *RadioModule, GpsDataLite *GPS, SystemInfomation *status); //constructor.
+	RFProtocol(E28_2G4M20S *RadioModule, GpsDataLite *GPS, SystemInformation_t *status); //constructor.
 	void TxTelegram(Telegram *msg); // Add Telegram to TX FIFO.
 	Telegram * GetTelegram(); // return next telegram in RX FIFO.
 	int TelegramAvailable(); // returns number of Telegrams in RX FIFO.
+
 	void SendBeacon(); // Add a beacon message to TX FIFO.
 	
 	void PowerDown();
@@ -55,19 +56,12 @@ class RFProtocol
 	
 	// Parameters only used on Telegram mother class.
 	private:
-	E28_2G4M20S *Radio = NULL;
-	GpsDataLite *GPSData = NULL;
-	SystemInfomation *SystemStatus = NULL;
-	
 
-	RingBuf<Telegram*, FIFO_SIZE> rxFIFO;
-	RingBuf<Telegram*, FIFO_SIZE> txFIFO;
-	//RingBuf<Telegram*, FIFO_SIZE> RelayTelegrams; // must be 
-	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
-	
-	//void ServiceStateMachine();
-	bool IncommingPackageHandler(); // return true if reply is required Else false.
-	void SendTelegram(Telegram *msg);
+	struct RFProtocolStatus_t
+	{
+		uint8_t NumberOfBeaconsToRelay = 0;
+		uint8_t SecondCounterSinceLasteGroundStationContact = 0;
+	}RFProtocolStatus;
 
 	enum RFProtocolStates_t {
 		RX_IDLE = 0,
@@ -76,12 +70,23 @@ class RFProtocol
 		TX_WITH_REPLY,
 		SLEEP
 	}state = RX_IDLE;
+
+	E28_2G4M20S *Radio = NULL;
+	GpsDataLite *GPSData = NULL;
+	SystemInformation_t *SystemInformation = NULL;
 	
-	struct RFProtocolStatus_t
-	{
-		uint8_t NumberOfBeaconsToRelay = 0;
-		uint8_t SecondCounterSinceLasteGroundStationContact = 0;
-	}RFProtocolStatus;	
+	RingBuf<Telegram*, FIFO_SIZE> rxFIFO;
+	RingBuf<Telegram*, FIFO_SIZE> txFIFO;
+	//RingBuf<Telegram*, FIFO_SIZE> RelayTelegrams; // must be 
+	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
+	Telegram_MSG_2 * GetSavedTransponderBeaconForRelay();
+
+	RFProtocolStates_t RXHandler();
+	RFProtocolStates_t TXHandler();
+	Telegram * ConvertIncommingDataToTelegram(); // return pointer to incomming package if CRC is ok, else NULL.
+	void SendTelegram(Telegram *msg);
+	bool SaveTransponderBeacon(Telegram_MSG_1 *msg); // Return true if message is saved
+
 };
 
 

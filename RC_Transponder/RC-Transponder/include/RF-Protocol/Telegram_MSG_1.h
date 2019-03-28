@@ -21,7 +21,7 @@ class Telegram_MSG_1 : public Telegram
 	virtual void SerialPrintMessage( void );    // Function for each massage to print out the data to Serial.print.	
 	virtual uint8_t * GetRadioMSG(void);		 // Function which returns pointer to the payload for Radio transmittion. 
 	virtual uint8_t * GetSerialMSG(void);        // Function which returns pointer to the payload for Serial transmittion. 
-		
+	
 	// Constructor to create empty messages. (only used for compile to allocate memmory)
 	Telegram_MSG_1();
 	
@@ -30,6 +30,8 @@ class Telegram_MSG_1 : public Telegram
 	
 	// Constructor to create messages from payload array.
 	Telegram_MSG_1(uint8_t *data, uint8_t size);	
+	
+	virtual	~Telegram_MSG_1(){};	// destructor.
 
 	uint8_t GetNumberOfSecondsSinceLastGroundStationCom( void ); // function which returns Number Of Seconds Since Last Ground Station Comunication.
 	uint32_t GetUTCTime();
@@ -51,7 +53,7 @@ class Telegram_MSG_1 : public Telegram
 	protected:
 	virtual void ReadPayload( void );		 // Each messages should be able to parse/decode the payload to specific cases.
 	virtual void GeneratePayload( uint8_t *data );	 // Each messages should be able to generate a payload based on values.
-	
+
 	void FixedPayload(); // debug
 											
 	private:

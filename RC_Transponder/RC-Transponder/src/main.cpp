@@ -71,7 +71,7 @@ String base64_encode(byte[], int);
 Telegram_MSG_1 SavedBeacons[MAX_NUMBER_OF_BEACONS_TO_SAVE];
 
 // System information
-SystemInfomation SystemStatus;
+SystemInformation_t SystemInformation;
 
 // FRSKY SPORT GPS
 FrSkySportSensorGps FrskyGPS;                 // Create GPS sensor with default ID
@@ -111,7 +111,7 @@ void setup() {
 	// Init USB serial debug /setup:
 	Serial.begin(115200);
 	delay(500);
-	Serial.println("Starting RC Transponder ver. " + String((int)SystemStatus.FIRMWARE_VERSION) + "." + String((int)((SystemStatus.FIRMWARE_VERSION-((int)SystemStatus.FIRMWARE_VERSION))*100)));
+	Serial.println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
 	
 	// Read and store the 128 bit serial number.
 	ReadSerialNumberFromChipFlash();
@@ -174,7 +174,7 @@ void setup() {
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data rtained, it costs ~70uA.
 	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin);
 
-	RadioProtocol = new RFProtocol(Radio, GPSData, &SystemStatus);
+	RadioProtocol = new RFProtocol(Radio, GPSData, &SystemInformation);
 	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
 	
 	
@@ -192,7 +192,7 @@ void setup() {
 	//startTimer(1); // 1Hz
 	startTimer3(1); // 1Hz
 	
-	SystemStatus.state=STARTING_UP;
+	SystemInformation.state=STARTING_UP;
 	/*
 	if(isGroundStation){
 		Serial.println("I am a groundstation");
@@ -203,7 +203,7 @@ void setup() {
 	*/
 	PowerON(); // Ensure transponder keeps running from battery if external power is lost.
 	PowerONGPSBackup(); // Enable backup power for GPS.
-	SystemStatus.BatteryVoltage = getBatteryVoltage();
+	SystemInformation.BatteryVoltage = getBatteryVoltage();
 }
 
 void Recharge(void){
@@ -243,67 +243,67 @@ void loop() {
 	Serial.println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
 	
 	do{
-		if(SystemStatus.state == NORMAL)
+		if(SystemInformation.state == NORMAL)
 		{	
 			//// only every second (check status)
-			while(SystemStatus.SecondCounter){
+			while(SystemInformation.SecondCounter){
 //				Serial.println("Seccond passed!");
 //				digitalWrite(led2Pin, HIGH);
-				SystemStatus.SecondCounter--;
+				SystemInformation.SecondCounter--;
 	
-				SystemStatus.BatteryVoltage = getBatteryVoltage();
+				SystemInformation.BatteryVoltage = getBatteryVoltage();
 	
 				// Measure all stuff here:
 				if(getInputVoltage() <= 4.3){
-					SystemStatus.state=GET_READY_TO_RUN_ON_BATTERY;				
+					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;				
 				}
 		
 			
 				// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
 				FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);		
-				
+				/*
 				if(!BeaconService()){ // Transmit beacon every N second.	
 					 // Enter here when no beacon is sent...
 					 			
 					 // Request transponder data from ID 2: (debug)
 					 // Telegram_MSG_1 msg = Telegram_MSG_1(2,UNIT_ID,MSG_Transponder_Data);
 					 // Radio->SendPackage(msg.Payload, msg.GetPayloadLength());
-				}			
+				}		*/	
 
 			}
 	
 			////// Below this line, code is executed fast! 
 			HandelSerial();	 // Communication via USB (only if used as groundstation
-			HandelRadio();  // Read new messages and reply as needed.  
+//			HandelRadio();  // Read new messages and reply as needed.  
 			GPS->update();  // Function empty serial buffer and analyzes string.
 			// RCin->read();  // SBUS, PPM or PWM. 
 			FrskySport.send(); // Service the Serial for SPORT. 	
 			
-		}else if(SystemStatus.state == GET_READY_TO_RUN_ON_BATTERY){ // Power off GPS
+		}else if(SystemInformation.state == GET_READY_TO_RUN_ON_BATTERY){ // Power off GPS
 			PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
 			PowerOFFGPS();// Turn OFF GPS.
-			SystemStatus.state=RUNNING_ON_BATTERY;
-		}else if(SystemStatus.state == RUNNING_ON_BATTERY){
-			BeaconService();
+			SystemInformation.state=RUNNING_ON_BATTERY;
+		}else if(SystemInformation.state == RUNNING_ON_BATTERY){
+			//BeaconService();
 			
-			if(SystemStatus.BatteryVoltage > 4.3){
-				SystemStatus.state=STARTING_UP;
-			}else if(SystemStatus.BatteryVoltage <= 3.0){
+			if(SystemInformation.BatteryVoltage > 4.3){
+				SystemInformation.state=STARTING_UP;
+			}else if(SystemInformation.BatteryVoltage <= 3.0){
 					PowerOFF(); // No more battery left, power off.
 					do{}while(1);
 			}else{
 				do{}while(!Radio->IsIdle()); // Wait for Beacon to be transmitted before sleep.
 				GoToSleep(); // Sleep until 1 sec interrupt will wake us up.		
-				SystemStatus.BatteryVoltage = getBatteryVoltage();
+				SystemInformation.BatteryVoltage = getBatteryVoltage();
 			}
 			
-		}else if(SystemStatus.state == STARTING_UP){
+		}else if(SystemInformation.state == STARTING_UP){
 			PowerONGPS();// Turn on GPS. 			
 			
 			// Set the radio to RX mode without timeout.
 			//Radio->SetRXMode(false); // No timeout
-			SystemStatus.SecondCounter=0; // reset second counter.
-			SystemStatus.state=NORMAL;
+			SystemInformation.SecondCounter=0; // reset second counter.
+			SystemInformation.state=NORMAL;
 		}
 
 	}while(1); 
@@ -358,7 +358,7 @@ void Do_ground_station_loop(void){
 		delay(100);
 	}while(1);
 }
-
+/*
 
 uint8_t Serialmsg[50];
 
@@ -529,6 +529,7 @@ void HandelRadio(void){
 }
 
 
+
 // Ensure a beacon is transmitted every N second.
 bool BeaconService(void){
 	if(SystemStatus.BeaconSecondCounter == 5){
@@ -553,10 +554,10 @@ bool BeaconService(void){
 		
 		Radio->SendPackage(msg.GetRadioMSG(), msg.GetRadioMSGLength());
 		*/
-		return true;	
-	}	
-	return false;
-}
+		//return true;	
+//	}	
+//	return false;
+//}
 
 
 
@@ -665,10 +666,11 @@ void HandelSerial(void){
 							case MSG_Command:
 							{
 								SerialAUX->println("Ping transponder!");
-								Telegram_MSG_3 msg = Telegram_MSG_3(incommingData, dataLength);
-								if(msg.CRCValid()){
-									do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-									Radio->SendPackage(msg.GetRadioMSG(), msg.GetRadioMSGLength());
+								Telegram_MSG_3 *msg = new Telegram_MSG_3(incommingData, dataLength);
+								if(msg->CRCValid()){
+									RadioProtocol->TxTelegram(msg);
+								}else{
+									delete msg;
 								}
 							}
 							break;

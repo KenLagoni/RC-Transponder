@@ -8,7 +8,7 @@
  #include "Arduino.h" // for serial.print
 
  
- Telegram::Telegram(void){
+ Telegram::Telegram(){
 	memset(&Payload, 0,  MAX_PAYLOAD_LENGTH);
  }
 
@@ -19,6 +19,7 @@
 	PayloadLength = payloadSize;
 	ReadPayloadHeader();
  }*/
+
  Telegram::Telegram(uint8_t *data, uint8_t size)
  {
  	if(size >= MAX_PAYLOAD_LENGTH){

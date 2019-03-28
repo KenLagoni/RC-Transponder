@@ -69,6 +69,7 @@ class Telegram
 	virtual uint8_t * GetRadioMSG(void) = 0;     // Function which returns a pointer to the payload. 
 	virtual uint8_t * GetSerialMSG(void) = 0;    // Function which returns a pointer to the payload. 
 	virtual void SerialPrintMessage( void ) = 0; // Function for each message to print out the data to Serial.print	
+	virtual ~Telegram(){}					 	 // Destructor is virtual to ensure correct destructor is used when deleting telegrams.
 	
 	uint8_t GetRadioMSGLength(void);    // Function which returns the payload length for Radio transmittion.
 	uint8_t GetSerialMSGLength(void);    // Function which returns the payload length for Serial transmittion.
@@ -90,7 +91,7 @@ class Telegram
 	protected:
 	Telegram();
 	Telegram(uint8_t *data, uint8_t size);
-
+	
 	// Functions for every messages
 	virtual void ReadPayload( void ) = 0;	  // Each messages should be able to parse/decode the payload to specific cases.
 	virtual void GeneratePayload(uint8_t *data) = 0;	  // Each messages should be able to generate a payload based on values.

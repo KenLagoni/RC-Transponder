@@ -19,10 +19,10 @@
  #include "GPSL80Lite.h"
 
 
- RFProtocol::RFProtocol(E28_2G4M20S *Radio, GpsDataLite *GPS, SystemInfomation *status){
+ RFProtocol::RFProtocol(E28_2G4M20S *Radio, GpsDataLite *GPS, SystemInformation_t *status){
 	this->Radio = Radio;
 	this->GPSData = GPS;
-	this->SystemStatus = status;
+	this->SystemInformation = status;
 
 	Radio->Init();
 	Radio->SetRXMode(false); // no timeout
@@ -105,13 +105,186 @@
  }
 
 
+
+Telegram_MSG_2 * RFProtocol::GetSavedTransponderBeaconForRelay(){
 	
- void RFProtocol::IRQHandler()
+	if(RFProtocolStatus.NumberOfBeaconsToRelay == 0){
+		return NULL;
+	}
+	
+	Telegram_MSG_1 *savedmsg = SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay-1];
+	RFProtocolStatus.NumberOfBeaconsToRelay--;	
+	
+	// Convert to relay msg:
+	Telegram_MSG_2 *msg = new Telegram_MSG_2(SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay-1]);
+	delete savedmsg;
+
+	return msg;
+}
+
+bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
+	 if(msg->GetNumberOfSecondsSinceLastGroundStationCom() > 20){
+		 // Have we saved a beacon from this unit before? if so updated is:
+		 for(int a=0;a<RFProtocolStatus.NumberOfBeaconsToRelay; a++){
+			 //						Serial.print("Is memory location "+ String(a) + " from the same beacon?... ");
+			 if( SavedBeacons[a]->TelegramMatchUniqueID(msg->GetUniqueID1(), msg->GetUniqueID2(), msg->GetUniqueID3(), msg->GetUniqueID4()) == true ){
+				 //							Serial.println("Yes! - Updating!");
+				 SavedBeacons[a] = msg;
+				 return true; // Done, msg was updated in list.
+
+				 }else{
+				 //					Serial.println("No!");
+			 }
+		 }
+	 
+		 // We should save this if room
+		 if(RFProtocolStatus.NumberOfBeaconsToRelay < FIFO_SIZE){
+			 //			Serial.println("Message is saved in memory slot: " + String(NumberOfBeaconsToRelay));
+			 SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay] = msg;
+			 RFProtocolStatus.NumberOfBeaconsToRelay++;
+			 return true; // Done, msg was added to list
+		 }else{
+			 //	Serial.println("Memory is full! - can't save message" + String(NumberOfBeaconsToRelay));
+			 //		Serial.println("");
+			 //			Serial.println("-------------- Printing Beacon messages saved in Memory -------------");
+			 
+			 // debug
+			 for(int a=0;a<FIFO_SIZE; a++){
+				 //			Serial.println("Messages number: " + String(a));
+				 SavedBeacons[a]->SerialPrintMessage();
+			 }
+		 }
+	}	
+	return false;
+}
+
+RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
+	Telegram *msg = ConvertIncommingDataToTelegram();
+	if(msg!=NULL){
+		bool SaveTelegram = false;
+					
+		switch(msg->GetRadioMSG_ID())
+		{
+			case MSG_Beacon_Broadcast:
+				SaveTelegram = SaveTransponderBeacon((Telegram_MSG_1 *)msg);				
+			break;
+
+			case MSG_Beacon_Relay:
+					// Do nothing.
+			break;
+
+			case MSG_Command:
+				if(msg->TelegramMatchUniqueID(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4))
+				{
+					// Command received for us!
+					switch(((Telegram_MSG_3 *)msg)->GetCommand())
+					{
+						case CMD_Request_Transponder_Beacon:
+						{
+							Serial.println("Reply with Transponder Beacon!");
+							 
+							// Reply with transponder beacon:
+							/*
+							Telegram_MSG_1 msgReply = Telegram_MSG_1(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4,
+							(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
+							GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemStatus.state==RUNNING_ON_BATTERY),
+							0, 0,
+							SystemStatus.SecondCounterSinceLasteGroundStationContact, SystemStatus.BatteryVoltage, SystemStatus.FIRMWARE_VERSION, PCB_VERSION, SystemStatus.NumberOfBeaconsToRelay);
+							*/
+							//Radio->SendPackage(msgReply->GetRadioMSG(), msgReply->GetRadioMSGLength())
+							return TX_WITHOUT_REPLY;
+						}
+						break;
+
+						case CMD_Request_NEXT_Beacon_Relay:
+						{
+							Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(RFProtocolStatus.NumberOfBeaconsToRelay));
+							// Reply with transponder beacon:
+							Telegram_MSG_2 * msgReply = GetSavedTransponderBeaconForRelay();
+							if(msgReply != NULL){
+								Radio->SendPackage(msgReply->GetRadioMSG(), msgReply->GetRadioMSGLength());
+								delete msgReply;
+								return TX_WITHOUT_REPLY;
+							}
+						}
+						break;
+
+						case CMD_Do_Power_Off:
+						{
+							Serial.println("Power off");
+						}
+						break;		
+								
+						default:
+						break;					
+					}
+				}
+			break;
+		}					
+		// Save in RX FIFO:
+		if(!(rxFIFO.isFull())){
+			rxFIFO.push(msg);
+			SaveTelegram=true;
+		}
+		if(!SaveTelegram) // delete message if FIFO was full and telegram not saved in SavedBeacons List.
+			delete msg;
+	}		
+
+	return RX_IDLE;
+}
+
+RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
+	Telegram *msg = NULL;
+	if(txFIFO.pop(msg)){
+		if(msg!=NULL){
+			bool SaveTelegram = false;
+					
+			switch(msg->GetRadioMSG_ID())
+			{
+				case MSG_Beacon_Broadcast:
+				case MSG_Beacon_Relay:
+					Radio->SendPackage(msg->GetRadioMSG(), msg->GetRadioMSGLength());
+					delete msg;
+					return TX_WITHOUT_REPLY;
+				break;
+
+				case MSG_Command:
+					switch(((Telegram_MSG_3 *)msg)->GetCommand())
+					{
+						case CMD_Request_Transponder_Beacon:
+						case CMD_Request_NEXT_Beacon_Relay:
+						{
+							Radio->SendPackage(msg->GetRadioMSG(),msg->GetRadioMSGLength());
+							delete msg;
+							return TX_WITH_REPLY;
+						}
+						break;
+
+						case CMD_Do_Power_Off:
+						{
+							Radio->SendPackage(msg->GetRadioMSG(),msg->GetRadioMSGLength());
+							delete msg;
+							return TX_WITHOUT_REPLY;
+							Serial.println("Power off");
+						}
+						break;		
+								
+						default:
+						break;					
+					}
+				break;
+			}
+		}		
+	}
+	return RX_IDLE;
+}
+
+void RFProtocol::IRQHandler()
  {
 	 if(state != SLEEP){
 		this->Radio->IRQHandler();
 		RadioStatus status = Radio->GetRadioStatus();
-		state nextState = RX_IDLE;
+		RFProtocolStates_t nextState = RX_IDLE;
 	
 		switch(state)
 		{
@@ -119,14 +292,16 @@
 			{
 				if(status.rxDone == true){
 				// New package received  
-					if(IncommingPackageHandler()){
-						nextState=TX_WITHOUT_REPLY;
+					nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+					if(nextState == RX_IDLE){ // If we didn't need to reply to the incoming data, then test if we need to transmit anything from the buffer:
+						nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 					}
 				}
 				 
 				if((status.txDone == true) || (status.txTimeout == true) || (status.rxTimeout == true)) {
 					// This must be a mistake?
-					Serial.println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State");
+					Serial.println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State");				
+					nextState=RX_IDLE;
 				}				 
 			}
 			break;
@@ -135,27 +310,19 @@
 			{
 				if(status.rxDone == true){
 					// New package received
-					if(IncommingPackageHandler()){
-						nextState=TX_WITHOUT_REPLY; // Radio is busy transmitting something
-					}else{
-						if(txFIFO.isEmpty()){
-							nextState=RX_IDLE;  // no more to TX, then lets just listen
-							Radio->SetRXMode(false); // No timeout
-						}else{
-							// send next data in fifio.
-							// delete next data 
-						}
-							
+					nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+					if(nextState == RX_IDLE){ // If we didn't need to reply to the incoming data, then test if we need to transmit anything from the buffer:
+						nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 					}
 				}
 				if(status.rxTimeout == true){
-					// We didn't received any data
-					 
-					// More data to send? -> TX else ->RX					 					 
+					// Send next telegram in FIFO, else to nextstate will be RX_IDLE.
+					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 				}
 				if((status.txDone == true) || (status.txTimeout == true)) {
 					// This must be a mistake?
 					Serial.println("RF Protocol Error: txDone||txTimeout in WAITING_FOR_REPLY State");
+					nextState=RX_IDLE;
 				} 
 			}
 			break;
@@ -164,16 +331,18 @@
 			case TX_WITHOUT_REPLY:
 			{
 				if(status.txDone == true){
-					// Done sending
-					// FIFO TX fifo !empty -> TX next, else go to RX
+					// Done sending - Send next telegram in FIFO, else to nextstate will be RX_IDLE.
+					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 				}
 				if(status.txTimeout == true){
 					// Error in transmission
 					Serial.println("RF Protocol Error: Transmission failed!");
+					nextState=RX_IDLE;
 				}
 				if((status.rxDone == true) || (status.rxTimeout == true)) {
 					// This must be a mistake?
 					Serial.println("RF Protocol Error: rxDone||rxTimeout in TX_WITHOUT_REPLY State");
+					nextState=RX_IDLE;
 				}			  	 
 			}
 			break;
@@ -181,16 +350,18 @@
 			case TX_WITH_REPLY:
 			{
 				if(status.txDone == true){
-					// Done sending
-					// go to WAITING_FOR_REPLY.
+					// Done sending, set Radio to RX with timeout.
+					nextState=WAITING_FOR_REPLY;
 				}
 				if(status.txTimeout == true){
 					// Error in transmission
+					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 					Serial.println("RF Protocol Error: Transmission failed!");
 				}
 				if((status.rxDone == true) || (status.rxTimeout == true)) {
 					// This must be a mistake?
 					Serial.println("RF Protocol Error: rxDone||rxTimeout in TX_WITH_REPLY State");
+					nextState=RX_IDLE;
 				}
 			}
 			break;
@@ -205,175 +376,64 @@
 			default:
 			break;
 		}
- 		 
+
+		if(nextState == WAITING_FOR_REPLY){
+			Radio->SetRXMode(true); // Set RX with timeout.
+		}else if(nextState == RX_IDLE){
+			Radio->SetRXMode(false); // Set RX without timeout.
+		}
+
+ 		state=nextState;	 
 	 }  
  }
  
  
-bool RFProtocol::IncommingPackageHandler(){
+Telegram * RFProtocol::ConvertIncommingDataToTelegram(){
 
 	 RadioData *newdata = Radio->GetRadioData();
-	 
-	 bool replySent = false;
-	 
+ 
 	 if(newdata == NULL)
-	 return replySent;
+		return NULL;
 	 
 	 ProtocolMSG_t newMessageID = (ProtocolMSG_t)newdata->payload[0];
 	 
+	 Telegram *msg =NULL;
+
 	 switch(newMessageID)
 	 {
-		 case MSG_Beacon_Broadcast: // Save to rxFIFO, save if not GS contact indication, 
+		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
 		 {
-			 Telegram_MSG_1 *msg = new Telegram_MSG_1(newdata->payload, newdata->payloadLength);
-			 bool msgUnused = true;
-			 if(msg->CRCValid()){
-				 
-				 // Save in RX FIFO:
-				 if(!(rxFIFO.isFull())){
-					 rxFIFO.push(msg);
-					 msgUnused=false;
-				 }
-				 
-				 if(msg->GetNumberOfSecondsSinceLastGroundStationCom() > 20){
-					 bool updateComplete = false;
-					 // Have we saved a beacon from this unit before? if so updated is:
-					 for(int a=0;a<RFProtocolStatus.NumberOfBeaconsToRelay; a++){
-						 //						Serial.print("Is memory location "+ String(a) + " from the same beacon?... ");
-						 if( SavedBeacons[a]->TelegramMatchUniqueID(msg->GetUniqueID1(), msg->GetUniqueID2(), msg->GetUniqueID3(), msg->GetUniqueID4()) == true ){
-							 //							Serial.println("Yes! - Updating!");
-							 SavedBeacons[a] = msg;
-							 updateComplete = true;
-							 msgUnused=false;
-							 break;
-							 }else{
-							 //					Serial.println("No!");
-						 }
-					 }
-					 
-					 if(updateComplete)
-					 break;
-					 
-					 // We should save this if room
-					 if(RFProtocolStatus.NumberOfBeaconsToRelay < FIFO_SIZE){
-						 //			Serial.println("Message is saved in memory slot: " + String(NumberOfBeaconsToRelay));
-						 SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay] = msg;
-						 RFProtocolStatus.NumberOfBeaconsToRelay++;
-						 msgUnused=false;
-						 }else{
-						 //	Serial.println("Memory is full! - can't save message" + String(NumberOfBeaconsToRelay));
-						 //		Serial.println("");
-						 //			Serial.println("-------------- Printing Beacon messages saved in Memory -------------");
-						 
-						 // debug
-						 for(int a=0;a<FIFO_SIZE; a++){
-							 //			Serial.println("Messages number: " + String(a));
-							 SavedBeacons[a]->SerialPrintMessage();
-						 }
-					 }
-				 }
-			 }
-			 
-			 if(msgUnused == true){ // Delete msg if: not saved to rxFIFO, not saved/updated to SavedBeacons or CRC is not ok.
-				 delete msg;
-			 }
+			 msg =new Telegram_MSG_1(newdata->payload, newdata->payloadLength);
 		 }
 		 break;
 		 
-		 case MSG_Beacon_Relay: // Save Beacon relay to rxFiFo.
+		 case MSG_Beacon_Relay: //Create Beacon Realy Telegram.
 		 {
-			 // Relay messages are saved in rxFIFO at the moment
-			 Telegram_MSG_2 *msg = new Telegram_MSG_2(newdata->payload, newdata->payloadLength);
-			 bool msgUnused = true;
-			 if(msg->CRCValid()){
-				 // Save in RX FIFO:
-				 if(!(rxFIFO.isFull())){
-					 rxFIFO.push(msg);
-					 msgUnused=false;
-				 }
-			 }
-			 if(msgUnused == true){ // Delete msg if: not saved to rxFIFO, not saved/updated to SavedBeacons or CRC is not ok.
-				 delete msg;
-			 }
+			 msg =new Telegram_MSG_2(newdata->payload, newdata->payloadLength);
 		 }
 		 break;
 		 
-		 case MSG_Command: // Handle Commands.
+		 case MSG_Command: // Create command Telegram.
 		 {
-			 Telegram_MSG_3 *msg = new Telegram_MSG_3(newdata->payload, newdata->payloadLength);
-			 bool msgUnused = true;
-			  
-			 if(msg->CRCValid()){
-				 //Serial.println("Message 3 Received!...");
-				 if(msg->TelegramMatchUniqueID(SystemStatus->SerialNumber1, SystemStatus->SerialNumber2, SystemStatus->SerialNumber3, SystemStatus->SerialNumber4)){
-					 Serial.println("For me! - Reading command ID: " + String(msg->GetCommand()));
-					 ProtocolCMD_t messageCMD = msg->GetCommand();
-					 
-					 // A command was received for us (reset counter for last ground station contact..  also what to do now:
-					 RFProtocolStatus.SecondCounterSinceLasteGroundStationContact = 0;
-					 
-					 switch(messageCMD)
-					 {
-						 case CMD_Request_Transponder_Beacon:
-						 {
-							 Serial.println("Reply with Transponder Beacon!");
-							 
-							 // Reply with transponder beacon:
-							 /*
-							 Telegram_MSG_1 msgReply = Telegram_MSG_1(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4,
-							 (uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
-							 GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemStatus.state==RUNNING_ON_BATTERY),
-							 0, 0,
-							 SystemStatus.SecondCounterSinceLasteGroundStationContact, SystemStatus.BatteryVoltage, SystemStatus.FIRMWARE_VERSION, PCB_VERSION, SystemStatus.NumberOfBeaconsToRelay);
-							 */
-							 //Radio->SendPackage(msgReply->GetRadioMSG(), msgReply->GetRadioMSGLength())
-							  replySent = true;					 
-						 }
-						 break;
-
-						 case CMD_Request_NEXT_Beacon_Relay:
-						 {
-							 Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(RFProtocolStatus.NumberOfBeaconsToRelay));
-							 // Reply with transponder beacon:
-							 
-							 if(RFProtocolStatus.NumberOfBeaconsToRelay != 0){
-								 Telegram_MSG_2 msgReply = Telegram_MSG_2(SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay-1]);
-								 RFProtocolStatus.NumberOfBeaconsToRelay--;
-								 Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());
-								 replySent = true;
-							 }
-						 }
-						 break;
-
-						 case CMD_Do_Power_Off:
-						 {
-							 Serial.println("Power off");
-						 }
-						 break;
-
-						 default:
-						 Serial.println("Unknown command.");
-						 break;
-					 }
-					 
-					 
-					 //							msg.SerialPrintMessage();
-					 }else{
-					 Serial.println("Not For me! :-(");
-				 }
-			 }
-			 if(msgUnused == true){ // Delete msg if: not saved.
-				delete msg;
-			 }
+			 msg =new Telegram_MSG_2(newdata->payload, newdata->payloadLength);
 		 }
 		 break;
 		 
 		 default:
-		 Serial.println("Unknown Incoming message! from Radio.");
+			Serial.println("Unknown Incoming message! from Radio.");
+			delete newdata; 
+			return NULL;
 		 break;
 	 }
-	 
-	 delete newdata; // memcpy in Telegram constructor.
-	 
-	 return replySent; // true if reply has been started.
+
+	 delete newdata; 
+	 if(msg->CRCValid()){
+		 return msg;
+	 }else{
+		 delete msg;
+		 return NULL;
+	 }
  }
+
+ 
+					

@@ -31,7 +31,8 @@ class Telegram_MSG_2 : public Telegram
 	
 	// Constructor to create messages from MSG 1.
 	Telegram_MSG_2(Telegram_MSG_1 *msg);
-	
+
+	virtual	~Telegram_MSG_2(){};	// destructor.	
 
 	protected:
 	virtual void ReadPayload( void );		 // Each messages should be able to parse/decode the payload to specific cases.

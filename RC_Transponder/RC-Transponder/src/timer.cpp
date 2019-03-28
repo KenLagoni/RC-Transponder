@@ -81,16 +81,16 @@ void TC3_Handler() {
 		// Write callback here!!!
 		
 	
-		if(SystemStatus.SecondCounterSinceLasteGroundStationContact < 254){
-			SystemStatus.SecondCounterSinceLasteGroundStationContact++;
+		if(SystemInformation.SecondCounterSinceLasteGroundStationContact < 254){
+			SystemInformation.SecondCounterSinceLasteGroundStationContact++;
 		}
 		
-		if(SystemStatus.SecondCounter < 254){
-			SystemStatus.SecondCounter++;
+		if(SystemInformation.SecondCounter < 254){
+			SystemInformation.SecondCounter++;
 		}
 		
-		if(SystemStatus.BeaconSecondCounter < 20){
-			SystemStatus.BeaconSecondCounter++;
+		if(SystemInformation.BeaconSecondCounter < 20){
+			SystemInformation.BeaconSecondCounter++;
 		}
 	}
 }

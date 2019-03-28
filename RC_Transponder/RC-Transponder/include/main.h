@@ -21,7 +21,7 @@ enum TRANSPONDER_STATES {
 	POWER_OFF
 };
 
-extern struct SystemInfomation
+extern struct SystemInformation_t
 {	
 	// Hardware and Software version defines
 	const float FIRMWARE_VERSION = 0.95;
@@ -53,7 +53,7 @@ extern struct SystemInfomation
 	volatile uint32_t *AddrSerialNumber4 = (volatile uint32_t *)0x0080A048;
 	uint32_t SerialNumber4= *AddrSerialNumber4;	
 
-}SystemStatus;
+}SystemInformation;
 
 
 #define MAX_NUMBER_OF_BEACONS_TO_SAVE 10

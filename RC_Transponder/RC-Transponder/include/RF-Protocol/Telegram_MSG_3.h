@@ -39,6 +39,8 @@ class Telegram_MSG_3 : public Telegram
 	// Constructor to create messages from payload array.
 	Telegram_MSG_3(uint8_t *data, uint8_t size);
 
+	virtual	~Telegram_MSG_3(){};	// destructor.
+
 	protected:
 	virtual void ReadPayload( void );		 // Each messages should be able to parse/decode the payload to specific cases.
 	virtual void GeneratePayload( uint8_t *data);	 // Each messages should be able to generate a payload based on values.
