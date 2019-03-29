@@ -10,8 +10,6 @@
 #ifndef RFPROTOCOL_H_
 #define RFPROTOCOL_H_
 
- #include "RFProtocol.h"
-
  // Radio
  #include "E28-2G4M20S.h"
 
@@ -39,7 +37,7 @@ class RFProtocol
 	// Public functions to be used on all Messages
 	public:
 	RFProtocol(E28_2G4M20S *RadioModule, GpsDataLite *GPS, SystemInformation_t *status); //constructor.
-	void TxTelegram(Telegram *msg); // Add Telegram to TX FIFO.
+	void AddToTXFIFO(SerialData_t *msg); // Add to TX FIFO.
 	Telegram * GetTelegram(); // return next telegram in RX FIFO.
 	int TelegramAvailable(); // returns number of Telegrams in RX FIFO.
 
@@ -61,6 +59,7 @@ class RFProtocol
 	{
 		uint8_t NumberOfBeaconsToRelay = 0;
 		uint8_t SecondCounterSinceLasteGroundStationContact = 0;
+		bool Sleep = false;
 	}RFProtocolStatus;
 
 	enum RFProtocolStates_t {
@@ -68,7 +67,6 @@ class RFProtocol
 		WAITING_FOR_REPLY,
 		TX_WITHOUT_REPLY,
 		TX_WITH_REPLY,
-		SLEEP
 	}state = RX_IDLE;
 
 	E28_2G4M20S *Radio = NULL;
@@ -77,16 +75,15 @@ class RFProtocol
 	
 	RingBuf<Telegram*, FIFO_SIZE> rxFIFO;
 	RingBuf<Telegram*, FIFO_SIZE> txFIFO;
-	//RingBuf<Telegram*, FIFO_SIZE> RelayTelegrams; // must be 
 	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
 	Telegram_MSG_2 * GetSavedTransponderBeaconForRelay();
 
 	RFProtocolStates_t RXHandler();
 	RFProtocolStates_t TXHandler();
 	Telegram * ConvertIncommingDataToTelegram(); // return pointer to incomming package if CRC is ok, else NULL.
+	Telegram * ConvertSerialDataToTelegram(SerialData_t *newdata); // return pointer to incomming package if CRC is ok, else NULL.
 	void SendTelegram(Telegram *msg);
 	bool SaveTransponderBeacon(Telegram_MSG_1 *msg); // Return true if message is saved
-
 };
 
 

@@ -1,6 +1,5 @@
 src/RF-Protocol/RFProtocol.d src/RF-Protocol/RFProtocol.o: \
  ../src/RF-Protocol/RFProtocol.cpp ..\\include\RF-Protocol/RFProtocol.h \
- ..\\include\RF-Protocol/RFProtocol.h \
  ..\\include\E28-2G4M20S/E28-2G4M20S.h \
  ..\\..\ArduinoCore\include\core/Arduino.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\lib\gcc\arm-none-eabi\6.3.1\include\stdbool.h \
@@ -158,15 +157,15 @@ src/RF-Protocol/RFProtocol.d src/RF-Protocol/RFProtocol.o: \
  ..\\..\ArduinoCore\include\libraries\spi/SPI.h \
  ..\\include\RF-Protocol/Telegram.h \
  ..\\include\RF-Protocol/Telegram_MSG_1.h \
+ ..\\include\SerialProtocol/SerialProtocol.h \
+ ..\\include\SerialProtocol/..\RF-Protocol\RFProtocol.h \
  ..\\include\RF-Protocol/Telegram_MSG_2.h \
  ..\\include\RF-Protocol/Telegram_MSG_3.h ..\\include/GPSL80Lite.h \
- ..\\include\RF-Protocol/RingBuf.h ..\\include/main.h \
+ ..\\include\RF-Protocol/RingBuf.h ..\\include/main.h ..\\include/hw.h \
  ..\\include\RF-Protocol/Telegram.h \
  ..\\include\RF-Protocol/Telegram_MSG_1.h \
  ..\\include\RF-Protocol/Telegram_MSG_2.h \
  ..\\include\RF-Protocol/Telegram_MSG_3.h
-
-..\\include\RF-Protocol/RFProtocol.h:
 
 ..\\include\RF-Protocol/RFProtocol.h:
 
@@ -486,6 +485,10 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 
 ..\\include\RF-Protocol/Telegram_MSG_1.h:
 
+..\\include\SerialProtocol/SerialProtocol.h:
+
+..\\include\SerialProtocol/..\RF-Protocol\RFProtocol.h:
+
 ..\\include\RF-Protocol/Telegram_MSG_2.h:
 
 ..\\include\RF-Protocol/Telegram_MSG_3.h:
@@ -495,6 +498,8 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 ..\\include\RF-Protocol/RingBuf.h:
 
 ..\\include/main.h:
+
+..\\include/hw.h:
 
 ..\\include\RF-Protocol/Telegram.h:
 

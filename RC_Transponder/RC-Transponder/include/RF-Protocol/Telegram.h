@@ -55,8 +55,7 @@ static uint16_t crc_table[] PROGMEM = {
 
 typedef enum
 {
-	MSG_UART_GORUNDSTATION		=0x00, // only for serial.
-	MSG_Beacon_Broadcast,
+	MSG_Beacon_Broadcast=1,
 	MSG_Beacon_Relay,
 	MSG_Command,
 }ProtocolMSG_t;
@@ -71,8 +70,8 @@ class Telegram
 	virtual void SerialPrintMessage( void ) = 0; // Function for each message to print out the data to Serial.print	
 	virtual ~Telegram(){}					 	 // Destructor is virtual to ensure correct destructor is used when deleting telegrams.
 	
-	uint8_t GetRadioMSGLength(void);    // Function which returns the payload length for Radio transmittion.
-	uint8_t GetSerialMSGLength(void);    // Function which returns the payload length for Serial transmittion.
+	uint8_t GetRadioMSGLength(void);    // Function which returns the payload length for Radio transmission.
+	uint8_t GetSerialMSGLength(void);    // Function which returns the payload length for Serial transmission.
 	bool CRCValid(void);
 	bool TelegramMatchUniqueID(uint32_t _destinationID_1, uint32_t _destinationID_2, uint32_t _destinationID_3, uint32_t _destinationID_4); // Function will compare input destination ID with message, and return true if message it is a match.
 	
@@ -90,11 +89,12 @@ class Telegram
 	// General helper functions and varibels only used by inherited MSG classes.
 	protected:
 	Telegram();
-	Telegram(uint8_t *data, uint8_t size);
+	//Telegram(uint8_t *data, uint8_t size);
 	
 	// Functions for every messages
 	virtual void ReadPayload( void ) = 0;	  // Each messages should be able to parse/decode the payload to specific cases.
 	virtual void GeneratePayload(uint8_t *data) = 0;	  // Each messages should be able to generate a payload based on values.
+	void ReadPayloadHeader(void);				// Helper function to read the payload header.
 	void GenerateHeader(uint8_t *data);					  // Helper function to generate the Payload header based on variables.
 
 	uint8_t Payload[MAX_PAYLOAD_LENGTH];		// Message Payload.
@@ -110,7 +110,7 @@ class Telegram
 	
 	// Parameters only used on Telegram mother class.
 	private:
-	void ReadPayloadHeader(void);				// Helper function to read the payload header.
+	
 };
 
 

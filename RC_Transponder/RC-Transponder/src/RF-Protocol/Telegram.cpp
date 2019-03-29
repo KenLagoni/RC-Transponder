@@ -19,7 +19,7 @@
 	PayloadLength = payloadSize;
 	ReadPayloadHeader();
  }*/
-
+/*
  Telegram::Telegram(uint8_t *data, uint8_t size)
  {
  	if(size >= MAX_PAYLOAD_LENGTH){
@@ -32,19 +32,22 @@
 	for(int a=0;a<size;a++)
 		Serial.println("data["+String(a)+"]=" + String(data[a]));
 	 */
+/*	
 	memset(&Payload, 0,  MAX_PAYLOAD_LENGTH);
 	memcpy(&Payload,data,size);	
 	if(size >= HEADER_SIZE){
 		ReadPayloadHeader();
 	}
-		/*
+
+	/*
 	Serial.println("");
 	Serial.println("Output from memcpy:");
 	for(int a=0;a<size;a++)
 		Serial.println("data["+String(a)+"]=" + String(Payload[a]));
 	*/
+	/*
  }
-
+*/
 
  void Telegram::ReadPayloadHeader(void){
 	MSG_ID = (ProtocolMSG_t)Payload[0];		

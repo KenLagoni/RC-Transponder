@@ -12,6 +12,8 @@
 
 #include "Arduino.h" // Needed for uint8 types mf.
 #include "Telegram.h"
+#include "E28-2G4M20S.h" // for RadioData_t struct.
+#include "SerialProtocol.h"
 
 #define MSG_3_PAYLOAD_SIZE 1
 
@@ -32,14 +34,20 @@ class Telegram_MSG_3 : public Telegram
 //	virtual bool SerialCRCValid(void);
 		
 	ProtocolCMD_t GetCommand(void);				// Returns the Command.
-		
+				
 	// Constructor to create message from variables.
 	Telegram_MSG_3(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, ProtocolCMD_t _command);
 	
 	// Constructor to create messages from payload array.
-	Telegram_MSG_3(uint8_t *data, uint8_t size);
+	//Telegram_MSG_3(uint8_t *data, uint8_t size);
 
-	virtual	~Telegram_MSG_3(){};	// destructor.
+	// Constructor to create messages from Radio data struct.
+	Telegram_MSG_3(RadioData_t *radioData);
+	
+	// Constructor to create messages from Radio data struct.
+	Telegram_MSG_3(SerialData_t *serialoData);
+
+	virtual	~Telegram_MSG_3(){}; 	// destructor.
 
 	protected:
 	virtual void ReadPayload( void );		 // Each messages should be able to parse/decode the payload to specific cases.

@@ -8,7 +8,7 @@
 
 #ifndef MAIN_H_
 #define MAIN_H_
-
+#include "hw.h"
 
 
 enum TRANSPONDER_STATES {
@@ -25,6 +25,7 @@ extern struct SystemInformation_t
 {	
 	// Hardware and Software version defines
 	const float FIRMWARE_VERSION = 0.95;
+	const uint8_t pcbVersion = PCB_VERSION;
 	
 	// Counters
 	uint8_t SecondCounter = 0;

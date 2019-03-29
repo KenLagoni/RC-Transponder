@@ -32,7 +32,6 @@ Generic Clock Generator 4-8 - Disabled
 
 #include <Arduino.h>
 #include <SPI.h>
-
 // GPS NMEA decoder
 #include <GPSL80Lite.h>
  
@@ -41,15 +40,10 @@ Generic Clock Generator 4-8 - Disabled
 #include "main.h"
 #include "hw.h"
 #include "RFProtocol.h"
+#include "SerialProtocol.h"
 
 // Radio
 #include "E28-2G4M20S.h"
-
-// Radio protocol
-#include "Telegram.h"
-#include "Telegram_MSG_1.h"
-#include "Telegram_MSG_2.h"
-#include "Telegram_MSG_3.h"
 
 // for SPORT
 #include "FrSkySportSensor.h"
@@ -58,12 +52,8 @@ Generic Clock Generator 4-8 - Disabled
 #include "FrSkySportTelemetry.h"
 
 void HandelSerial(void);
-void HandelRadio(void);
 void LowPowerTest(void);
 void Do_ground_station_loop(void);
-float getBatteryVoltage(void);
-float getInputVoltage(void);
-bool BeaconService(void);
 void GoToSleep(void);
 String base64_encode(byte[], int);
 
@@ -88,7 +78,7 @@ FrSkySportTelemetry FrskySport;           // Create telemetry object without pol
 // Object and varibels for SX1280/E28_2G4 radio chip
 E28_2G4M20S *Radio = NULL;
 RFProtocol *RadioProtocol = NULL;
-
+SerialProtocol *SerialProtocolINST = NULL;
 
 // $GPGGA,193648.000,5550.0838,N,01224.0718,E,2,8,0.96,32.7,M,41.5,M,0000,0000*62
 GPSL80Lite *GPS = NULL; // GPS class, defined in GPSL80.h
@@ -98,12 +88,10 @@ GpsDataLite *GPSData = NULL;  // GPGGA GPS data:
 void Radio_isr(void){
 //	Serial.println("Time:" + String(millis()));
   //Radio->HandleIRQ(); // The radio module has something for us.
-
   RadioProtocol->IRQHandler();
 }
 
-void setup() {
-			
+void setup() {	
 	hwInit(); // Setup all pins according to hardware.
 	
 	delay(5000); // Time to get USB bootloader ready.
@@ -177,6 +165,7 @@ void setup() {
 	RadioProtocol = new RFProtocol(Radio, GPSData, &SystemInformation);
 	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
 	
+	//SerialProtocolINST = new SerialProtocol(RadioProtocol);
 	
 	// Init Frsky Smart port:
 	SerialfrskySPort = new Uart(&sercom3, fryskySmartPortRXPin, fryskySmartPortTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the Frsky SPORT module
@@ -273,7 +262,8 @@ void loop() {
 			}
 	
 			////// Below this line, code is executed fast! 
-			HandelSerial();	 // Communication via USB (only if used as groundstation
+//			HandelSerial();	 // Communication via USB (only if used as groundstation
+			SerialProtocolINST->Service();
 //			HandelRadio();  // Read new messages and reply as needed.  
 			GPS->update();  // Function empty serial buffer and analyzes string.
 			// RCin->read();  // SBUS, PPM or PWM. 
@@ -292,7 +282,6 @@ void loop() {
 					PowerOFF(); // No more battery left, power off.
 					do{}while(1);
 			}else{
-				do{}while(!Radio->IsIdle()); // Wait for Beacon to be transmitted before sleep.
 				GoToSleep(); // Sleep until 1 sec interrupt will wake us up.		
 				SystemInformation.BatteryVoltage = getBatteryVoltage();
 			}
@@ -301,7 +290,6 @@ void loop() {
 			PowerONGPS();// Turn on GPS. 			
 			
 			// Set the radio to RX mode without timeout.
-			//Radio->SetRXMode(false); // No timeout
 			SystemInformation.SecondCounter=0; // reset second counter.
 			SystemInformation.state=NORMAL;
 		}
@@ -311,7 +299,7 @@ void loop() {
 }
 
 void GoToSleep(void){
-	Radio->Sleep(); // Put radio to sleep to save power.
+	RadioProtocol->PowerDown();
 	USBDevice.detach();
 	digitalWrite(led2Pin, LOW);
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
@@ -319,7 +307,7 @@ void GoToSleep(void){
 	__WFI();
 	USBDevice.attach();
 	digitalWrite(led2Pin, HIGH);
-	Radio->WakeUp(); // Wake up radio.
+	RadioProtocol->WakeUp();
 }
 
 void LowPowerTest(void){
@@ -360,176 +348,6 @@ void Do_ground_station_loop(void){
 }
 /*
 
-uint8_t Serialmsg[50];
-
-void HandelRadio(void){
-	if(Radio->NewPackageReady()){
-//		Serial.println("New Messages received!");
-		// New telegram ready
-		
-		uint8_t size;
-		uint8_t *data = Radio->GetPayload(size);
-		if(data == NULL){
-			Serial.println("NULL");
-			return;
-		}
-		
-		ProtocolMSG_t newMessageID = (ProtocolMSG_t)data[0];
-		
-//		for(int a=0;a<size;a++)
-//			Serial.println("data["+String(a)+"]=" + String(data[a]));
-		
-//		Serial.println("Message ID="+String(newMessageID));
-		switch(newMessageID)
-		{
-			case MSG_Beacon_Broadcast:
-			{				
-				Telegram_MSG_1 msg = Telegram_MSG_1(data, size);
-				
-				if(msg.CRCValid()){
-						
-					volatile uint8_t crc_test_radiomsg_length = msg.GetSerialMSGLength();								
-					volatile uint16_t crc_test = msg.CalculateCRC(msg.GetRadioMSG(),41);						
-							
-					memcpy(&Serialmsg[0], msg.GetSerialMSG(), msg.GetSerialMSGLength());									
-					Serial.write(Serialmsg, msg.GetSerialMSGLength());
-					uint8_t *data = Serialmsg;
-					for(int a =0;a<msg.GetSerialMSGLength();a++){
-						SerialAUX->println("Data["+ String(a) + "]=" + String(*data++));					
-					}					
-
-				
-				
-				
-
-		
-
-		//			Serial.println("Message 1 Received! (Beacon)");
-		//			msg.SerialPrintMessage();
-										
-					// We have received a beacon... Check if it has contact with ground station, if not then save it and indicate it is ready to relay.
-					if(msg.GetNumberOfSecondsSinceLastGroundStationCom() > 20){
-						
-						bool updateComplete = false;
-						
-						// Have we saved a beacon from this unit before? if so updated is:
-						for(int a=0;a<SystemStatus.NumberOfBeaconsToRelay; a++){
-	//						Serial.print("Is memory location "+ String(a) + " from the same beacon?... ");
-						
-							if( SavedBeacons[a].TelegramMatchUniqueID(msg.GetUniqueID1(), msg.GetUniqueID2(), msg.GetUniqueID3(), msg.GetUniqueID4()) == true ){
-	//							Serial.println("Yes! - Updating!");	
-								SavedBeacons[a] = msg;
-								updateComplete = true;
-								break;
-							}else{
-			//					Serial.println("No!");
-							}	
-																	
-						}
-						
-						if(updateComplete)
-							break;
-																		
-						// We should save this if room 
-						if(SystemStatus.NumberOfBeaconsToRelay < MAX_NUMBER_OF_BEACONS_TO_SAVE){					
-				//			Serial.println("Message is saved in memory slot: " + String(NumberOfBeaconsToRelay));						
-						
-							SavedBeacons[SystemStatus.NumberOfBeaconsToRelay] = msg;
-							SystemStatus.NumberOfBeaconsToRelay++;	
-						}else{
-						//	Serial.println("Memory is full! - can't save message" + String(NumberOfBeaconsToRelay));						
-					//		Serial.println("");
-					//			Serial.println("-------------- Printing Beacon messages saved in Memory -------------");
-						
-							for(int a=0;a<MAX_NUMBER_OF_BEACONS_TO_SAVE; a++){
-					//			Serial.println("Messages number: " + String(a));
-								SavedBeacons[a].SerialPrintMessage();								
-							}							
-						}									
-					}
-				} // CRC Valid
-			}
-			break;
-			
-			case MSG_Beacon_Relay:
-			{
-				// Don't do anything with relay messages.				
-			}
-			break;
-		
-			case MSG_Command:
-			{
-				Telegram_MSG_3 msg = Telegram_MSG_3(data, size);
-				if(msg.CRCValid()){
-					Serial.println("Message 3 Received!...");
-					if(msg.TelegramMatchUniqueID(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4)){
-						Serial.println("For me! - Reading command ID: " + String(msg.GetCommand()));
-							ProtocolCMD_t messageCMD = msg.GetCommand();	
-							
-							// A command was received for us (reset counter for last ground station contact..  also what to do now:
-							SystemStatus.SecondCounterSinceLasteGroundStationContact = 0;
-							
-							switch(messageCMD)
-							{								
-								case CMD_Request_Transponder_Beacon:
-								{
-									Serial.println("Reply with Transponder Beacon!");
-									// Reply with transponder beacon:
-									Telegram_MSG_1 msgReply = Telegram_MSG_1(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4,
-																			(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
-																			GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemStatus.state==RUNNING_ON_BATTERY),
-																			0, 0,
-																			SystemStatus.SecondCounterSinceLasteGroundStationContact, SystemStatus.BatteryVoltage, SystemStatus.FIRMWARE_VERSION, PCB_VERSION, SystemStatus.NumberOfBeaconsToRelay);
-									do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-									Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());						
-								}
-								break;
-
-								case CMD_Request_NEXT_Beacon_Relay:
-								{
-										Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(SystemStatus.NumberOfBeaconsToRelay));
-										// Reply with transponder beacon:
-										
-										if(SystemStatus.NumberOfBeaconsToRelay != 0){
-											Telegram_MSG_2 msgReply = Telegram_MSG_2(&SavedBeacons[SystemStatus.NumberOfBeaconsToRelay-1]);
-											SystemStatus.NumberOfBeaconsToRelay--;
-											do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-											Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());
-										}
-										
-								}
-								break;
-
-								case CMD_Do_Power_Off:
-								{
-										Serial.println("Power off");
-								}
-								break;
-
-								default:
-										Serial.println("Unknown command.");
-								break;							
-							}
-							
-							
-//							msg.SerialPrintMessage();
-						}else{
-						Serial.println("Not For me! :-(");
-					}
-				}
-				
-			}
-			break;		
-			
-			default:
-				break;
-		}
-		Radio->SetBufferReady(false);
-	}
-}
-
-
-
 // Ensure a beacon is transmitted every N second.
 bool BeaconService(void){
 	if(SystemStatus.BeaconSecondCounter == 5){
@@ -560,136 +378,6 @@ bool BeaconService(void){
 //}
 
 
-
-
-enum StateMachine{
-	LOOKING_FOR_START,
-	READ_MSG_LENGTH,
-	READ_DATA
-};
-
-#define INPUT_BUFFER_SIZE 64
-StateMachine SerialState = LOOKING_FOR_START;
-char _newChar;
-uint8_t incommingData[INPUT_BUFFER_SIZE];
-uint8_t dataLength;
-uint8_t dataIndex;
-int NumberOfBytesToRead;
-
-void HandelSerial(void){
-	
-	do
-	{
-		NumberOfBytesToRead = Serial.available();
-		
-		// fail fast
-		if(NumberOfBytesToRead == 0)
-		return;
-		
-		// input data: 0x1E [LENGTH] [PAYLOAD]
-		
-		if(NumberOfBytesToRead)
-		{
-			_newChar=Serial.read(); // read char from input buffer
-						
-			switch (SerialState)
-			{
-				case LOOKING_FOR_START: // look for 0x1E in incoming data
-				if(_newChar == 0x1E)
-				{				
-					SerialAUX->println("Start found!");
-					dataLength = 0;    // counter number of bytes read.
-					dataIndex = 0;
-					SerialState=READ_MSG_LENGTH; // Start of string found!
-				}
-				break;
-				
-				case READ_MSG_LENGTH:
-				
-					if(_newChar >= INPUT_BUFFER_SIZE){		
-						SerialAUX->println("Length too long.");
-						SerialState=LOOKING_FOR_START; // Error, restart:				
-					}
-					
-					dataLength = _newChar;
-					SerialAUX->println("Length is:" + String(dataLength));
-					SerialState=READ_DATA; // Start of string found!
-				break;
-				
-				case READ_DATA: 
-					incommingData[dataIndex] = _newChar;
-				//	SerialAUX->println("dataIndex[" + String(dataIndex) + "]=" + String(_newChar));
-									
-					if(dataIndex < INPUT_BUFFER_SIZE)
-						dataIndex++;
-					
-					if(dataIndex >= dataLength){
-					
-					
-					
-						// Analyse input data.						
-						
-						SerialAUX->println("Reading Complete - Analysinging data!");
-						
-						for(int a=0;a<dataLength;a++){
-							SerialAUX->println("Inputdata " + String(a) + ":" + String(incommingData[a]));
-						}
-						
-						ProtocolMSG_t newMessageID = (ProtocolMSG_t)incommingData[0];
-						
-						switch(newMessageID) // MSG ID
-						{
-							case MSG_UART_GORUNDSTATION: // UART Identify
-							{
-								SerialAUX->println("Send UART ID reply message");
-								// Groundstation needs a reply to indicate this devices is a ground station.
-								uint8_t SerialReply[3];
-								SerialReply[0] = 0x1E;
-								SerialReply[1] = 1;
-								SerialReply[2] = 0;
-								Serial.write(SerialReply, 3);																
-							}
-							break;
-							
-							case MSG_Beacon_Broadcast: 
-							{
-																
-							}
-							break;
-							
-							case MSG_Beacon_Relay: 
-							{								
-								
-							}
-							break;
-							
-							case MSG_Command:
-							{
-								SerialAUX->println("Ping transponder!");
-								Telegram_MSG_3 *msg = new Telegram_MSG_3(incommingData, dataLength);
-								if(msg->CRCValid()){
-									RadioProtocol->TxTelegram(msg);
-								}else{
-									delete msg;
-								}
-							}
-							break;
-							
-							default:
-							break;
-						}												
-						SerialState=LOOKING_FOR_START; // Done, restart.
-					}
-				break;
-				
-				default:
-				SerialState = LOOKING_FOR_START;
-				break;
-			}
-		}
-	}while(NumberOfBytesToRead); // loop until buffer is empty
-	
-}
 
   static String base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

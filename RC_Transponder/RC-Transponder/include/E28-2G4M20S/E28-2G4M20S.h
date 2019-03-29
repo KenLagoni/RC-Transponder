@@ -30,8 +30,7 @@
 // Size of ticks (used for Tx and Rx timeout)
 #define RX_TIMEOUT_TICK_SIZE                        RADIO_TICK_SIZE_1000_US
 
-
-struct RadioStatus
+struct RadioIRQStatus_t
 {	
 	bool txDone;
 	bool rxDone;
@@ -39,12 +38,12 @@ struct RadioStatus
 	bool rxTimeout;	
 };
 
-struct RadioData
+struct RadioData_t
 {
 	uint8_t payload[MAX_PAYLOAD_LENGTH];
 	uint8_t payloadLength;
-	uint8_t rssi;
-	uint8_t snr;	
+	int8_t rssi;
+	int8_t snr;	
 };
 
 class E28_2G4M20S
@@ -56,18 +55,11 @@ class E28_2G4M20S
 	void SetRXMode(bool useTimeout); 
 	void Debug();
 	void Sleep();
-	bool IsIdle(void);
 	void WakeUp(void);
-	void test(void);
 	
-	// New functions:
-	bool NewPackageReady(void);
 	void SendPackage(uint8_t *payload, uint8_t payloadLength);
-//	uint8_t GetPackage(uint8_t *payload, uint8_t maxSize); // returns the payload length
-	uint8_t * GetPayload(uint8_t &len);
-	RadioData * GetRadioData();
-	void SetBufferReady(bool _set);
-	RadioStatus GetRadioStatus();
+	RadioData_t * GetRadioData();
+	RadioIRQStatus_t GetRadioStatus();
 		
   private:
     // Pins:
@@ -99,7 +91,8 @@ class E28_2G4M20S
   	
     SX1280Hal *Radio = NULL;
 	
-	RadioStatus RadioStatusData;
+	RadioIRQStatus_t RadioStatus;
+	RadioData_t RadioData;
 	
 	////////////////////
 	
@@ -110,16 +103,9 @@ class E28_2G4M20S
 //	uint8_t OutputFifoIndex = 0;
 		
 	// Define the possible message type for this application
-	uint8_t BufferSize = MAX_PAYLOAD_LENGTH; //The size of the buffer
-	uint8_t Buffer[MAX_PAYLOAD_LENGTH]; //The buffer
-	bool BufferReady = false;
 
-	int8_t RssiValue = 0;
-	int8_t SnrValue = 0;
 	uint16_t RxIrqMask = IRQ_RX_DONE | IRQ_RX_TX_TIMEOUT; // Mask of IRQs to listen to in rx mode
 	uint16_t TxIrqMask = IRQ_TX_DONE | IRQ_RX_TX_TIMEOUT; // Mask of IRQs to listen to in tx mode	
-	
-	bool radioIdle = true;
 };
 
 #endif // __E28_2G4M20S_H__

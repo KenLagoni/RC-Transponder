@@ -8,9 +8,6 @@
 #include "E28-2G4M20S.h"
 #include "radio.h"
 #include "sx1280-hal.h"
-//#include "Arduino.h" // Needed for Serial.print
-//#include <stdlib.h>
-
 
 
 E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin)
@@ -31,22 +28,10 @@ E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1P
 	pinMode(_rxEnablePin, OUTPUT);
 	digitalWrite(_rxEnablePin, HIGH);		
 	
-	RadioStatusData.rxDone=false;
-	RadioStatusData.txDone=false;
-	RadioStatusData.rxTimeout=false;
-	RadioStatusData.txTimeout=false;
-	
-	// clear FIFO
-	/*
-	for(int a = 0; a < FIFO_SIZE; a ++){
-		for(int b = 0; b < MAX_PAYLOAD_LENGTH; b ++){
-			InputFIFO[a][b]=0;
-			OutputFIFO[a][b]=0;
-		}
-	}
-	InputFifoIndex = 0;
-	OutputFifoIndex = 0;
-	*/
+	RadioStatus.rxDone=false;
+	RadioStatus.txDone=false;
+	RadioStatus.rxTimeout=false;
+	RadioStatus.txTimeout=false;
 }
 
 void E28_2G4M20S::SetTxModeActive( void )
@@ -65,7 +50,7 @@ void E28_2G4M20S::Init()
 {
 	 Radio->Init( );	 
 	 Radio->SetRegulatorMode( USE_DCDC ); // Can also be set in LDO mode but consume more power
-	 memset( &Buffer, 0x00, MAX_PAYLOAD_LENGTH ); // Zero fills the buffer
+	 memset( &RadioData.payload, 0x00, MAX_PAYLOAD_LENGTH ); // Zero fills the buffer
 	 
 	#if defined( MODE_BLE )
 
@@ -154,137 +139,67 @@ void E28_2G4M20S::OnTxDone( void )
 {
 	// switch PA to RX.
 	SetRxModeActive();
-	SetRXMode(false); // Set to RX with no timout.
-	radioIdle = true;
+	SetRXMode(false); // Set to RX with no timeout.
 	digitalWrite(21, LOW);
 }
 
 void E28_2G4M20S::OnRxDone( void )
 {
-	if(BufferReady==true){
-		// If buffer us ready, means application is not done reading the data.
-		return;
-	}
-	memset(&Buffer, 0x00, MAX_PAYLOAD_LENGTH);
-	BufferSize=0;
-	if(Radio->GetPayload(Buffer, &BufferSize, MAX_PAYLOAD_LENGTH-2)){
+	memset(&RadioData.payload, 0x00, MAX_PAYLOAD_LENGTH);
+	RadioData.payloadLength=0;
+	if(Radio->GetPayload(RadioData.payload, &RadioData.payloadLength, MAX_PAYLOAD_LENGTH-2)){
 		// If return 1, then package size is larger than MAX_PAYLOAD_LENGTH
-		Serial.println("Oops! - New package is to big. Length="+String(BufferSize)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
+		Serial.println("Oops! - New package is to big. Length="+String(RadioData.payloadLength)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
 	}else{
 		// New data has been copied to buffer.
 		Radio->GetPacketStatus(&PacketStatus);
 		switch( PacketStatus.packetType )
 		{
 			case PACKET_TYPE_GFSK:
-			Buffer[BufferSize]	 = PacketStatus.Gfsk.RssiSync;
-			BufferSize=BufferSize+1;
+				RadioData.rssi	 = PacketStatus.Gfsk.RssiSync;
 			break;
 
 			case PACKET_TYPE_LORA:
 			case PACKET_TYPE_RANGING:
-			Buffer[BufferSize] = PacketStatus.LoRa.RssiPkt;
-			Buffer[BufferSize+1] = PacketStatus.LoRa.SnrPkt;
-			BufferSize=BufferSize+2;
+				RadioData.rssi = PacketStatus.LoRa.RssiPkt;
+				RadioData.snr = PacketStatus.LoRa.SnrPkt;
 			break;
 
 			case PACKET_TYPE_FLRC:
-			Buffer[BufferSize] = PacketStatus.Flrc.RssiSync;
-			BufferSize=BufferSize+1;
+				RadioData.rssi = PacketStatus.Flrc.RssiSync;
 			break;
 
 			case PACKET_TYPE_BLE:
-			Buffer[BufferSize] = PacketStatus.Ble.RssiSync;
-			BufferSize=BufferSize+1;
+			RadioData.rssi = PacketStatus.Ble.RssiSync;
 			break;
 
 			case PACKET_TYPE_NONE:
-			Buffer[BufferSize] = 0;
+			RadioData.rssi = 0;
 			break;
 		}
-		
-		//Serial.println("New package received. Length="+String(BufferSize));
-		BufferReady=true;
 	}
 }
 
-/*
-void E28_2G4M20S::OnRxDone( void )
-{
-	// Get radio telegram
-	RadioTelegram_t telegram;
-	
-	memset(&Buffer, 0x00, PAYLOAD_LENGTH);
-	uint8_t size=PAYLOAD_LENGTH;
-	Radio->GetPayload(Buffer, &size, PAYLOAD_LENGTH);
-	Radio->GetPacketStatus(&PacketStatus);
-	switch( PacketStatus.packetType )
-	{
-		case PACKET_TYPE_GFSK:
-			telegram.rssi = PacketStatus.Gfsk.RssiSync;
-		break;
-
-		case PACKET_TYPE_LORA:
-		case PACKET_TYPE_RANGING:
-			telegram.rssi = PacketStatus.LoRa.RssiPkt;
-		break;
-
-		case PACKET_TYPE_FLRC:
-			telegram.rssi = PacketStatus.Flrc.RssiSync;		
-		break;
-
-		case PACKET_TYPE_BLE:
-			telegram.rssi = PacketStatus.Ble.RssiSync;
-		break;
-
-		case PACKET_TYPE_NONE:
-			telegram.rssi = 0;
-		break;
-	 }
-
-	telegram.receiver_ID = Buffer[0];
-	telegram.transmitter_ID = Buffer[1];
-	telegram.UTCTime =   (uint32_t)((Buffer[2] << 16) + (Buffer[3] << 8) + Buffer[4]);
-	telegram.Latitude =  (uint32_t)((Buffer[5] << 24) + (Buffer[6] << 16) + (Buffer[7] << 8) + Buffer[8]);
-	telegram.Longitude = (uint32_t)((Buffer[9] << 24) + (Buffer[10] << 16) + (Buffer[11] << 8) + Buffer[12]);
-	telegram.Fix = (Buffer[13] >> 2) & 0b00000011;
-	telegram.PCBVersion = ((Buffer[13] >> 4) & 0b00001111) + 10;
-	telegram.FirmwwareVersion = ((float)Buffer[14]) + ((float)Buffer[15])/(float)100;
-	telegram.NumberOfSatellites = Buffer[16];
-	telegram.BatteryVoltage = (((float)Buffer[17])+(float)200)/(float)100;
-	
-	int16_t dummy = (int16_t)((Buffer[18] << 8) + Buffer[19]);
-	telegram.Altitude = ((float)dummy)/10;
-	
-	
-	// If message ok, then make i available.
-	this->LastMsg = telegram;
-	this->telegramValid = true;
-	
-}
-*/
-
-// Only call this when interrupt has occured.
+// Only call this when interrupt has occurred.
 void E28_2G4M20S::IRQHandler( void )
 {
 	Radio->ProcessIrqs();	
 	
 	// reset all flags.
-	this->RadioStatusData.rxDone=false;
-	this->RadioStatusData.txDone=false;
-	this->RadioStatusData.rxTimeout=false;
-	this->RadioStatusData.txTimeout=false;
+	RadioStatus.rxDone=Radio->RadioPacketStatus.rxDone;
+	RadioStatus.txDone=Radio->RadioPacketStatus.txDone;
+	RadioStatus.rxTimeout=Radio->RadioPacketStatus.rxTimeout;
+	RadioStatus.txTimeout=Radio->RadioPacketStatus.txTimeout;
 	//Serial.println("E28 Radio Interrupt!");
 	
 	if(Radio->RadioPacketStatus.txDone == true){
 		//Serial.println("TX Done!");
-		//this->OnTxDone();
-		RadioStatusData.txDone = true;	
+		this->OnTxDone();
 	}    
 	if(Radio->RadioPacketStatus.rxDone == true){
 		//Serial.println("RX Done!");
-		//this->OnRxDone();
+		this->OnRxDone();
 		// read the message, check CRC if ok, make available.
-		RadioStatusData.rxDone = true;	
 	}
 	if(Radio->RadioPacketStatus.rxSyncWordDone == true){
 		Serial.println("rxSyncWordDone!");
@@ -294,13 +209,9 @@ void E28_2G4M20S::IRQHandler( void )
 	}
 	if(Radio->RadioPacketStatus.txTimeout == true){
 		Serial.println("TX Timeout!");
-//		radioIdle = true;
-		RadioStatusData.txTimeout = true;	
 	}
 	if(Radio->RadioPacketStatus.rxTimeout == true){
 		Serial.println("RX Timeout!");
-//		this->SetRXMode(true); // Do it again!
-		RadioStatusData.rxTimeout = true;	
 	}	
 	if(Radio->RadioPacketStatus.rxError > 0x00){
 		Serial.println("IRQ Error! " + String(Radio->RadioPacketStatus.rxError));
@@ -311,46 +222,17 @@ void E28_2G4M20S::IRQHandler( void )
 	if(Radio->RadioPacketStatus.cadDone == true){
 		Serial.println("CAD Done!");
 	}
+	
 }
-/*
-uint8_t E28_2G4M20S::GetPackage(uint8_t *payload, uint8_t maxSize){
-	if(this->BufferReady){
-		if(this->BufferSize < maxSize){
-			return 0;
-		}else{
-			memcpy(&this->Buffer, payload, BufferSize+2);	
-			this->BufferReady = false;
-			return this->BufferSize+2; // Payload+1 byte of RSSI and 1 byte of SNR
-		}
-	}
-}
-*/
 
 void E28_2G4M20S::SendPackage(uint8_t *payload, uint8_t payloadLength)
 {
-	/*
-	// Copy package to payload.
-	if((InputFifoIndex < FIFO_SIZE) && (payloadLength < MAX_PAYLOAD_LENGTH)){
-		for(int a = 0; a < MAX_PAYLOAD_LENGTH; a ++){
-			if(a<payloadLength)
-				InputFIFO[InputFifoIndex][a]=*payload++;
-			else
-				InputFIFO[InputFifoIndex][a]=0;
-		}		
-		InputFifoIndex++;
-	}	*/
-
    this->SetTxModeActive(); // Switch the hardware amplifier to TX mode.
    Radio->SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on TX complete on DI01.
    this->PacketParams.Params.LoRa.PayloadLength = payloadLength;
    Radio->SetPacketParams( &PacketParams );
    Radio->SendPayload(payload, payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
-   radioIdle = false;
    digitalWrite(21, HIGH);	
-}
-
-void E28_2G4M20S::Debug(void){
-		Serial.println("Radio Firmware version: " + String(Radio->GetFirmwareVersion()));
 }
 
 void E28_2G4M20S::SetRXMode(bool useTimeout)
@@ -363,122 +245,6 @@ void E28_2G4M20S::SetRXMode(bool useTimeout)
 		Radio->SetRx(RX_TX_CONTINUOUS);
    }
 }
-
-/*
-void E28_2G4M20S::SendTelegram(RadioTelegram_t *telegram)
-{
-	memset(&Buffer, 0x00, MAX_PAYLOAD_LENGTH);
-	Buffer[0] = telegram->receiver_ID;
-	Buffer[1] = telegram->transmitter_ID;
-	
-	// Time transformed to 24bits.
-	Buffer[2] = (uint8_t)((telegram->UTCTime >> 16) & 0xFF);
-	Buffer[3] = (uint8_t)((telegram->UTCTime >> 8) & 0xFF);
-	Buffer[4] = (uint8_t)(telegram->UTCTime & 0xFF);
-		
-	// Latitude transformed to 32bits.
-	Buffer[5] = (uint8_t)((telegram->Latitude >> 24) & 0xFF);
-	Buffer[6] = (uint8_t)((telegram->Latitude >> 16) & 0xFF);
-	Buffer[7] = (uint8_t)((telegram->Latitude >>  8) & 0xFF);
-	Buffer[8] = (uint8_t)(telegram->Latitude & 0xFF);
-	
-	// Longitude transformed to 32bits.
-	Buffer[9]  = (uint8_t)((telegram->Longitude >> 24) & 0xFF);
-	Buffer[10] = (uint8_t)((telegram->Longitude >> 16) & 0xFF);
-	Buffer[11] = (uint8_t)((telegram->Longitude >>  8) & 0xFF);
-	Buffer[12] = (uint8_t)(telegram->Longitude & 0xFF);
-	
-	// GPS bits 0b11111111
-	// bit 0 -> 1= N, 1=S			  	
-	// bit 1 -> 1= W, 1=E			  	
-	// bit 2-3 -> Fix type, 0, 1 or 2	
-	// bit 4-7 -> PCB version	
-
-//	Serial.println("Fix :" + String(telegram->Fix));	  	
-	Buffer[13] |= ((telegram->Fix & 0b00000011) << 2);
-//	Serial.println("buffer :" + String(Buffer[13]));	  	
-//	Serial.println("PCBVersion :" + String(telegram->PCBVersion));	  	
-	Buffer[13] |= ((telegram->PCBVersion-10) << 4);
-//	Serial.println("buffer :" + String(Buffer[13]));	  	
-	
-	Buffer[14] = (uint8_t)(telegram->FirmwwareVersion); // 1.90 -> 1
-	Buffer[15] = (uint8_t)(telegram->FirmwwareVersion * 100) - (uint8_t)Buffer[14]; // 1.90 -> 90
-			
-	Buffer[16] = telegram->NumberOfSatellites;
-	Buffer[17] = (uint8_t)(telegram->BatteryVoltage*100)-200; // 4.20 -> 420-200 = 220 // voltage will always be betweem 3.00V or 4.20V.
-	
-	int16_t dummy = (int16_t)(telegram->Altitude*10);
-	
-	Buffer[18] = (uint8_t)((dummy >> 8) & 0xFF);
-	Buffer[19] = (uint8_t)(dummy & 0xFF); 
-	
-	// DEBUG:
-	/*
-	 Serial.println("");
-	 Serial.println("RX Payload:");
-	 
-	 Serial.print("Receiver ID :");
-	 Serial.print(String(Buffer[0]));
-	 Serial.println(":");
-	 
-	 Serial.print("Transmitter ID :");
-	 Serial.print(String(Buffer[1]));
-	 Serial.println(":");
-	 
-	 
-	 Serial.print("UTC Time :");
-	 Serial.print(String( (uint32_t)((Buffer[2] << 16) + (Buffer[3] << 8) + Buffer[4]) ) );
-	 Serial.println(":");
-	 
-	 Serial.print("GPS Latitude :");
-	 Serial.print(String((uint32_t)((Buffer[5] << 24) + (Buffer[6] << 16) + (Buffer[7] << 8) + Buffer[8])));
-	 Serial.println(":");
-	 
-	 Serial.print("GPS Longitude :");
-	 Serial.print(String((uint32_t)((Buffer[9] << 24) + (Buffer[10] << 16) + (Buffer[11] << 8) + Buffer[12])));
-	 Serial.println(":");
-	 
-	 Serial.print("GPS Fix :");
-	 Serial.print(String((Buffer[13] >> 2) & 0b00000011));
-	 Serial.println(":");
-		 
-	 Serial.print("PCB Version :");
-	 Serial.print(String(((Buffer[13] >> 4) & 0b00001111) + 10));
-	 Serial.println(":");
-	 
-	 Serial.print("Firmware Version :");
-	 Serial.print(String(Buffer[14]));
-	 Serial.print(".");
-	 Serial.print(String(Buffer[15]));
-	 Serial.println(":");
-	
-	 
-	 Serial.print("Number Of Satellites :");
-	 Serial.print(String(Buffer[16]));
-	 Serial.println(":");
-	 
-	 Serial.print("Battery Voltage :");
-	 Serial.print(String((((float)Buffer[17])+200)/100));
-	 Serial.println(":");
-	 
-	 Serial.print("Altitude :");
-	 Serial.print(String(Buffer[18]));
-	 Serial.println(":");
-	 */
-	 /*
-	this->SendPackage(Buffer, MAX_PAYLOAD_LENGTH);		
-}
-*/
-
-/*
-RadioTelegram_t *E28_2G4M20S::GetTelegram(void){
-	if(telegramValid){
-		this->telegramValid=false;
-		return &LastMsg;	  
-	}else
-		return NULL;
-}
-*/
 
 void E28_2G4M20S::Sleep(void){
 	SleepParams_t SleepParameters;
@@ -498,112 +264,16 @@ void E28_2G4M20S::Sleep(void){
 	digitalWrite(_chipSelectPin, HIGH);
 }
 
-
-bool E28_2G4M20S::IsIdle(void){
-	return radioIdle;
-}
-
-void E28_2G4M20S::test(void){
-	RadioStatus_t status = Radio->GetStatus();
-	
-	Serial.println("Status Chipmode" + String(status.Fields.ChipMode));
-	Serial.println("Status CmdStatus" + String(status.Fields.CmdStatus));
-	Serial.println("Status CpuBusy" + String(status.Fields.CpuBusy));
-	Serial.println("Status DmaBusy" + String(status.Fields.DmaBusy));
-	Serial.println("----  -----");
-}
-
 void E28_2G4M20S::WakeUp(void){
 	Radio->SetWakeup();
-	
-	//Serial.println("BUSY=" + String(digitalRead(_busyPin)));
-//	if(digitalRead(busyPin) == 1){
-//		Serial.println("BUSY!IRQ1 status: " + String(Radio->GetIrqStatus()));
-		
-//	}
-
-
-	//Serial.println("IRQ1 status: " + String(Radio->GetIrqStatus()));
-	//Radio->ClearIrqStatus( IRQ_RADIO_ALL );			
-	//Serial.println("IRQ2 status: " + String(Radio->GetIrqStatus()));
-
 }
 
-bool E28_2G4M20S::NewPackageReady(void){
-	if(BufferReady){
-		return true;
-	}else{
-		return false;
-	}
-}
 
-uint8_t * E28_2G4M20S::GetPayload(uint8_t &len){
-	len=BufferSize;
-	if(BufferSize == 0){
-		return NULL;
-	}	
-		
-	return Buffer;
-}
-
-RadioData * E28_2G4M20S::GetRadioData()
+RadioData_t * E28_2G4M20S::GetRadioData()
 {
-	RadioData *newdata = new RadioData;
-	
-	delete newdata;
-	/*
-	if(BufferReady==true){
-		// If buffer us ready, means application is not done reading the data.
-		return;
-	}
-	memset(&Buffer, 0x00, MAX_PAYLOAD_LENGTH);
-	BufferSize=0;
-	if(Radio->GetPayload(Buffer, &BufferSize, MAX_PAYLOAD_LENGTH-2)){
-		// If return 1, then package size is larger than MAX_PAYLOAD_LENGTH
-		Serial.println("Oops! - New package is to big. Length="+String(BufferSize)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
-		}else{
-		// New data has been copied to buffer.
-		Radio->GetPacketStatus(&PacketStatus);
-		switch( PacketStatus.packetType )
-		{
-			case PACKET_TYPE_GFSK:
-			Buffer[BufferSize]	 = PacketStatus.Gfsk.RssiSync;
-			BufferSize=BufferSize+1;
-			break;
-
-			case PACKET_TYPE_LORA:
-			case PACKET_TYPE_RANGING:
-			Buffer[BufferSize] = PacketStatus.LoRa.RssiPkt;
-			Buffer[BufferSize+1] = PacketStatus.LoRa.SnrPkt;
-			BufferSize=BufferSize+2;
-			break;
-
-			case PACKET_TYPE_FLRC:
-			Buffer[BufferSize] = PacketStatus.Flrc.RssiSync;
-			BufferSize=BufferSize+1;
-			break;
-
-			case PACKET_TYPE_BLE:
-			Buffer[BufferSize] = PacketStatus.Ble.RssiSync;
-			BufferSize=BufferSize+1;
-			break;
-
-			case PACKET_TYPE_NONE:
-			Buffer[BufferSize] = 0;
-			break;
-		}
-		
-		//Serial.println("New package received. Length="+String(BufferSize));
-		BufferReady=true;
-	}
-	*/
+	return &RadioData;	
 }
 
-
-void E28_2G4M20S::SetBufferReady(bool _set){
-	this->BufferReady = _set;
-}
-
-RadioStatus E28_2G4M20S::GetRadioStatus(){
-	return this->RadioStatusData;
+RadioIRQStatus_t E28_2G4M20S::GetRadioStatus(){
+	return this->RadioStatus;
 }

@@ -29,50 +29,54 @@
 	this->state = RX_IDLE;
  }
  
- void RFProtocol::TxTelegram(Telegram *msg)
+ void RFProtocol::AddToTXFIFO(SerialData_t *newdata)
  {
 	 // fail fast:
 	if(this->txFIFO.isFull()){
-		delete msg;
+		delete newdata;
 		Serial.println("Error! - Tx FIFO Full, deleting new data");
 		return;
 	}
 
-	this->txFIFO.push(msg);	//Add to TX FIFO
+	Telegram *msg = this->ConvertSerialDataToTelegram(newdata);
+	
+	if(msg!=NULL){		
+		this->txFIFO.push(msg);	//Add to TX FIFO
 
-	//Downcasting to correct telegram.
-	//Telegram_MSG_1 *test = (Telegram_MSG_1 *)&msg;	
-	//Radio->SendPackage(msg->GetRadioMSG(),msg->GetRadioMSGLength());
-	//Radio->SendPackage(test->GetRadioMSG(),test->GetRadioMSGLength());
+		//Downcasting to correct telegram.
+		//Telegram_MSG_1 *test = (Telegram_MSG_1 *)&msg;	
+		//Radio->SendPackage(msg->GetRadioMSG(),msg->GetRadioMSGLength());
+		//Radio->SendPackage(test->GetRadioMSG(),test->GetRadioMSGLength());
 
-	if(state == RX_IDLE){ // force transmit	to get IRQ going.			
-		Telegram *outgoingmsg = NULL;
-		this->txFIFO.pop(outgoingmsg);	//get from FIFIO.
-		Radio->SendPackage(outgoingmsg->GetRadioMSG(),outgoingmsg->GetRadioMSGLength());
+		if(state == RX_IDLE){ // force transmit	to get IRQ going.			
+			Telegram *outgoingmsg = NULL;
+			this->txFIFO.pop(outgoingmsg);	//get from FIFIO.
+			Radio->SendPackage(outgoingmsg->GetRadioMSG(),outgoingmsg->GetRadioMSGLength());
 		
-		switch(outgoingmsg->GetRadioMSG_ID())
-		{
-			case MSG_Beacon_Broadcast:
-			case MSG_Beacon_Relay:
+			switch(outgoingmsg->GetRadioMSG_ID())
 			{
-				// Start transmission and don't wait for reply.
-				this->state=TX_WITHOUT_REPLY;						
-			}
-			break;
+				case MSG_Beacon_Broadcast:
+				case MSG_Beacon_Relay:
+				{
+					// Start transmission and don't wait for reply.
+					this->state=TX_WITHOUT_REPLY;						
+				}
+				break;
 			
-			case MSG_Command:
-			{
-				// Start transmission and wait for reply.
-				this->state=TX_WITH_REPLY;
-			}
-			break;
+				case MSG_Command:
+				{
+					// Start transmission and wait for reply.
+					this->state=TX_WITH_REPLY;
+				}
+				break;
 		   
-			default:
-			break;
-		}
+				default:
+				break;
+			}
 		
-		delete outgoingmsg;
-	}	
+			delete outgoingmsg;
+		}
+		}
  }
 
  Telegram * RFProtocol::GetTelegram()
@@ -184,15 +188,21 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 							Serial.println("Reply with Transponder Beacon!");
 							 
 							// Reply with transponder beacon:
-							/*
-							Telegram_MSG_1 msgReply = Telegram_MSG_1(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4,
-							(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
-							GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemStatus.state==RUNNING_ON_BATTERY),
-							0, 0,
-							SystemStatus.SecondCounterSinceLasteGroundStationContact, SystemStatus.BatteryVoltage, SystemStatus.FIRMWARE_VERSION, PCB_VERSION, SystemStatus.NumberOfBeaconsToRelay);
-							*/
-							//Radio->SendPackage(msgReply->GetRadioMSG(), msgReply->GetRadioMSGLength())
-							return TX_WITHOUT_REPLY;
+							
+							Telegram_MSG_1 msgReply = Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2,
+																		 SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
+																		(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
+																		GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemInformation->state==RUNNING_ON_BATTERY),
+																		0, 0,
+																		SystemInformation->SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
+																		SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, SystemInformation->NumberOfBeaconsToRelay);
+							 if(RFProtocolStatus.Sleep){ // don't send reply if sleep mode is requested.
+								 return RX_IDLE;
+							
+							 }else{
+								Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());
+								return TX_WITHOUT_REPLY;
+							 }
 						}
 						break;
 
@@ -200,12 +210,19 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 						{
 							Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(RFProtocolStatus.NumberOfBeaconsToRelay));
 							// Reply with transponder beacon:
-							Telegram_MSG_2 * msgReply = GetSavedTransponderBeaconForRelay();
-							if(msgReply != NULL){
-								Radio->SendPackage(msgReply->GetRadioMSG(), msgReply->GetRadioMSGLength());
-								delete msgReply;
-								return TX_WITHOUT_REPLY;
+
+							if(RFProtocolStatus.Sleep){ // don't send reply if sleep mode is requested.
+								return RX_IDLE;
+							}else
+							{
+								Telegram_MSG_2 * msgReply = GetSavedTransponderBeaconForRelay();
+								if(msgReply != NULL){
+									Radio->SendPackage(msgReply->GetRadioMSG(), msgReply->GetRadioMSGLength());
+									delete msgReply;
+									return TX_WITHOUT_REPLY;
+								}	
 							}
+							
 						}
 						break;
 
@@ -235,6 +252,12 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 
 RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
 	Telegram *msg = NULL;
+	
+	//End fast! - don't do any more TX, main system wants to sleep.
+	if(RFProtocolStatus.Sleep){
+		return RX_IDLE;
+	}
+	
 	if(txFIFO.pop(msg)){
 		if(msg!=NULL){
 			bool SaveTelegram = false;
@@ -281,116 +304,151 @@ RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
 
 void RFProtocol::IRQHandler()
  {
-	 if(state != SLEEP){
-		this->Radio->IRQHandler();
-		RadioStatus status = Radio->GetRadioStatus();
-		RFProtocolStates_t nextState = RX_IDLE;
+	this->Radio->IRQHandler();
+	RadioIRQStatus_t status = Radio->GetRadioStatus();
+	RFProtocolStates_t nextState = RX_IDLE;
 	
-		switch(state)
+	switch(state)
+	{
+		case RX_IDLE:
 		{
-			case RX_IDLE:
-			{
-				if(status.rxDone == true){
-				// New package received  
-					nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
-					if(nextState == RX_IDLE){ // If we didn't need to reply to the incoming data, then test if we need to transmit anything from the buffer:
-						nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
-					}
-				}
-				 
-				if((status.txDone == true) || (status.txTimeout == true) || (status.rxTimeout == true)) {
-					// This must be a mistake?
-					Serial.println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State");				
-					nextState=RX_IDLE;
-				}				 
-			}
-			break;
-		  	 
-			case WAITING_FOR_REPLY:
-			{
-				if(status.rxDone == true){
-					// New package received
-					nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
-					if(nextState == RX_IDLE){ // If we didn't need to reply to the incoming data, then test if we need to transmit anything from the buffer:
-						nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
-					}
-				}
-				if(status.rxTimeout == true){
-					// Send next telegram in FIFO, else to nextstate will be RX_IDLE.
+			if(status.rxDone == true){
+			// New package received  
+				nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+				if(nextState == RX_IDLE){ // If we didn't need to reply to the incoming data, then test if we need to transmit anything from the buffer:
 					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 				}
-				if((status.txDone == true) || (status.txTimeout == true)) {
-					// This must be a mistake?
-					Serial.println("RF Protocol Error: txDone||txTimeout in WAITING_FOR_REPLY State");
-					nextState=RX_IDLE;
-				} 
 			}
-			break;
+				 
+			if((status.txDone == true) || (status.txTimeout == true) || (status.rxTimeout == true)) {
+				// This must be a mistake?
+				Serial.println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State");				
+				nextState=RX_IDLE;
+			}				 
+		}
+		break;
+		  	 
+		case WAITING_FOR_REPLY:
+		{
+			if(status.rxDone == true){
+				// New package received
+				nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+				if(nextState == RX_IDLE){ // If we didn't need to reply to the incoming data, then test if we need to transmit anything from the buffer:
+					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+				}
+			}
+			if(status.rxTimeout == true){
+				// Send next telegram in FIFO, else to nextstate will be RX_IDLE.
+				nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+			}
+			if((status.txDone == true) || (status.txTimeout == true)) {
+				// This must be a mistake?
+				Serial.println("RF Protocol Error: txDone||txTimeout in WAITING_FOR_REPLY State");
+				nextState=RX_IDLE;
+			} 
+		}
+		break;
 		  	 
 			   
-			case TX_WITHOUT_REPLY:
-			{
-				if(status.txDone == true){
-					// Done sending - Send next telegram in FIFO, else to nextstate will be RX_IDLE.
-					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
-				}
-				if(status.txTimeout == true){
-					// Error in transmission
-					Serial.println("RF Protocol Error: Transmission failed!");
-					nextState=RX_IDLE;
-				}
-				if((status.rxDone == true) || (status.rxTimeout == true)) {
-					// This must be a mistake?
-					Serial.println("RF Protocol Error: rxDone||rxTimeout in TX_WITHOUT_REPLY State");
-					nextState=RX_IDLE;
-				}			  	 
+		case TX_WITHOUT_REPLY:
+		{
+			if(status.txDone == true){
+				// Done sending - Send next telegram in FIFO, else to nextstate will be RX_IDLE.
+				nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 			}
-			break;
-
-			case TX_WITH_REPLY:
-			{
-				if(status.txDone == true){
-					// Done sending, set Radio to RX with timeout.
-					nextState=WAITING_FOR_REPLY;
-				}
-				if(status.txTimeout == true){
-					// Error in transmission
-					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
-					Serial.println("RF Protocol Error: Transmission failed!");
-				}
-				if((status.rxDone == true) || (status.rxTimeout == true)) {
-					// This must be a mistake?
-					Serial.println("RF Protocol Error: rxDone||rxTimeout in TX_WITH_REPLY State");
-					nextState=RX_IDLE;
-				}
+			if(status.txTimeout == true){
+				// Error in transmission
+				Serial.println("RF Protocol Error: Transmission failed!");
+				nextState=RX_IDLE;
 			}
-			break;
-		/*
-			case SLEEP:
-			{
-			  	 
-			}
-			break;
-		*/
-		   
-			default:
-			break;
+			if((status.rxDone == true) || (status.rxTimeout == true)) {
+				// This must be a mistake?
+				Serial.println("RF Protocol Error: rxDone||rxTimeout in TX_WITHOUT_REPLY State");
+				nextState=RX_IDLE;
+			}			  	 
 		}
+		break;
 
-		if(nextState == WAITING_FOR_REPLY){
-			Radio->SetRXMode(true); // Set RX with timeout.
-		}else if(nextState == RX_IDLE){
-			Radio->SetRXMode(false); // Set RX without timeout.
+		case TX_WITH_REPLY:
+		{
+			if(status.txDone == true){
+				// Done sending, set Radio to RX with timeout.
+				nextState=WAITING_FOR_REPLY;
+			}
+			if(status.txTimeout == true){
+				// Error in transmission
+				nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+				Serial.println("RF Protocol Error: Transmission failed!");
+			}
+			if((status.rxDone == true) || (status.rxTimeout == true)) {
+				// This must be a mistake?
+				Serial.println("RF Protocol Error: rxDone||rxTimeout in TX_WITH_REPLY State");
+				nextState=RX_IDLE;
+			}
 		}
+		break;
+			   
+		default:
+		break;
+	}
 
- 		state=nextState;	 
-	 }  
+	if(nextState == WAITING_FOR_REPLY){
+		Radio->SetRXMode(true); // Set RX with timeout.
+	}else if(nextState == RX_IDLE){
+		Radio->SetRXMode(false); // Set RX without timeout.
+	}
+
+ 	state=nextState;	 
  }
  
  
+Telegram * RFProtocol::ConvertSerialDataToTelegram(SerialData_t *newdata){
+	 
+	 if(newdata == NULL)
+		return NULL;
+	 
+	 ProtocolMSG_t newMessageID = (ProtocolMSG_t)newdata->payload[0];
+	 
+	 Telegram *msg =NULL;
+
+	 switch(newMessageID)
+	 {
+		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
+		 {
+			 //			 msg =new Telegram_MSG_1(newdata->payload, newdata->payloadLength);
+			 msg =new Telegram_MSG_1(newdata);
+		 }
+		 break;
+		 
+		 case MSG_Beacon_Relay: //Create Beacon Relay Telegram.
+		 {
+			 msg =new Telegram_MSG_2(newdata);
+		 }
+		 break;
+		 
+		 case MSG_Command: // Create command Telegram.
+		 {
+			 msg =new Telegram_MSG_3(newdata);
+		 }
+		 break;
+		 
+		 default:
+			 Serial.println("Unknown Incoming message! from Radio.");
+			 return NULL;
+		 break;
+	 }
+
+	 if(msg->CRCValid()){
+		 return msg;
+	 }else{
+		 delete msg;
+		 return NULL;
+	 }
+ }
+
 Telegram * RFProtocol::ConvertIncommingDataToTelegram(){
 
-	 RadioData *newdata = Radio->GetRadioData();
+	 RadioData_t *newdata = Radio->GetRadioData();
  
 	 if(newdata == NULL)
 		return NULL;
@@ -403,30 +461,29 @@ Telegram * RFProtocol::ConvertIncommingDataToTelegram(){
 	 {
 		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
 		 {
-			 msg =new Telegram_MSG_1(newdata->payload, newdata->payloadLength);
+//			 msg =new Telegram_MSG_1(newdata->payload, newdata->payloadLength);
+			 msg =new Telegram_MSG_1(newdata);
 		 }
 		 break;
 		 
-		 case MSG_Beacon_Relay: //Create Beacon Realy Telegram.
+		 case MSG_Beacon_Relay: //Create Beacon Relay Telegram.
 		 {
-			 msg =new Telegram_MSG_2(newdata->payload, newdata->payloadLength);
+			 msg =new Telegram_MSG_2(newdata);
 		 }
 		 break;
 		 
 		 case MSG_Command: // Create command Telegram.
 		 {
-			 msg =new Telegram_MSG_2(newdata->payload, newdata->payloadLength);
+			 msg =new Telegram_MSG_3(newdata);
 		 }
 		 break;
 		 
 		 default:
 			Serial.println("Unknown Incoming message! from Radio.");
-			delete newdata; 
 			return NULL;
 		 break;
 	 }
 
-	 delete newdata; 
 	 if(msg->CRCValid()){
 		 return msg;
 	 }else{
@@ -436,4 +493,15 @@ Telegram * RFProtocol::ConvertIncommingDataToTelegram(){
  }
 
  
-					
+void RFProtocol::PowerDown(){
+	// Wait for Radio to finish current transmission.
+	RFProtocolStatus.Sleep = true;
+	do{}while(state!=RX_IDLE);
+	Radio->Sleep();
+}		
+
+void RFProtocol::WakeUp(){
+	RFProtocolStatus.Sleep = false;
+	Radio->WakeUp();
+	Radio->SetRXMode(true); // Set Radio to RX mode with timeout. This will trigger rx.timeout, and thus the continues flow of the statemachine, should there be data left in TX fifo.
+}

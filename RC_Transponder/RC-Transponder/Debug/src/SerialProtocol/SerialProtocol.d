@@ -1,6 +1,6 @@
-src/RF-Protocol/Telegram_MSG_3.d src/RF-Protocol/Telegram_MSG_3.o: \
- ../src/RF-Protocol/Telegram_MSG_3.cpp \
- ..\\include\RF-Protocol/Telegram_MSG_3.h \
+src/SerialProtocol/SerialProtocol.d src/SerialProtocol/SerialProtocol.o: \
+ ../src/SerialProtocol/SerialProtocol.cpp \
+ ..\\include\SerialProtocol/SerialProtocol.h \
  ..\\..\ArduinoCore\include\core/Arduino.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\lib\gcc\arm-none-eabi\6.3.1\include\stdbool.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\lib\gcc\arm-none-eabi\6.3.1\include\stdint.h \
@@ -152,13 +152,17 @@ src/RF-Protocol/Telegram_MSG_3.d src/RF-Protocol/Telegram_MSG_3.o: \
  ..\\..\ArduinoCore\include\core/RingBuffer.h \
  ..\\..\ArduinoCore\include\core/USB/USB_host.h \
  ..\\..\ArduinoCore\include\core/USB/samd21_host.h \
- ..\\include\RF-Protocol/Telegram.h ..\\include\E28-2G4M20S/E28-2G4M20S.h \
- ..\\include\E28-2G4M20S/radio.h ..\\include\E28-2G4M20S/sx1280-hal.h \
- ..\\include\E28-2G4M20S/sx1280.h \
+ ..\\include\RF-Protocol/RFProtocol.h \
+ ..\\include\E28-2G4M20S/E28-2G4M20S.h ..\\include\E28-2G4M20S/radio.h \
+ ..\\include\E28-2G4M20S/sx1280-hal.h ..\\include\E28-2G4M20S/sx1280.h \
  ..\\..\ArduinoCore\include\libraries\spi/SPI.h \
- ..\\include\SerialProtocol/SerialProtocol.h
+ ..\\include\RF-Protocol/Telegram.h \
+ ..\\include\RF-Protocol/Telegram_MSG_1.h \
+ ..\\include\RF-Protocol/Telegram_MSG_2.h \
+ ..\\include\RF-Protocol/Telegram_MSG_3.h ..\\include/GPSL80Lite.h \
+ ..\\include\RF-Protocol/RingBuf.h ..\\include/main.h ..\\include/hw.h
 
-..\\include\RF-Protocol/Telegram_MSG_3.h:
+..\\include\SerialProtocol/SerialProtocol.h:
 
 ..\\..\ArduinoCore\include\core/Arduino.h:
 
@@ -462,7 +466,7 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 
 ..\\..\ArduinoCore\include\core/USB/samd21_host.h:
 
-..\\include\RF-Protocol/Telegram.h:
+..\\include\RF-Protocol/RFProtocol.h:
 
 ..\\include\E28-2G4M20S/E28-2G4M20S.h:
 
@@ -474,4 +478,18 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 
 ..\\..\ArduinoCore\include\libraries\spi/SPI.h:
 
-..\\include\SerialProtocol/SerialProtocol.h:
+..\\include\RF-Protocol/Telegram.h:
+
+..\\include\RF-Protocol/Telegram_MSG_1.h:
+
+..\\include\RF-Protocol/Telegram_MSG_2.h:
+
+..\\include\RF-Protocol/Telegram_MSG_3.h:
+
+..\\include/GPSL80Lite.h:
+
+..\\include\RF-Protocol/RingBuf.h:
+
+..\\include/main.h:
+
+..\\include/hw.h:

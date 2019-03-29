@@ -69,7 +69,7 @@ Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uin
 	Longitude = 12281500;
 }
 
-
+/*
 Telegram_MSG_1::Telegram_MSG_1(uint8_t *data, uint8_t size) : Telegram(data,size)
 {
 	SetMSGLength();
@@ -83,6 +83,42 @@ Telegram_MSG_1::Telegram_MSG_1(uint8_t *data, uint8_t size) : Telegram(data,size
 	}
 	// if input is from serial:
 }
+*/
+
+Telegram_MSG_1::Telegram_MSG_1(RadioData_t *radioData)
+{
+	SetMSGLength();
+	_CRCValid=false;
+
+	memset(&Payload, 0,  MAX_PAYLOAD_LENGTH);
+	memcpy(&Payload,radioData->payload,radioData->payloadLength);
+	
+	// Data is copied in Telegram constructor to Payload.
+	if(radioData->payloadLength >= HEADER_SIZE){
+		this->ReadPayloadHeader();
+		this->ReadPayload(); // Assumes data is from radio.
+		this->rssi = radioData->rssi;
+		this->snr = radioData->snr;
+	}
+}
+
+
+Telegram_MSG_1::Telegram_MSG_1(SerialData_t *serialData)
+{
+	SetMSGLength();
+	_CRCValid=false;
+
+	memset(&Payload, 0,  MAX_PAYLOAD_LENGTH);
+	memcpy(&Payload,serialData->payload,serialData->payloadLength);
+	delete serialData;
+	
+	// Data is copied in Telegram constructor to Payload.
+	if(serialData->payloadLength >= HEADER_SIZE){
+		this->ReadPayloadHeader();
+		this->ReadPayload();
+	}
+}
+
 
 void Telegram_MSG_1::SetMSGLength(void){
 	this->RadioMSGLength =HEADER_SIZE+MSG_1_PAYLOAD_SIZE+CRC_SIZE; // 17+22+2 = 41
@@ -156,10 +192,6 @@ void Telegram_MSG_1::ReadPayload( void )
 	if(CalculateCRC(&Payload[0],RadioMSGLength-CRC_SIZE) == temp_crc){
 		_CRCValid=true;
 	}
-		
-	// read the last two bytes but don't count up the counter.	
-	rssi=(uint8_t)Payload[HEADER_SIZE+24]; 
-	snr=(uint8_t)Payload[HEADER_SIZE+25]; // will not count up the RadioMSGLength counter
 }
 
 void Telegram_MSG_1::GeneratePayload(uint8_t *data){
