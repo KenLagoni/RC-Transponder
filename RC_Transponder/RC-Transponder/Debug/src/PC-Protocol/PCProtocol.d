@@ -1,5 +1,5 @@
 src/PC-Protocol/PCProtocol.d src/PC-Protocol/PCProtocol.o: \
- ../src/PC-Protocol/PCProtocol.cpp ..\\include\PC-Protocol/PCProtocol.h \
+ ../src/PC-Protocol/PCProtocol.cpp \
  ..\\..\ArduinoCore\include\core/Arduino.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\lib\gcc\arm-none-eabi\6.3.1\include\stdbool.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\lib\gcc\arm-none-eabi\6.3.1\include\stdint.h \
@@ -151,6 +151,7 @@ src/PC-Protocol/PCProtocol.d src/PC-Protocol/PCProtocol.o: \
  ..\\..\ArduinoCore\include\core/RingBuffer.h \
  ..\\..\ArduinoCore\include\core/USB/USB_host.h \
  ..\\..\ArduinoCore\include\core/USB/samd21_host.h \
+ ..\\include\PC-Protocol/PCProtocol.h \
  ..\\include\E28-2G4M20S/E28-2G4M20S.h ..\\include\E28-2G4M20S/radio.h \
  ..\\include\E28-2G4M20S/sx1280-hal.h ..\\include\E28-2G4M20S/sx1280.h \
  ..\\..\ArduinoCore\include\libraries\spi/SPI.h \
@@ -159,8 +160,6 @@ src/PC-Protocol/PCProtocol.d src/PC-Protocol/PCProtocol.o: \
  ..\\include\RF-Protocol/Telegram_MSG_2.h \
  ..\\include\RF-Protocol/Telegram_MSG_3.h ..\\include/GPSL80Lite.h \
  ..\\include\RF-Protocol/RingBuf.h ..\\include/main.h ..\\include/hw.h
-
-..\\include\PC-Protocol/PCProtocol.h:
 
 ..\\..\ArduinoCore\include\core/Arduino.h:
 
@@ -463,6 +462,8 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 ..\\..\ArduinoCore\include\core/USB/USB_host.h:
 
 ..\\..\ArduinoCore\include\core/USB/samd21_host.h:
+
+..\\include\PC-Protocol/PCProtocol.h:
 
 ..\\include\E28-2G4M20S/E28-2G4M20S.h:
 

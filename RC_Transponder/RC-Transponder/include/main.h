@@ -57,7 +57,5 @@ extern struct SystemInformation_t
 }SystemInformation;
 
 
-#define MAX_NUMBER_OF_BEACONS_TO_SAVE 10
-
 
 #endif /* MAIN_H_ */

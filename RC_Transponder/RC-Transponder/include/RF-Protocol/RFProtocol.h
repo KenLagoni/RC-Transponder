@@ -28,10 +28,6 @@
  // SystemInformation
  #include "main.h"
 
- #include "PCProtocol.h" // For serial data struct.
-
-//#include "Arduino.h" // Needed for uint8 types mf.
-
 #define FIFO_SIZE 30
 
 class RFProtocol
@@ -69,6 +65,7 @@ class RFProtocol
 		TX_WITHOUT_REPLY,
 		TX_WITH_REPLY,
 	}state = RX_IDLE;
+	RFProtocolStates_t nextState = RX_IDLE;
 
 	E28_2G4M20S *Radio = NULL;
 	GpsDataLite *GPSData = NULL;
@@ -86,6 +83,7 @@ class RFProtocol
 	bool SaveTransponderBeacon(Telegram_MSG_1 *msg); // Return true if message is saved
 
 	RadioData_t rxbuffer; // When using "GetData()" the Telegram is removed from FIFO and only RadioData is saved. Telegram is den deleted.
+	void ServiceStateMachine();
 };
 
 

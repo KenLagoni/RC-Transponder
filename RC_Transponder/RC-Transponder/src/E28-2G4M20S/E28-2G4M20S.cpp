@@ -256,6 +256,7 @@ void E28_2G4M20S::SendRadioData(RadioData_t *data)
 	digitalWrite(21, HIGH);
 }
 
+
 /*
 void E28_2G4M20S::SendPackage(uint8_t *payload, uint8_t payloadLength)
 {
@@ -314,6 +315,12 @@ RadioData_t * E28_2G4M20S::GetRadioData()
 
 RadioIRQStatus_t E28_2G4M20S::GetRadioStatus(){
 	return this->RadioStatus;
+}
+void E28_2G4M20S::ClearRadioStatus(){
+	RadioStatus.rxDone=false;
+	RadioStatus.txDone=false;
+	RadioStatus.rxTimeout=false;
+	RadioStatus.txTimeout=false;	
 }
 
 

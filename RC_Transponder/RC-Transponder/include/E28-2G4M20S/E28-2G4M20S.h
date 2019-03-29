@@ -60,6 +60,7 @@ class E28_2G4M20S
 	void SendRadioData(RadioData_t *data);
 	RadioData_t * GetRadioData();
 	RadioIRQStatus_t GetRadioStatus();
+	void ClearRadioStatus();
 	uint16_t CalculateCRC(uint8_t *data, uint8_t length);
 		
   private:

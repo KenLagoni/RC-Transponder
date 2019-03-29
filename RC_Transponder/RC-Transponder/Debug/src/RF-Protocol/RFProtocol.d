@@ -160,7 +160,7 @@ src/RF-Protocol/RFProtocol.d src/RF-Protocol/RFProtocol.o: \
  ..\\include\RF-Protocol/Telegram_MSG_2.h \
  ..\\include\RF-Protocol/Telegram_MSG_3.h ..\\include/GPSL80Lite.h \
  ..\\include\RF-Protocol/RingBuf.h ..\\include/main.h ..\\include/hw.h \
- ..\\include\PC-Protocol/PCProtocol.h ..\\include\RF-Protocol/Telegram.h \
+ ..\\include\RF-Protocol/Telegram.h \
  ..\\include\RF-Protocol/Telegram_MSG_1.h \
  ..\\include\RF-Protocol/Telegram_MSG_2.h \
  ..\\include\RF-Protocol/Telegram_MSG_3.h
@@ -494,8 +494,6 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 ..\\include/main.h:
 
 ..\\include/hw.h:
-
-..\\include\PC-Protocol/PCProtocol.h:
 
 ..\\include\RF-Protocol/Telegram.h:
 

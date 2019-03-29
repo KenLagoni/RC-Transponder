@@ -4,9 +4,8 @@
 	Copyright (c) 2019 Lagoni
 	Not for commercial use
  */ 
+#include <Arduino.h>
 #include "PCProtocol.h"  // For add and get function to RF protocol RX/TX FIFO
-#include "E28-2G4M20S.h" // for RadioData_t struct.
-#include "RFProtocol.h" // For add to FIFO and Read from FIFO
 
 PCProtocol::PCProtocol(RFProtocol *inout, E28_2G4M20S *radio){
 	this->_inout = inout;
@@ -31,7 +30,7 @@ void PCProtocol::WriteToSerial(RadioData_t *data)
   
  void PCProtocol::Service(){
 	NumberOfBytesToRead = Serial.available();
-
+	
 	if(NumberOfBytesToRead == 0){
 		// Handle TX
 		if(_inout->Available()){

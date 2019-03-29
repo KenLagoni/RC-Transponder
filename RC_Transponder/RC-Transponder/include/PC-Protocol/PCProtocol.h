@@ -11,8 +11,9 @@
 
 #include "Arduino.h"
 #include "E28-2G4M20S.h" // RadioData_t struct. 
+#include "RFProtocol.h" // For RF protocol.
 
-class RFProtocol; // forward declaration.
+//class RFProtocol; // forward declaration.
 
 class PCProtocol
 {
