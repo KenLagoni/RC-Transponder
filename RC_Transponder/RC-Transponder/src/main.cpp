@@ -40,7 +40,7 @@ Generic Clock Generator 4-8 - Disabled
 #include "main.h"
 #include "hw.h"
 #include "RFProtocol.h"
-#include "SerialProtocol.h"
+#include "PCProtocol.h"
 
 // Radio
 #include "E28-2G4M20S.h"
@@ -56,9 +56,6 @@ void LowPowerTest(void);
 void Do_ground_station_loop(void);
 void GoToSleep(void);
 String base64_encode(byte[], int);
-
-//Global variables
-Telegram_MSG_1 SavedBeacons[MAX_NUMBER_OF_BEACONS_TO_SAVE];
 
 // System information
 SystemInformation_t SystemInformation;
@@ -78,7 +75,7 @@ FrSkySportTelemetry FrskySport;           // Create telemetry object without pol
 // Object and varibels for SX1280/E28_2G4 radio chip
 E28_2G4M20S *Radio = NULL;
 RFProtocol *RadioProtocol = NULL;
-SerialProtocol *SerialProtocolINST = NULL;
+PCProtocol *SerialProtocol = NULL;
 
 // $GPGGA,193648.000,5550.0838,N,01224.0718,E,2,8,0.96,32.7,M,41.5,M,0000,0000*62
 GPSL80Lite *GPS = NULL; // GPS class, defined in GPSL80.h
@@ -197,7 +194,7 @@ void setup() {
 
 void Recharge(void){
 		PowerOFFGPS(); // Turn off  GPS to save battery.
-		Radio->Sleep(); // Put radio to sleep to save power.
+		//Radio->Sleep(); // Put radio to sleep to save power.
 		PowerOFF(); 
 		do
 		{
@@ -263,7 +260,7 @@ void loop() {
 	
 			////// Below this line, code is executed fast! 
 //			HandelSerial();	 // Communication via USB (only if used as groundstation
-			SerialProtocolINST->Service();
+			SerialProtocol->Service();
 //			HandelRadio();  // Read new messages and reply as needed.  
 			GPS->update();  // Function empty serial buffer and analyzes string.
 			// RCin->read();  // SBUS, PPM or PWM. 

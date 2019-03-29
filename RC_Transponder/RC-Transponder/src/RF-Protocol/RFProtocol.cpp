@@ -29,17 +29,18 @@
 	this->state = RX_IDLE;
  }
  
- void RFProtocol::AddToTXFIFO(SerialData_t *newdata)
+ void RFProtocol::AddData(RadioData_t *newdata)
  {
 	 // fail fast:
 	if(this->txFIFO.isFull()){
-		delete newdata;
 		Serial.println("Error! - Tx FIFO Full, deleting new data");
 		return;
 	}
 
-	Telegram *msg = this->ConvertSerialDataToTelegram(newdata);
+	Telegram *msg = this->ConvertToTelegram(newdata);
 	
+	//Convert Telegram to specefic telegram.
+
 	if(msg!=NULL){		
 		this->txFIFO.push(msg);	//Add to TX FIFO
 
@@ -51,8 +52,8 @@
 		if(state == RX_IDLE){ // force transmit	to get IRQ going.			
 			Telegram *outgoingmsg = NULL;
 			this->txFIFO.pop(outgoingmsg);	//get from FIFIO.
-			Radio->SendPackage(outgoingmsg->GetRadioMSG(),outgoingmsg->GetRadioMSGLength());
-		
+			Radio->SendRadioData(outgoingmsg->GetRadioData());
+	
 			switch(outgoingmsg->GetRadioMSG_ID())
 			{
 				case MSG_Beacon_Broadcast:
@@ -76,22 +77,26 @@
 		
 			delete outgoingmsg;
 		}
-		}
- }
-
- Telegram * RFProtocol::GetTelegram()
- {
-	if(this->rxFIFO.isEmpty())
-		return NULL;
-	else{
-		Telegram * msg = NULL; 
-		rxFIFO.pop(msg);
-		return msg;
 	}
  }
 
+RadioData_t * RFProtocol::GetData()
+{
+	if(this->rxFIFO.isEmpty())
+		return NULL;
+	else{
+		Telegram * msg = NULL;
+		rxFIFO.pop(msg);
+		memcpy(&rxbuffer.payload, msg->GetRadioData()->payload, msg->GetRadioData()->payloadLength);	// copy the data.
+		rxbuffer.payloadLength = msg->GetRadioData()->payloadLength;
+		rxbuffer.rssi = msg->GetRadioData()->rssi;
+		rxbuffer.snr = msg->GetRadioData()->snr;
+		delete msg;
+		return &rxbuffer;
+	}
+}
 
- int RFProtocol::TelegramAvailable()
+ int RFProtocol::Available()
  {
 	 return this->rxFIFO.size();
  }
@@ -108,8 +113,6 @@
 											*/
  }
 
-
-
 Telegram_MSG_2 * RFProtocol::GetSavedTransponderBeaconForRelay(){
 	
 	if(RFProtocolStatus.NumberOfBeaconsToRelay == 0){
@@ -120,7 +123,9 @@ Telegram_MSG_2 * RFProtocol::GetSavedTransponderBeaconForRelay(){
 	RFProtocolStatus.NumberOfBeaconsToRelay--;	
 	
 	// Convert to relay msg:
-	Telegram_MSG_2 *msg = new Telegram_MSG_2(SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay-1]);
+	RadioData_t test;
+//	Telegram_MSG_2 *msg = new Telegram_MSG_2(test);
+	Telegram_MSG_2 *msg = new Telegram_MSG_2(savedmsg);
 	delete savedmsg;
 
 	return msg;
@@ -163,7 +168,9 @@ bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 }
 
 RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
-	Telegram *msg = ConvertIncommingDataToTelegram();
+	RadioData_t *newdata = Radio->GetRadioData();
+	Telegram *msg = ConvertToTelegram(newdata);
+
 	if(msg!=NULL){
 		bool SaveTelegram = false;
 					
@@ -186,21 +193,19 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 						case CMD_Request_Transponder_Beacon:
 						{
 							Serial.println("Reply with Transponder Beacon!");
-							 
 							// Reply with transponder beacon:
-							
-							Telegram_MSG_1 msgReply = Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2,
-																		 SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
-																		(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
-																		GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemInformation->state==RUNNING_ON_BATTERY),
-																		0, 0,
+														
+							 if(RFProtocolStatus.Sleep){ // don't send reply if sleep mode is requested.
+								 return RX_IDLE;							
+							 }else{
+								Telegram_MSG_1 msgReply = Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2,
+ 																		SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
+ 																		(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
+ 																		GPSData->NumberOfSatellites, GPSData->FixDecimal, (SystemInformation->state==RUNNING_ON_BATTERY),
+ 																		0, 0,
 																		SystemInformation->SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
 																		SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, SystemInformation->NumberOfBeaconsToRelay);
-							 if(RFProtocolStatus.Sleep){ // don't send reply if sleep mode is requested.
-								 return RX_IDLE;
-							
-							 }else{
-								Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());
+								Radio->SendRadioData(msgReply.GetRadioData());
 								return TX_WITHOUT_REPLY;
 							 }
 						}
@@ -217,7 +222,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 							{
 								Telegram_MSG_2 * msgReply = GetSavedTransponderBeaconForRelay();
 								if(msgReply != NULL){
-									Radio->SendPackage(msgReply->GetRadioMSG(), msgReply->GetRadioMSGLength());
+									Radio->SendRadioData(msgReply->GetRadioData());
 									delete msgReply;
 									return TX_WITHOUT_REPLY;
 								}	
@@ -258,17 +263,16 @@ RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
 		return RX_IDLE;
 	}
 	
+	RFProtocolStates_t nextState = RX_IDLE;
+
 	if(txFIFO.pop(msg)){
 		if(msg!=NULL){
-			bool SaveTelegram = false;
-					
 			switch(msg->GetRadioMSG_ID())
 			{
 				case MSG_Beacon_Broadcast:
 				case MSG_Beacon_Relay:
-					Radio->SendPackage(msg->GetRadioMSG(), msg->GetRadioMSGLength());
-					delete msg;
-					return TX_WITHOUT_REPLY;
+					Radio->SendRadioData(msg->GetRadioData());
+					nextState=TX_WITHOUT_REPLY;
 				break;
 
 				case MSG_Command:
@@ -277,17 +281,15 @@ RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
 						case CMD_Request_Transponder_Beacon:
 						case CMD_Request_NEXT_Beacon_Relay:
 						{
-							Radio->SendPackage(msg->GetRadioMSG(),msg->GetRadioMSGLength());
-							delete msg;
-							return TX_WITH_REPLY;
+							Radio->SendRadioData(msg->GetRadioData());
+							nextState=TX_WITH_REPLY;
 						}
 						break;
 
 						case CMD_Do_Power_Off:
 						{
-							Radio->SendPackage(msg->GetRadioMSG(),msg->GetRadioMSGLength());
-							delete msg;
-							return TX_WITHOUT_REPLY;
+							Radio->SendRadioData(msg->GetRadioData());
+							nextState=TX_WITHOUT_REPLY;
 							Serial.println("Power off");
 						}
 						break;		
@@ -297,9 +299,10 @@ RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
 					}
 				break;
 			}
+			delete msg;
 		}		
 	}
-	return RX_IDLE;
+	return nextState;
 }
 
 void RFProtocol::IRQHandler()
@@ -307,7 +310,7 @@ void RFProtocol::IRQHandler()
 	this->Radio->IRQHandler();
 	RadioIRQStatus_t status = Radio->GetRadioStatus();
 	RFProtocolStates_t nextState = RX_IDLE;
-	
+
 	switch(state)
 	{
 		case RX_IDLE:
@@ -400,10 +403,9 @@ void RFProtocol::IRQHandler()
 
  	state=nextState;	 
  }
- 
- 
-Telegram * RFProtocol::ConvertSerialDataToTelegram(SerialData_t *newdata){
-	 
+  
+Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete newdata to avoid memory leaks.
+{ 
 	 if(newdata == NULL)
 		return NULL;
 	 
@@ -415,66 +417,19 @@ Telegram * RFProtocol::ConvertSerialDataToTelegram(SerialData_t *newdata){
 	 {
 		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
 		 {
-			 //			 msg =new Telegram_MSG_1(newdata->payload, newdata->payloadLength);
-			 msg =new Telegram_MSG_1(newdata);
+			 msg = new Telegram_MSG_1(newdata);
 		 }
 		 break;
 		 
 		 case MSG_Beacon_Relay: //Create Beacon Relay Telegram.
 		 {
-			 msg =new Telegram_MSG_2(newdata);
+			 msg = new Telegram_MSG_2(newdata);
 		 }
 		 break;
 		 
 		 case MSG_Command: // Create command Telegram.
 		 {
-			 msg =new Telegram_MSG_3(newdata);
-		 }
-		 break;
-		 
-		 default:
-			 Serial.println("Unknown Incoming message! from Radio.");
-			 return NULL;
-		 break;
-	 }
-
-	 if(msg->CRCValid()){
-		 return msg;
-	 }else{
-		 delete msg;
-		 return NULL;
-	 }
- }
-
-Telegram * RFProtocol::ConvertIncommingDataToTelegram(){
-
-	 RadioData_t *newdata = Radio->GetRadioData();
- 
-	 if(newdata == NULL)
-		return NULL;
-	 
-	 ProtocolMSG_t newMessageID = (ProtocolMSG_t)newdata->payload[0];
-	 
-	 Telegram *msg =NULL;
-
-	 switch(newMessageID)
-	 {
-		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
-		 {
-//			 msg =new Telegram_MSG_1(newdata->payload, newdata->payloadLength);
-			 msg =new Telegram_MSG_1(newdata);
-		 }
-		 break;
-		 
-		 case MSG_Beacon_Relay: //Create Beacon Relay Telegram.
-		 {
-			 msg =new Telegram_MSG_2(newdata);
-		 }
-		 break;
-		 
-		 case MSG_Command: // Create command Telegram.
-		 {
-			 msg =new Telegram_MSG_3(newdata);
+			 msg = new Telegram_MSG_3(newdata);
 		 }
 		 break;
 		 
@@ -483,13 +438,7 @@ Telegram * RFProtocol::ConvertIncommingDataToTelegram(){
 			return NULL;
 		 break;
 	 }
-
-	 if(msg->CRCValid()){
-		 return msg;
-	 }else{
-		 delete msg;
-		 return NULL;
-	 }
+	return msg;	
  }
 
  

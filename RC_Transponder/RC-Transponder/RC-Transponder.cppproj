@@ -229,7 +229,7 @@
       <Value>%24(ProjectDir)\include\E28-2G4M20S</Value>
       <Value>%24(ProjectDir)\include\RF-Protocol</Value>
       <Value>%24(ProjectDir)\include\FrskySPORT</Value>
-      <Value>%24(ProjectDir)\include\SerialProtocol</Value>
+      <Value>%24(ProjectDir)\include\PC-Protocol</Value>
     </ListValues>
   </armgcc.compiler.directories.IncludePaths>
   <armgcc.compiler.optimization.level>Optimize for size (-Os)</armgcc.compiler.optimization.level>
@@ -273,7 +273,7 @@
       <Value>%24(ProjectDir)\include\E28-2G4M20S</Value>
       <Value>%24(ProjectDir)\include\RF-Protocol</Value>
       <Value>%24(ProjectDir)\include\FrskySPORT</Value>
-      <Value>%24(ProjectDir)\include\SerialProtocol</Value>
+      <Value>%24(ProjectDir)\include\PC-Protocol</Value>
     </ListValues>
   </armgcccpp.compiler.directories.IncludePaths>
   <armgcccpp.compiler.optimization.OtherFlags>-fno-threadsafe-statics -fno-exceptions</armgcccpp.compiler.optimization.OtherFlags>
@@ -353,6 +353,9 @@
     <Compile Include="include\main.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="include\PC-Protocol\PCProtocol.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="include\RF-Protocol\RFProtocol.h">
       <SubType>compile</SubType>
     </Compile>
@@ -369,9 +372,6 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="include\RF-Protocol\Telegram_MSG_3.h">
-      <SubType>compile</SubType>
-    </Compile>
-    <Compile Include="include\SerialProtocol\SerialProtocol.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="include\timer.h">
@@ -422,7 +422,7 @@
     <Compile Include="src\RF-Protocol\Telegram_MSG_3.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\SerialProtocol\SerialProtocol.cpp">
+    <Compile Include="src\PC-Protocol\PCProtocol.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\timer.cpp">
@@ -442,7 +442,7 @@
     <Folder Include="Device_Startup\" />
     <Folder Include="include\E28-2G4M20S" />
     <Folder Include="include\FrskySPORT" />
-    <Folder Include="include\SerialProtocol" />
+    <Folder Include="include\PC-Protocol" />
     <Folder Include="include\RF-Protocol" />
     <Folder Include="linker_scripts\" />
     <Folder Include="linker_scripts\linker_scripts\" />
@@ -451,7 +451,7 @@
     <Folder Include="src" />
     <Folder Include="src\E28-2G4M20S" />
     <Folder Include="src\FrskySPORT" />
-    <Folder Include="src\SerialProtocol" />
+    <Folder Include="src\PC-Protocol" />
     <Folder Include="src\RF-Protocol" />
   </ItemGroup>
   <ItemGroup>

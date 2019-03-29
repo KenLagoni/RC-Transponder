@@ -147,35 +147,47 @@ void E28_2G4M20S::OnRxDone( void )
 {
 	memset(&RadioData.payload, 0x00, MAX_PAYLOAD_LENGTH);
 	RadioData.payloadLength=0;
-	if(Radio->GetPayload(RadioData.payload, &RadioData.payloadLength, MAX_PAYLOAD_LENGTH-2)){
+	if(Radio->GetPayload(&RadioData.payload[0], &RadioData.payloadLength, MAX_PAYLOAD_LENGTH)){
 		// If return 1, then package size is larger than MAX_PAYLOAD_LENGTH
 		Serial.println("Oops! - New package is to big. Length="+String(RadioData.payloadLength)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
 	}else{
-		// New data has been copied to buffer.
-		Radio->GetPacketStatus(&PacketStatus);
-		switch( PacketStatus.packetType )
-		{
-			case PACKET_TYPE_GFSK:
-				RadioData.rssi	 = PacketStatus.Gfsk.RssiSync;
-			break;
+		//Extract and test CRC (last two bytes):
+		uint16_t temp_crc = (uint16_t)((RadioData.payload[RadioData.payloadLength-2] << 8) + RadioData.payload[RadioData.payloadLength-1]);
+		RadioData.payload[RadioData.payloadLength-2]=0;
+		RadioData.payload[RadioData.payloadLength-1]=0;
+		RadioData.payloadLength -= 2; // we have removed CRC.
+			
+		if(CalculateCRC(&RadioData.payload[0],RadioData.payloadLength) == temp_crc){
+			// New data has been copied to buffer.
+			Radio->GetPacketStatus(&PacketStatus);
+			switch( PacketStatus.packetType )
+			{
+				case PACKET_TYPE_GFSK:
+					RadioData.rssi	 = PacketStatus.Gfsk.RssiSync;
+				break;
 
-			case PACKET_TYPE_LORA:
-			case PACKET_TYPE_RANGING:
-				RadioData.rssi = PacketStatus.LoRa.RssiPkt;
-				RadioData.snr = PacketStatus.LoRa.SnrPkt;
-			break;
+				case PACKET_TYPE_LORA:
+				case PACKET_TYPE_RANGING:
+					RadioData.rssi = PacketStatus.LoRa.RssiPkt;
+					RadioData.snr = PacketStatus.LoRa.SnrPkt;
+				break;
 
-			case PACKET_TYPE_FLRC:
-				RadioData.rssi = PacketStatus.Flrc.RssiSync;
-			break;
+				case PACKET_TYPE_FLRC:
+					RadioData.rssi = PacketStatus.Flrc.RssiSync;
+				break;
 
-			case PACKET_TYPE_BLE:
-			RadioData.rssi = PacketStatus.Ble.RssiSync;
-			break;
+				case PACKET_TYPE_BLE:
+				RadioData.rssi = PacketStatus.Ble.RssiSync;
+				break;
 
-			case PACKET_TYPE_NONE:
-			RadioData.rssi = 0;
-			break;
+				case PACKET_TYPE_NONE:
+				RadioData.rssi = 0;
+				break;
+			}
+			RadioStatus.rxDone=true;
+			RadioDataReady = true;
+		}else{
+			RadioStatus.rxDone=false;
 		}
 	}
 }
@@ -186,7 +198,7 @@ void E28_2G4M20S::IRQHandler( void )
 	Radio->ProcessIrqs();	
 	
 	// reset all flags.
-	RadioStatus.rxDone=Radio->RadioPacketStatus.rxDone;
+//	RadioStatus.rxDone=Radio->RadioPacketStatus.rxDone;  // Set in RXDone, if CRC is ok.
 	RadioStatus.txDone=Radio->RadioPacketStatus.txDone;
 	RadioStatus.rxTimeout=Radio->RadioPacketStatus.rxTimeout;
 	RadioStatus.txTimeout=Radio->RadioPacketStatus.txTimeout;
@@ -225,6 +237,26 @@ void E28_2G4M20S::IRQHandler( void )
 	
 }
 
+void E28_2G4M20S::SendRadioData(RadioData_t *data)
+{
+	// lets build data fro transmission, including adding 16bit CRC.
+	RadioData.payloadLength=data->payloadLength;
+	memcpy(&RadioData.payload, data->payload, RadioData.payloadLength);	// copy the data.
+
+	// Prepare Package with CRC
+	uint16_t temp_crc = CalculateCRC(&RadioData.payload[0], RadioData.payloadLength);
+	RadioData.payload[RadioData.payloadLength++] = (uint8_t)((temp_crc >>  8) & 0xFF);  // CRC
+	RadioData.payload[RadioData.payloadLength++] = (uint8_t)(temp_crc & 0xFF);		    // CRC	
+			
+	this->SetTxModeActive(); // Switch the hardware amplifier to TX mode.
+	Radio->SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on TX complete on DI01.
+	this->PacketParams.Params.LoRa.PayloadLength = RadioData.payloadLength;
+	Radio->SetPacketParams( &PacketParams );
+	Radio->SendPayload(&RadioData.payload[0], RadioData.payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
+	digitalWrite(21, HIGH);
+}
+
+/*
 void E28_2G4M20S::SendPackage(uint8_t *payload, uint8_t payloadLength)
 {
    this->SetTxModeActive(); // Switch the hardware amplifier to TX mode.
@@ -234,6 +266,7 @@ void E28_2G4M20S::SendPackage(uint8_t *payload, uint8_t payloadLength)
    Radio->SendPayload(payload, payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
    digitalWrite(21, HIGH);	
 }
+*/
 
 void E28_2G4M20S::SetRXMode(bool useTimeout)
 {
@@ -271,9 +304,29 @@ void E28_2G4M20S::WakeUp(void){
 
 RadioData_t * E28_2G4M20S::GetRadioData()
 {
-	return &RadioData;	
+	if(RadioDataReady){
+		RadioDataReady = false;
+		return &RadioData;	
+	}else{
+		return NULL;
+	}
 }
 
 RadioIRQStatus_t E28_2G4M20S::GetRadioStatus(){
 	return this->RadioStatus;
+}
+
+
+uint16_t E28_2G4M20S::CalculateCRC(uint8_t *data, uint8_t length){
+	uint16_t count;
+	uint16_t crc = 0xFFFF;
+	uint16_t temp;
+
+	for (count = 0; count < length; ++count)
+	{
+		temp = (uint16_t)((*data++ ^ (crc >> 8)) & 0xff);
+		crc = (uint16_t)(crc_table[temp] ^ (crc << 8));
+	}
+
+	return (uint16_t)(crc ^ 0x0000);
 }

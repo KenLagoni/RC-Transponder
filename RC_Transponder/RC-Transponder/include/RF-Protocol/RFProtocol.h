@@ -28,6 +28,8 @@
  // SystemInformation
  #include "main.h"
 
+ #include "PCProtocol.h" // For serial data struct.
+
 //#include "Arduino.h" // Needed for uint8 types mf.
 
 #define FIFO_SIZE 30
@@ -37,15 +39,14 @@ class RFProtocol
 	// Public functions to be used on all Messages
 	public:
 	RFProtocol(E28_2G4M20S *RadioModule, GpsDataLite *GPS, SystemInformation_t *status); //constructor.
-	void AddToTXFIFO(SerialData_t *msg); // Add to TX FIFO.
-	Telegram * GetTelegram(); // return next telegram in RX FIFO.
-	int TelegramAvailable(); // returns number of Telegrams in RX FIFO.
-
-	void SendBeacon(); // Add a beacon message to TX FIFO.
 	
+	void AddData(RadioData_t *msg); // Add to TX FIFO.
+	RadioData_t * GetData();
+
+	int Available(); // returns number of Telegrams in RX FIFO.
+	void SendBeacon(); // Add a beacon message to TX FIFO.
 	void PowerDown();
 	void WakeUp();
-
 	void IRQHandler(); // Function to be called when Radio pin makes IRQ.
 	
 
@@ -80,10 +81,11 @@ class RFProtocol
 
 	RFProtocolStates_t RXHandler();
 	RFProtocolStates_t TXHandler();
-	Telegram * ConvertIncommingDataToTelegram(); // return pointer to incomming package if CRC is ok, else NULL.
-	Telegram * ConvertSerialDataToTelegram(SerialData_t *newdata); // return pointer to incomming package if CRC is ok, else NULL.
-	void SendTelegram(Telegram *msg);
+
+	Telegram * ConvertToTelegram(RadioData_t *data); // return pointer to incomming package if CRC is ok, else NULL.
 	bool SaveTransponderBeacon(Telegram_MSG_1 *msg); // Return true if message is saved
+
+	RadioData_t rxbuffer; // When using "GetData()" the Telegram is removed from FIFO and only RadioData is saved. Telegram is den deleted.
 };
 
 

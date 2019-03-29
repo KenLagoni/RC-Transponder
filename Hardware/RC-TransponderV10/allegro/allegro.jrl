@@ -1,0 +1,259 @@
+\t (00:00:02) allegro 17.2 S042 Windows SPB 64-bit Edition
+\t (00:00:02)     Journal start - Fri Feb 15 09:54:42 2019
+\t (00:00:02)         Host=KLODESK3 User=klo Pid=6456 CPUs=8
+\t (00:00:02) CmdLine= c:\cadence\spb_17.2\tools\bin\allegro.exe C:\Users\klo\Documents\GitHub\RC-Transponder\Hardware\RC-TransponderV10\allegro\RCTransponder-10.brd
+\t (00:00:02) 
+   (00:00:02) Loading axlcore.cxt 
+   (00:00:03) Searching for nsWare programs v2.74
+   (00:00:03) 	NsWare directory found: //bnas01/files/Hardware/Nordcard_Cadence/pcb/skill/nsWare/
+   (00:00:03) 	NsWare programs must reside in this directory!
+   (00:00:03) function _saveSelSet redefined
+   (00:00:03) function _restoreSelSet redefined
+   (00:00:03) function Find_Component_Routine redefined
+   (00:00:03) function AFn_formEnd redefined
+   (00:00:03) function AFn_formMessage redefined
+   (00:00:03) function AFn_formGroup redefined
+   (00:00:03) function AFn_formText redefined
+   (00:00:03) function AFn_formButton redefined
+   (00:00:03) function AFn_formChecklistItem redefined
+   (00:00:03) function AFn_formRealFillin redefined
+   (00:00:03) function AFn_formPop redefined
+   (00:00:03) function AFn_formThumbnail redefined
+   (00:00:03) function AFn_formOptionsString redefined
+   (00:00:03) function AFn_formSizeString redefined
+   (00:00:03) function AFn_formOptionalString redefined
+\t (00:00:04) Opening existing design...
+\w (00:00:04) WARNING(SPMHDB-213): DRC set to "out of date". The current product selection supports a different DRC capability than what is saved in the design.
+\i (00:00:04) QtSignal SPBFoldDockArea FoldAreaTabWidget currentChanged RCTransponder-10
+\d (00:00:04) Design opened: C:/Users/klo/Documents/GitHub/RC-Transponder/Hardware/RC-TransponderV10/allegro/RCTransponder-10.brd
+   (00:00:04) Loading skillExt.cxt 
+\i (00:00:04) trapsize 1536
+\i (00:00:04) trapsize 1579
+\i (00:00:04) trapsize 1536
+\i (00:00:04) trapsize 1536
+\i (00:00:04) trapsize 1291
+\i (00:00:04) trapsize 1579
+\i (00:00:04) trapsize 1291
+\i (00:00:05) etchedit 
+\i (00:00:06) zoom out 
+\i (00:00:06) setwindow pcb
+\i (00:00:06) zoom out 14.3984 9.1174
+\i (00:00:06) trapsize 2583
+\i (00:00:09) QtSignal ColorVisibilityPane CVPViewDropdown CurrentIndexChanged "File: Bottom with components"
+\i (00:00:09) color -globvis off 
+\i (00:00:09) color -vis 'BOARD GEOMETRY/NCROUTE_PATH' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/WB_GUIDE_LINE' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/OFF_GRID_AREA' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/SOLDERMASK_BOTTOM' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/ASSEMBLY_DETAIL' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/SILKSCREEN_BOTTOM' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/SWITCH_AREA_BOTTOM' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/BOTH_ROOMS' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/BOTTOM_ROOM' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/PLACE_GRID_BOTTOM' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/PLACE_GRID_TOP' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/DIMENSION' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/TOOLING_CORNERS' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/ASSEMBLY_NOTES' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/PLATING_BAR' 
+\i (00:00:10) color -vis 'BOARD GEOMETRY/OUTLINE' 
+\i (00:00:10) color -vis 'COMPONENT VALUE/ASSEMBLY_EMBEDDED' 
+\i (00:00:10) color -vis 'COMPONENT VALUE/DISPLAY_EMBEDDED' 
+\i (00:00:10) color -vis 'COMPONENT VALUE/DISPLAY_BOTTOM' 
+\i (00:00:10) color -vis 'COMPONENT VALUE/SILKSCREEN_BOTTOM' 
+\i (00:00:10) color -vis 'DEVICE TYPE/ASSEMBLY_EMBEDDED' 
+\i (00:00:10) color -vis 'DEVICE TYPE/DISPLAY_EMBEDDED' 
+\i (00:00:10) color -vis 'DEVICE TYPE/DISPLAY_BOTTOM' 
+\i (00:00:10) color -vis 'DEVICE TYPE/SILKSCREEN_BOTTOM' 
+\i (00:00:10) color -vis 'DRAWING FORMAT' 
+\i (00:00:10) color -vis 'DRC ERROR CLASS/BOTTOM' 
+\i (00:00:10) color -vis 'DRC ERROR CLASS/PASTEMASK_BOTTOM' 
+\i (00:00:10) color -vis 'DRC ERROR CLASS/SOLDERMASK_BOTTOM' 
+\i (00:00:10) color -vis 'DRC ERROR CLASS/PACKAGE_BOTTOM' 
+\i (00:00:10) color -vis 'DRC ERROR CLASS/ALL' 
+\i (00:00:10) color -vis ETCH/BOTTOM 
+\i (00:00:11) color -vis ETCH/WIRE 
+\i (00:00:11) color -vis MANUFACTURING/IMPEDANCE 
+\i (00:00:11) color -vis MANUFACTURING/STACKUP_FIGURE 
+\i (00:00:11) color -vis MANUFACTURING/XSECTION_CHART 
+\i (00:00:11) color -vis MANUFACTURING/NO_PROBE_BOTTOM 
+\i (00:00:11) color -vis MANUFACTURING/AUTOSILK_BOTTOM 
+\i (00:00:11) color -vis MANUFACTURING/PROBE_BOTTOM 
+\i (00:00:11) color -vis MANUFACTURING/NCDRILL_FIGURE 
+\i (00:00:11) color -vis MANUFACTURING/NCDRILL_LEGEND 
+\i (00:00:11) color -vis MANUFACTURING/NO_GLOSS_INTERNAL 
+\i (00:00:11) color -vis MANUFACTURING/NO_GLOSS_BOTTOM 
+\i (00:00:11) color -vis MANUFACTURING/NO_GLOSS_ALL 
+\i (00:00:11) color -vis MANUFACTURING/PHOTOPLOT_OUTLINE 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/PASTEMASK_BOTTOM' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/DFA_BOUND_BOTTOM' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/MODULES' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/DISPLAY_BOTTOM' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/SOLDERMASK_BOTTOM' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/BODY_CENTER' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/SILKSCREEN_BOTTOM' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/PAD_STACK_NAME' 
+\i (00:00:11) color -vis 'PACKAGE GEOMETRY/PLACE_BOUND_BOTTOM' 
+\i (00:00:11) color -vis 'PACKAGE KEEPIN' 
+\i (00:00:11) color -vis 'PACKAGE KEEPOUT' 
+\i (00:00:11) color -vis PIN/BOTTOM 
+\i (00:00:11) color -vis PIN/FILMMASKBOTTOM 
+\i (00:00:11) color -vis PIN/PASTEMASK_BOTTOM 
+\i (00:00:11) color -vis PIN/SOLDERMASK_BOTTOM 
+\i (00:00:11) color -vis 'REF DES/ASSEMBLY_EMBEDDED' 
+\i (00:00:11) color -vis 'REF DES/DISPLAY_EMBEDDED' 
+\i (00:00:12) color -vis 'REF DES/DISPLAY_BOTTOM' 
+\i (00:00:12) color -vis 'REF DES/SILKSCREEN_BOTTOM' 
+\i (00:00:12) color -vis 'ROUTE KEEPIN' 
+\i (00:00:12) color -vis 'ROUTE KEEPOUT' 
+\i (00:00:12) color -vis TOLERANCE/ASSEMBLY_EMBEDDED 
+\i (00:00:12) color -vis TOLERANCE/DISPLAY_EMBEDDED 
+\i (00:00:12) color -vis TOLERANCE/DISPLAY_BOTTOM 
+\i (00:00:12) color -vis TOLERANCE/SILKSCREEN_BOTTOM 
+\i (00:00:12) color -vis 'USER PART NUMBER/ASSEMBLY_EMBEDDED' 
+\i (00:00:12) color -vis 'USER PART NUMBER/DISPLAY_EMBEDDED' 
+\i (00:00:12) color -vis 'USER PART NUMBER/DISPLAY_BOTTOM' 
+\i (00:00:12) color -vis 'USER PART NUMBER/SILKSCREEN_BOTTOM' 
+\i (00:00:12) color -vis 'VIA CLASS/BOTTOM' 
+\i (00:00:12) color -vis 'VIA CLASS/FILMMASKBOTTOM' 
+\i (00:00:12) color -vis 'VIA CLASS/PASTEMASK_BOTTOM' 
+\i (00:00:12) color -vis 'VIA CLASS/SOLDERMASK_BOTTOM' 
+\i (00:00:12) color -vis 'VIA KEEPOUT' 
+\i (00:00:12) color -vis 'ANTI ETCH/INNER_LAYER_2' 
+\i (00:00:12) color -vis 'ANTI ETCH/INNER_LAYER_3' 
+\i (00:00:12) color -vis 'ANTI ETCH/BOTTOM' 
+\i (00:00:12) color -vis 'ANTI ETCH/ALL' 
+\i (00:00:12) color -vis BOUNDARY/BOTTOM 
+\i (00:00:12) color -vis BOUNDARY/ALL 
+\i (00:00:12) color -vis 'CONSTRAINT REGION' 
+\i (00:00:12) color -vis CAVITY/INNER_LAYER_2 
+\i (00:00:12) color -vis CAVITY/INNER_LAYER_3 
+\i (00:00:12) color -vis CAVITY/BOTTOM 
+\i (00:00:12) color -vis 'EMBEDDED GEOMETRY' 
+\i (00:00:12) trapsize 2583
+\i (00:00:13) etchedit 
+\i (00:00:15) pick grid 42.1877 -7.4631
+\t (00:00:15) last pick:  42.2000 -7.4500
+\i (00:00:17) zoom in 
+\i (00:00:17) setwindow pcb
+\i (00:00:17) zoom in 6.7538 5.8117
+\i (00:00:17) trapsize 1291
+\i (00:00:18) zoom in 
+\i (00:00:18) setwindow pcb
+\i (00:00:18) zoom in 6.3406 4.8820
+\i (00:00:18) trapsize 646
+\i (00:00:18) zoom in 
+\i (00:00:18) setwindow pcb
+\i (00:00:18) zoom in 6.3406 4.8820
+\i (00:00:18) trapsize 323
+\i (00:00:19) zoom out 
+\i (00:00:19) setwindow pcb
+\i (00:00:19) zoom out 6.3535 4.8369
+\i (00:00:19) trapsize 646
+\i (00:00:20) zoom in 
+\i (00:00:20) setwindow pcb
+\i (00:00:20) zoom in 8.9620 2.6545
+\i (00:00:20) trapsize 323
+\i (00:00:23) zoom out 
+\i (00:00:23) setwindow pcb
+\i (00:00:23) zoom out 7.7611 3.7650
+\i (00:00:23) trapsize 646
+\i (00:00:23) zoom in 
+\i (00:00:23) setwindow pcb
+\i (00:00:23) zoom in 8.8846 2.0347
+\i (00:00:23) trapsize 323
+\i (00:00:25) zoom out 
+\i (00:00:25) setwindow pcb
+\i (00:00:25) zoom out 9.9048 2.9193
+\i (00:00:25) trapsize 646
+\i (00:00:25) zoom out 
+\i (00:00:25) setwindow pcb
+\i (00:00:25) zoom out 9.6853 2.9452
+\i (00:00:25) trapsize 1291
+\i (00:00:25) zoom in 
+\i (00:00:25) setwindow pcb
+\i (00:00:25) zoom in 9.5045 1.5247
+\i (00:00:25) trapsize 646
+\i (00:00:25) zoom in 
+\i (00:00:25) setwindow pcb
+\i (00:00:25) zoom in 9.0655 1.7055
+\i (00:00:25) trapsize 323
+\i (00:00:26) zoom out 
+\i (00:00:26) setwindow pcb
+\i (00:00:26) zoom out 8.9687 2.6353
+\i (00:00:26) trapsize 646
+\i (00:00:27) zoom out 
+\i (00:00:27) setwindow pcb
+\i (00:00:27) zoom out 8.7362 2.5190
+\i (00:00:27) trapsize 1291
+\i (00:00:30) roam y -96 
+\i (00:00:30) roam y -96
+\i (00:00:31) roam y -96 
+\i (00:00:31) roam y -96
+\i (00:00:31) roam x 96 
+\i (00:00:31) roam x 96
+\i (00:00:31) roam x 96 
+\i (00:00:31) roam x 96
+\i (00:00:32) roam x 96 
+\i (00:00:32) roam x 96
+\i (00:00:37) roam y -96 
+\i (00:00:37) roam y -96
+\i (00:01:04) zoom in 
+\i (00:01:04) setwindow pcb
+\i (00:01:04) zoom in 12.6996 2.0415
+\i (00:01:04) trapsize 646
+\i (00:01:21) roam x 96 
+\i (00:01:21) roam x 96
+\i (00:01:21) roam x 96 
+\i (00:01:21) roam x 96
+\i (00:01:21) roam x 96 
+\i (00:01:21) roam x 96
+\i (00:01:22) roam x 96 
+\i (00:01:22) roam x 96
+\i (00:01:22) roam y -96 
+\i (00:01:22) roam y -96
+\i (01:40:48) roam y 96 
+\i (01:40:48) roam y 96
+\i (01:40:48) roam y 96 
+\i (01:40:48) roam y 96
+\i (01:40:48) roam y 96 
+\i (01:40:48) roam y 96
+\i (01:40:48) roam y -96 
+\i (01:40:48) roam y -96
+\i (01:40:48) roam y -96 
+\i (01:40:48) roam y -96
+\i (01:40:49) zoom out 
+\i (01:40:49) setwindow pcb
+\i (01:40:49) zoom out 21.9325 2.5581
+\i (01:40:49) trapsize 1291
+\i (01:40:55) flipdesign 
+\i (01:41:24) pick grid 18.9625 15.0581
+\t (01:41:24) last pick:  18.9500 15.0500
+\i (01:41:25) zoom in 
+\i (01:41:25) setwindow pcb
+\i (01:41:25) zoom in 21.4677 8.5498
+\i (01:41:25) trapsize 646
+\i (01:41:25) zoom in 
+\i (01:41:25) setwindow pcb
+\i (01:41:25) zoom in 21.5581 7.8267
+\i (01:41:25) trapsize 323
+\i (01:41:28) zoom out 
+\i (01:41:28) setwindow pcb
+\i (01:41:28) zoom out 21.0997 6.7808
+\i (01:41:28) trapsize 646
+\i (01:41:29) zoom out 
+\i (01:41:29) setwindow pcb
+\i (01:41:29) zoom out 20.2603 6.2771
+\i (01:41:29) trapsize 1291
+\i (01:41:30) roam y 96 
+\i (01:41:30) roam y 96
+\i (01:41:30) roam y 96 
+\i (01:41:30) roam y 96
+\i (01:41:31) zoom in 
+\i (01:41:31) setwindow pcb
+\i (01:41:31) zoom in 21.4483 7.0777
+\i (01:41:31) trapsize 646
+\i (01:41:55) roam y 96 
+\i (01:41:55) roam y 96
+\i (01:55:06) exit 
+\t (01:55:07)     Journal end - Fri Feb 15 11:49:47 2019

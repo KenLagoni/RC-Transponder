@@ -155,8 +155,7 @@ src/RF-Protocol/Telegram_MSG_3.d src/RF-Protocol/Telegram_MSG_3.o: \
  ..\\include\RF-Protocol/Telegram.h ..\\include\E28-2G4M20S/E28-2G4M20S.h \
  ..\\include\E28-2G4M20S/radio.h ..\\include\E28-2G4M20S/sx1280-hal.h \
  ..\\include\E28-2G4M20S/sx1280.h \
- ..\\..\ArduinoCore\include\libraries\spi/SPI.h \
- ..\\include\SerialProtocol/SerialProtocol.h
+ ..\\..\ArduinoCore\include\libraries\spi/SPI.h
 
 ..\\include\RF-Protocol/Telegram_MSG_3.h:
 
@@ -473,5 +472,3 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 ..\\include\E28-2G4M20S/sx1280.h:
 
 ..\\..\ArduinoCore\include\libraries\spi/SPI.h:
-
-..\\include\SerialProtocol/SerialProtocol.h:
