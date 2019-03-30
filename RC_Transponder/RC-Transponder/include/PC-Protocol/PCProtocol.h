@@ -34,6 +34,7 @@ class PCProtocol
 	void ApplicationCMDHandler();
 	void RadioDataHandler();
 	void WriteToSerial(RadioData_t *data);
+	void clearInputData();
 
 	int NumberOfBytesToRead=0;
 	

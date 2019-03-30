@@ -74,6 +74,7 @@ RadioData_t * RFProtocol::GetData()
 
  void RFProtocol::SendBeacon()
  {
+    digitalWrite(auxTXPin, HIGH);
 	// Make beacon msg
  	float pressure=0;
  	float groundspeed=0;
@@ -150,6 +151,7 @@ bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 	RadioData_t *newdata = Radio->GetRadioData();
 	Telegram *msg = ConvertToTelegram(newdata);
+	RFProtocolStates_t returnState =RX_IDLE; 
 
 	if(msg!=NULL){
 		bool SaveTelegram = false;
@@ -177,7 +179,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 														
 							 if(RFProtocolStatus.Sleep){ // don't send reply if sleep mode is requested.
 								 Serial.println("No - We are asleep zzzz");
-								 return RX_IDLE;							
+								 returnState=RX_IDLE;							
 							 }else{
 								 Serial.println("Yes!");
 								Telegram_MSG_1 msgReply = Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2,
@@ -188,7 +190,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 																		SystemInformation->SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
 																		SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, SystemInformation->NumberOfBeaconsToRelay);
 								Radio->SendRadioData(msgReply.GetRadioData());
-								return TX_WITHOUT_REPLY;
+								returnState=TX_WITHOUT_REPLY;
 							 }
 						}
 						break;
@@ -199,14 +201,14 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 							// Reply with transponder beacon:
 
 							if(RFProtocolStatus.Sleep){ // don't send reply if sleep mode is requested.
-								return RX_IDLE;
+								returnState=RX_IDLE;
 							}else
 							{
 								Telegram_MSG_2 * msgReply = GetSavedTransponderBeaconForRelay();
 								if(msgReply != NULL){
 									Radio->SendRadioData(msgReply->GetRadioData());
 									delete msgReply;
-									return TX_WITHOUT_REPLY;
+									returnState=TX_WITHOUT_REPLY;
 								}	
 							}
 							
@@ -224,7 +226,8 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 					}
 				}
 			break;
-		}					
+		}		
+					
 		// Save in RX FIFO:
 		if(!(rxFIFO.isFull())){
 			rxFIFO.push(msg);
@@ -234,7 +237,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler(){
 			delete msg;
 	}		
 
-	return RX_IDLE;
+	return returnState;
 }
 
 RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
@@ -246,6 +249,8 @@ RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
 	}
 	
 	RFProtocolStates_t _nextState = RX_IDLE;
+
+	uint16_t test = txFIFO.size();
 
 	if(txFIFO.pop(msg)){
 		if(msg!=NULL){
@@ -345,6 +350,7 @@ void RFProtocol::ServiceStateMachine()
 			if(status.txDone == true){
 				// Done sending - Send next telegram in FIFO, else to nextstate will be RX_IDLE.
 				nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+				digitalWrite(auxTXPin, LOW);				
 			}
 			if(status.txTimeout == true){
 				// Error in transmission

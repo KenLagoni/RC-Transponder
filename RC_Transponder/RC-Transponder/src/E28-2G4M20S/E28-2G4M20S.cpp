@@ -8,6 +8,7 @@
 #include "E28-2G4M20S.h"
 #include "radio.h"
 #include "sx1280-hal.h"
+#include "hw.h" // for pin define auxTXPin and LEDPIN
 
 
 E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin)
@@ -140,7 +141,7 @@ void E28_2G4M20S::OnTxDone( void )
 	// switch PA to RX.
 	SetRxModeActive();
 	SetRXMode(false); // Set to RX with no timeout.
-	digitalWrite(21, LOW);
+	digitalWrite(led2Pin, LOW);
 }
 
 void E28_2G4M20S::OnRxDone( void )
@@ -253,7 +254,9 @@ void E28_2G4M20S::SendRadioData(RadioData_t *data)
 	this->PacketParams.Params.LoRa.PayloadLength = RadioData.payloadLength;
 	Radio->SetPacketParams( &PacketParams );
 	Radio->SendPayload(&RadioData.payload[0], RadioData.payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
-	digitalWrite(21, HIGH);
+	
+	//Debug:
+	digitalWrite(led2Pin, HIGH);	
 }
 
 

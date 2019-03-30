@@ -16,7 +16,7 @@ PCProtocol::PCProtocol(RFProtocol *inout, E28_2G4M20S *radio){
 void PCProtocol::WriteToSerial(RadioData_t *data)
 {
 		output[0]=0x1E; // Start byte
-		output[1]=1+data->payloadLength+2; // Length (length byte + output.payloadlength +2 byte CRC;
+		output[1]=data->payloadLength+2; // Length (output.payloadlength +2 byte CRC;
 		memcpy(&output[2], &data->payload[0], data->payloadLength);
 
 		uint16_t temp_crc = RadioForCRC->CalculateCRC(&output[2], data->payloadLength);
@@ -27,6 +27,17 @@ void PCProtocol::WriteToSerial(RadioData_t *data)
 		Serial.write(output, data->payloadLength+4);
 }
 
+  
+void PCProtocol::clearInputData(){
+	dataLength = 0;    // counter number of bytes read.
+	dataIndex = 0;
+	memset(&data, 0,  MAX_PAYLOAD_LENGTH);
+	memset(&input.payload, 0,  MAX_PAYLOAD_LENGTH);
+	input.payloadLength=0;
+	input.rssi=0;
+	input.snr=0;
+	CRC = 0;	
+}
   
  void PCProtocol::Service(){
 	NumberOfBytesToRead = Serial.available();
@@ -48,104 +59,107 @@ void PCProtocol::WriteToSerial(RadioData_t *data)
 	}else{
 		do
 		{
-			// input data: 0x1E [LENGTH] [PAYLOAD]
-			if(NumberOfBytesToRead > 0)
+			_newChar=Serial.read(); // read char from input buffer
+			NumberOfBytesToRead = Serial.available();
+					 
+			switch (SerialState)
 			{
-				_newChar=Serial.read(); // read char from input buffer
-				 
-				switch (SerialState)
-				{
-					case LOOKING_FOR_START: // look for 0x1E in incoming data
+				case LOOKING_FOR_START: // look for 0x1E in incoming data
 					if(_newChar == 0x1E)
 					{
 	//					SerialAUX->println("Start found!");
-						dataLength = 0;    // counter number of bytes read.
-						dataIndex = 0;
-						memset(&data, 0,  MAX_PAYLOAD_LENGTH);
-						memset(&input.payload, 0,  MAX_PAYLOAD_LENGTH);
-						input.payloadLength=0;
-						input.rssi=0;
-						input.snr=0;
-						CRC = 0;
+						clearInputData();
 						SerialState=READ_DATA_LENGTH; // Start of string found!
 					}
-					break;
+				break;
 					 
-					case READ_DATA_LENGTH:
-						if(_newChar >= MAX_PAYLOAD_LENGTH){
+				case READ_DATA_LENGTH:
+					if(_newChar >= MAX_PAYLOAD_LENGTH ){
 		//					SerialAUX->println("Length too long.");
-							SerialState=LOOKING_FOR_START; // Error, restart:
-						}
-					 
-						dataLength = _newChar;
-		//				SerialAUX->println("Length is:" + String(dataLength));
-						SerialState=READ_PAYLOAD_ID; // Start of string found!
-					break;
+							SerialAUX->println("Length too long.");
+							SerialState=LOOKING_FOR_START; // Error.			
+					}else if(_newChar == 0x1E){
+						clearInputData();
+						SerialState=READ_DATA_LENGTH; // New start byte found, restart.
+					}else{
+						 dataLength = _newChar;
+						 //				SerialAUX->println("Length is:" + String(dataLength));
+						 SerialState=READ_PAYLOAD_ID; // Start of string found!						
+					}
+				break;
 
-					case READ_PAYLOAD_ID:
+				case READ_PAYLOAD_ID:
+					if(_newChar == 0x1E){
+						//					SerialAUX->println("Length too long.");		
+						clearInputData();			
+						SerialState=READ_DATA_LENGTH; // Error, restart:
+					}else{
 						PayloadID = (PayloadID_t)_newChar;
-
-						//				SerialAUX->println("Length is:" + String(dataLength));
-						SerialState=READ_PAYLOAD; 
-					break;
-					 
-					case READ_PAYLOAD:
-						data[dataIndex] = _newChar;
-					 
-						if(dataIndex < MAX_PAYLOAD_LENGTH){
-							dataIndex++;
+						
+						if((PayloadID == RADAR_APPLICATION_ID) || (PayloadID == RADIO_DATA_TO_RF) || (PayloadID == RADIO_DATA_TO_PC)){
+							data[dataIndex++] = _newChar;
+							SerialState=READ_PAYLOAD;		
 						}else{
-							SerialState=LOOKING_FOR_START; // error restart.
+							SerialState=LOOKING_FOR_START; // Restart, Payload not known.		
 						}
-							 
+					}				
+				
+				break;
+					 
+				case READ_PAYLOAD:
+					data[dataIndex++] = _newChar;
+					 
+					if(dataIndex < MAX_PAYLOAD_LENGTH){
 						if(dataIndex >= (dataLength-2)){
 							SerialState=READ_CRC1; // Done with Data payload, now go to CRC
 						}
-					break;
+					}else{
+						SerialState=LOOKING_FOR_START; // error restart.
+					}
+				break;
 					 
-					case READ_CRC1:
-						CRC = (uint16_t)(_newChar<< 8);
-						SerialState=READ_CRC2; 
-					break;
+				case READ_CRC1:
+					CRC = (uint16_t)(_newChar<< 8);
+					SerialState=READ_CRC2; 
+				break;
 
-					case READ_CRC2:
-						CRC |= (uint16_t)_newChar;
+				case READ_CRC2:
+					CRC |= (uint16_t)_newChar;
 
-						// done reading package, lets check it.
-						if(RadioForCRC->CalculateCRC(&data[0] , dataLength) != CRC){
-							SerialState=LOOKING_FOR_START; // CRC error restart.						
-							break;
-						}
+					// done reading package, lets check it.
+					if(RadioForCRC->CalculateCRC(&data[0] , dataIndex) != CRC){
+						SerialState=LOOKING_FOR_START; // CRC error restart.						
+						break;
+					}
 
-						// If we get to here, CRC on new data is ok.
-						switch(PayloadID) // MSG ID
+					// If we get to here, CRC on new data is ok.
+					switch(PayloadID) // MSG ID
+					{
+						case RADAR_APPLICATION_ID:
 						{
-							case RADAR_APPLICATION_ID:
-							{
-								ApplicationCMDHandler();
-							}
-							break;
-											
-											
-							case RADIO_DATA_TO_RF:
-							case RADIO_DATA_TO_PC: 
-							{
-								RadioDataHandler();						
-							}
-							break;
-
-							default:
-											
-							break;
+							ApplicationCMDHandler();
 						}
+						break;
+											
+											
+						case RADIO_DATA_TO_RF:
+						case RADIO_DATA_TO_PC: 
+						{
+							RadioDataHandler();						
+						}
+						break;
 
-						SerialState=LOOKING_FOR_START; // Done, restart.
-					break;
+						default:
+											
+						break;
+					}
 
-					default:
-						SerialState = LOOKING_FOR_START; // error, restart.
-					break;
-				}
+					SerialState=LOOKING_FOR_START; // Done, restart.
+				break;
+
+				default:
+					SerialState = LOOKING_FOR_START; // error, restart.
+				break;
 			}
 		}while(NumberOfBytesToRead > 0); // loop until buffer is empty		 
 	}
@@ -163,6 +177,7 @@ void PCProtocol::ApplicationCMDHandler(){
 				input.payload[1] = HW_REPLY;			    // (HW_REPLY)
 				input.payloadLength=2;
 				WriteToSerial(&input);
+				SystemInformation.IsGroundStation=true;
 			}
 			break;
 
@@ -172,13 +187,13 @@ void PCProtocol::ApplicationCMDHandler(){
 }
 
 void PCProtocol::RadioDataHandler(){
+	PayloadID_t _payloadID = (PayloadID_t)data[0];
 	
-	switch(PayloadID) // PAyload Id eather RADIO_DATA_TO_RF or RADIO_DATA_TO_PC.
+	switch(_payloadID) // PAyload Id eather RADIO_DATA_TO_RF or RADIO_DATA_TO_PC.
 	{
 		case RADIO_DATA_TO_RF: // Application ask if we are a transponder (ground station) - Reply with same message to ack.
 		{
-			
-			memcpy(&input.payload[0], &data[0], dataLength-3);   //
+			memcpy(&input.payload[0], &data[1], dataLength-3);   //
 			input.payloadLength=dataLength-3;			 // Payload is length minus CRC (2) minus PayloadID (1), thus 3.	
 			input.rssi=0;
 			input.snr=0;

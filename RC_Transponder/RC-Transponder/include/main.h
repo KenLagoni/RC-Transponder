@@ -54,6 +54,7 @@ extern struct SystemInformation_t
 	volatile uint32_t *AddrSerialNumber4 = (volatile uint32_t *)0x0080A048;
 	uint32_t SerialNumber4= *AddrSerialNumber4;	
 
+	bool IsGroundStation = false;
 }SystemInformation;
 
 

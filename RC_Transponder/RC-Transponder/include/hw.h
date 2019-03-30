@@ -143,6 +143,6 @@ void hwInit_debug_lowpower(void);
 // Chip unique serial number part 4:4278394144
 // Chip unique serial number: "294656298813473114378083336424278394144" (Prototype 2 - ground test and low power mod)
 
-extern uint32_t SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4;
+
 
 #endif /* HW_H_ */

@@ -91,8 +91,8 @@ void hwInit() {
 		digitalWrite(SaftyLEDPin, LOW);
 	#endif
 	
-	// Now that the GPS has been power cycled, we know it is talking 9600.
-	SerialAUX = new Uart(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the AUX serial port
+	// Make SerialAUX Uart:
+	//SerialAUX = new Uart(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the AUX serial port
 	
 }
 		
@@ -162,4 +162,5 @@ void PowerOFFGPS(void){
 	void PowerOFFGPSBackup(void){
 		digitalWrite(GPSBackupPowerPin, LOW);  // High=On, Low= Off
 	}
+
 #endif

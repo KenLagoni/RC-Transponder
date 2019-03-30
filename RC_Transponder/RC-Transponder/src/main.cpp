@@ -176,7 +176,9 @@ void setup() {
 	FrskySport.begin(SerialfrskySPort, &FrskyGPS);
 			
 	// Init Auxiliary serial port:
-	SerialAUX->begin(115200);
+	//SerialAUX->begin(115200);
+	pinMode(auxTXPin, OUTPUT);
+	digitalWrite(auxTXPin, HIGH);
 
 	// Set Timer 3 as 1 sec interrupt.
 	//startTimer(1); // 1Hz
@@ -344,9 +346,31 @@ void BeaconService(void){
 	if(SystemInformation.BeaconSecondCounter == 5){
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
-		RadioProtocol->SendBeacon();
+		if(SystemInformation.IsGroundStation==false){
+			RadioProtocol->SendBeacon();
+		}
 	}	
 }
+
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+	char top;
+	#ifdef __arm__
+	return &top - reinterpret_cast<char*>(sbrk(0));
+	#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+	return &top - __brkval;
+	#else  // __arm__
+	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+	#endif  // __arm__
+}
+
 
 void One_second_Update(void){
 	//// only every second (check status)
@@ -360,6 +384,10 @@ void One_second_Update(void){
 				
 		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
 		FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
+		
+		Serial.print(F("Free RAM = ")); //F function does the same and is now a built in library, in IDE > 1.0.0
+		Serial.println(freeMemory(), DEC);  // print how much RAM is available.
+	
 	}
 }
 	
