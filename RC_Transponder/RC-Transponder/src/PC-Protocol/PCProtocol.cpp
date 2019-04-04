@@ -49,8 +49,12 @@ void PCProtocol::clearInputData(){
 
 			//Add RSSI and SNR to payload before sending it.
 			if(output->payloadLength < MAX_PAYLOAD_LENGTH-2){
-				output->payload[output->payloadLength]=output->rssi;
-				output->payload[output->payloadLength+1]=output->snr;
+				uint8_t rssi_uint8=(uint8_t)output->rssi;
+				int8_t rssi_int8=output->rssi;
+				byte rssi_place = output->payloadLength;
+				
+				output->payload[output->payloadLength]=(uint8_t)output->rssi;
+				output->payload[output->payloadLength+1]=(uint8_t)output->snr;
 				output->payloadLength+=2;
 				WriteToSerial(output);
 			}

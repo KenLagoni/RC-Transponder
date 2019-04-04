@@ -92,7 +92,7 @@ void hwInit() {
 	#endif
 	
 	// Make SerialAUX Uart:
-	//SerialAUX = new Uart(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the AUX serial port
+	SerialAUX = new Uart(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the AUX serial port
 	
 }
 		

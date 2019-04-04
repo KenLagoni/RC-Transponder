@@ -28,6 +28,7 @@ typedef enum
 	CMD_Request_Transponder_Beacon        = 0x01,
 	CMD_Request_NEXT_Beacon_Relay,
 	CMD_Do_Power_Off,
+	CMD_Simulate_run_on_battery,
 }ProtocolCMD_t;
 
 

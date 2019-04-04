@@ -5,6 +5,7 @@
 	Not for commercial use
  */ 
   #include "Telegram_MSG_1.h"
+  #include "hw.h" // SerialAUX
 
 // constructor for main init.
 
@@ -121,6 +122,7 @@ Telegram_MSG_1::Telegram_MSG_1(RadioData_t *radioData) : Telegram(radioData)
 			
 		PCBVersion      = (uint8_t)TelegramData.payload[HEADER_SIZE+20];
 		NumberOfBeaconsToRelay = (uint8_t)TelegramData.payload[HEADER_SIZE+21];
+		
 	}
 }
 
@@ -244,27 +246,27 @@ void Telegram_MSG_1::SerialPrintMessage( void )
 			Serial.println("Payload["+String(a)+"]=" + String(Payload[a]));
 		}
 		*/
-	Serial.println("");
-	Serial.println("Message Header:");
-	Serial.println("MSG ID                 :" + String(this->MSG_ID));
-	Serial.println("From Unique ID         :" + String(this->Unique_ID_1) + String(this->Unique_ID_2) + String(this->Unique_ID_3) + String(this->Unique_ID_4));
-	Serial.println("Message Data:");
-	Serial.println("UTC  Time              :" + String(this->UTCTime));
-	Serial.println("Latitude               :" + String(this->Latitude));
-	Serial.println("Longitude              :" + String(this->Longitude));
-	Serial.println("# of satellites        :" + String(this->NumberOfSat));
-	Serial.println("Fix                    :" + String(this->Fix));
+	SerialAUX->println("");
+	SerialAUX->println("Message Header:");
+	SerialAUX->println("MSG ID                 :" + String(this->MSG_ID));
+	SerialAUX->println("From Unique ID         :" + String(this->Unique_ID_1) + String(this->Unique_ID_2) + String(this->Unique_ID_3) + String(this->Unique_ID_4));
+	SerialAUX->println("Message Data:");
+	SerialAUX->println("UTC  Time              :" + String(this->UTCTime));
+	SerialAUX->println("Latitude               :" + String(this->Latitude));
+	SerialAUX->println("Longitude              :" + String(this->Longitude));
+	SerialAUX->println("# of satellites        :" + String(this->NumberOfSat));
+	SerialAUX->println("Fix                    :" + String(this->Fix));
 	if(this->RunningOnBattery)
-		Serial.println("Running on Battery!");
+		SerialAUX->println("Running on Battery!");
 	else
-		Serial.println("Powered from external source");
-	Serial.println("Pressure              :" + String(this->Pressure));		
-	Serial.println("Ground Speed          :" + String(this->GroundSpeed));
-	Serial.println("SSLGC                 :" + String(this->SecondsSinceLastGSContact));
-	Serial.println("Battery Voltage       :" + String(this->BatteryVoltage));
-	Serial.println("Firmware Version      :" + String(this->FirmwareVersion));
-	Serial.println("PCB Version           :" + String(this->PCBVersion));
-	Serial.println("# of Beacons to relay :" + String(this->NumberOfBeaconsToRelay));
-	Serial.println("----------------------------------------------------------------");
-	Serial.println("");
+		SerialAUX->println("Powered from external source");
+	SerialAUX->println("Pressure              :" + String(this->Pressure));		
+	SerialAUX->println("Ground Speed          :" + String(this->GroundSpeed));
+	SerialAUX->println("SSLGC                 :" + String(this->SecondsSinceLastGSContact));
+	SerialAUX->println("Battery Voltage       :" + String(this->BatteryVoltage));
+	SerialAUX->println("Firmware Version      :" + String(this->FirmwareVersion));
+	SerialAUX->println("PCB Version           :" + String(this->PCBVersion));
+	SerialAUX->println("# of Beacons to relay :" + String(this->NumberOfBeaconsToRelay));
+	SerialAUX->println("----------------------------------------------------------------");
+	SerialAUX->println("");
 }
