@@ -14,10 +14,9 @@
 enum TRANSPONDER_STATES {
 	STARTING_UP,
 	NORMAL,
-	WAIT_FOR_RX,
-	SEND_TX_PACKAGE,
 	GET_READY_TO_RUN_ON_BATTERY,
-	RUNNING_ON_BATTERY,
+	RUNNING_ON_BATTERY_GPS_ON,
+	RUNNING_ON_BATTERY_GPS_OFF,
 	POWER_OFF
 };
 
@@ -56,6 +55,9 @@ extern struct SystemInformation_t
 
 	bool IsGroundStation = false;
 	uint8_t SecondsBatteryLowCounter = 0;
+	bool SimulateRunningOnBattery = false;
+	uint16_t GPSActiveCounter = 0;
+
 }SystemInformation;
 
 

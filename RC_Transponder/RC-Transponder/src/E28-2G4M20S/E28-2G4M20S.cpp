@@ -186,11 +186,12 @@ void E28_2G4M20S::OnRxDone( void )
 				break;
 			}
 			RadioStatus.rxDone=true;
-			RadioDataReady = true;
+//			RadioDataReady = true;
 		}else{
 			RadioStatus.rxDone=false;
 		}
 	}
+	SetRXMode(false); // Set to RX with no timeout.
 }
 
 // Only call this when interrupt has occurred.

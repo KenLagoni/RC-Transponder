@@ -84,17 +84,18 @@ GPSL80Lite *GPS = NULL; // GPS class, defined in GPSL80.h
 GpsDataLite *GPSData = NULL;  // GPGGA GPS data:
 
 //ISR for radio
+/*
 void Radio_isr(void){
 //	SerialAUX->Println("Time:" + String(millis()));
   //Radio->HandleIRQ(); // The radio module has something for us.
-  RadioProtocol->IRQHandler();
-}
+//  RadioProtocol->IRQHandler();
+}*/
 
 void setup() {	
 	hwInit(); // Setup all pins according to hardware.
 	
 	#ifndef DEBUG
-		delay(5000); // Time to get USB bootloader ready.
+		delay(5000); // Time to get USB bootloader ready, but only if debugger is not connected.
 	#endif
 	
 	// Init Auxiliary serial port:
@@ -166,9 +167,8 @@ void setup() {
 	
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data rtained, it costs ~70uA.
 	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin);
-
 	RadioProtocol = new RFProtocol(Radio, GPSData, &SystemInformation);
-	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
+//	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
 	
 	SerialProtocol = new PCProtocol(RadioProtocol, Radio);
 	
@@ -200,31 +200,16 @@ void setup() {
 	SystemInformation.USBVoltage = getInput5VVoltage();
 }
 
-void Recharge(void){
-		PowerOFFGPS(); // Turn off  GPS to save battery.
-		//Radio->Sleep(); // Put radio to sleep to save power.
-		PowerOFF(); 
-		do
-		{
-		//	LowPower.sleep(5000);
-			digitalWrite(led2Pin, HIGH);
-		//	LowPower.sleep(1000);
-			digitalWrite(led2Pin, LOW);
-		}while(1);	
-}
-
 void loop() {
   
      //LowPowerTest();
-	// Recharge();
-	
-//	do{}while(1);
 	  
-	SerialAUX->println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
+//	SerialAUX->println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
 
 	do{
-		BeaconService();
 		One_second_Update();
+		BeaconService();
+		RadioProtocol->RFService();
 				
 		switch(SystemInformation.state)
 		{
@@ -232,41 +217,92 @@ void loop() {
 			{
 				////// Below this line, code is executed fast!
 
-				if(SystemInformation.SecondsBatteryLowCounter > 60){
+				if(SystemInformation.SecondsBatteryLowCounter > 2){ // filter.
 					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;
+				}else{
+				    // normal fast loop.
+					SerialProtocol->Service(); // Comunincation to PC.
+					GPS->update();  // Function empty serial buffer and analyzes string.
+					FrskySport.send(); // Service the Serial for SPORT.
 				}			
-				SerialProtocol->Service(); // Comunincation to PC.
-				GPS->update();  // Function empty serial buffer and analyzes string.
-				FrskySport.send(); // Service the Serial for SPORT.			
 			}
 			break;
 			 
 			case GET_READY_TO_RUN_ON_BATTERY:
 			{
-				PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
-				PowerOFFGPS();// Turn OFF GPS main power.
-				SystemInformation.state=RUNNING_ON_BATTERY;				
+				if(SystemInformation.SecondsBatteryLowCounter == 0){
+					// Power is back!
+					SystemInformation.state=NORMAL;
+				}
+				else{
+					// check if it is time to go to battery 
+					if(SystemInformation.SecondsBatteryLowCounter > 60){
+						PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
+						SystemInformation.GPSActiveCounter=0; // ensure GPS active counter is reset.
+						SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
+					}else{
+						SerialProtocol->Service(); // Comunincation to PC.
+						GPS->update();  // Function empty serial buffer and analyzes string.
+						FrskySport.send(); // Service the Serial for SPORT.
+					}
+				}
 			} 
 			break;
 			
-			case RUNNING_ON_BATTERY:
+			case RUNNING_ON_BATTERY_GPS_ON:
 			{
-				//if(SystemInformation.InputVoltage > 4.3){
-				if(SystemInformation.InputVoltage > 6){ // in debug mode force running on battery mode.
+				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
-					PowerOFF(); // No more battery left, power off.
-					do{}while(1);
+					SystemInformation.state=POWER_OFF;
 				}else{
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
+					if(++SystemInformation.GPSActiveCounter > 60){ // power off GPS after 1 min.
+						SystemInformation.GPSActiveCounter=0;
+						delay(2000); // busy wait while GPS serial gets time to receive data from GPS (Unable in sleep mode).
+						GPS->update();  // Service the GPS.
+						PowerOFFGPS();// Turn OFF GPS main power.
+						SystemInformation.state=RUNNING_ON_BATTERY_GPS_OFF;
+					}
 				}
 			}
 			break;
-			
+
+			case RUNNING_ON_BATTERY_GPS_OFF:
+			{
+				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
+					SystemInformation.state=STARTING_UP;
+					}else if(SystemInformation.BatteryVoltage <= 3.0){
+						SystemInformation.state=POWER_OFF;
+					}else{
+						GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
+						if(++SystemInformation.GPSActiveCounter > 600){ // Turn on GPS every 10 mins.
+							SystemInformation.GPSActiveCounter=0;
+							PowerONGPS();// Turn OFF GPS main power.
+							SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
+						}
+				}
+			}
+			break;
+
+
+			case POWER_OFF:
+			{
+				PowerOFF(); 
+				do{
+					// CPU should have died here, but if we are still powered the flash fast led.
+					digitalWrite(led2Pin, HIGH);
+					delay(100);
+					digitalWrite(led2Pin, LOW);
+					delay(100);
+				}while(1);
+			}
+			break;			
+
+
 			case STARTING_UP:
 			{
 				PowerONGPS();// Turn on GPS.
-			
 				// Set the radio to RX mode without timeout.
 				SystemInformation.SecondCounter=0; // reset second counter.
 				SystemInformation.SecondsBatteryLowCounter = 0;
@@ -279,9 +315,7 @@ void loop() {
 				SystemInformation.state = STARTING_UP;
 			break;
 		}
-		
 	}while(1); 
-  
 }
 
 void GoToSleep(void){
@@ -339,7 +373,7 @@ void Do_ground_station_loop(void){
 
 // Ensure a beacon is transmitted every N second.
 void BeaconService(void){
-	if(SystemInformation.BeaconSecondCounter == 5){
+	if(SystemInformation.BeaconSecondCounter >= 5){
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
 		if(SystemInformation.IsGroundStation==false){
