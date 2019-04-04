@@ -86,10 +86,10 @@ void E28_2G4M20S::Init()
 
 	#elif defined( MODE_LORA )
 	
-    Serial.println( "Running in LORA mode");
-	Serial.println( "Spreading factor set to 7");
-	Serial.println( "Bandwidth set to 400kHz");
-	Serial.println( "CR encoding set to 4/5");
+    SerialAUX->println( "Running in LORA mode");
+	SerialAUX->println( "Spreading factor set to 7");
+	SerialAUX->println( "Bandwidth set to 400kHz");
+	SerialAUX->println( "CR encoding set to 4/5");
     modulationParams.PacketType                  = PACKET_TYPE_LORA;
     modulationParams.Params.LoRa.SpreadingFactor = LORA_SF7;
     modulationParams.Params.LoRa.Bandwidth       = LORA_BW_0400;
@@ -131,8 +131,8 @@ void E28_2G4M20S::Init()
     Radio->SetRfFrequency( rf_frequency );
     Radio->SetBufferBaseAddresses( 0x00, 0x00 );
     Radio->SetTxParams( tx_power, RADIO_RAMP_20_US ); 
-	Serial.println( "Frequency set to " + String(rf_frequency/1000000) + "MHz");
-	Serial.println( "TX Power set to " + String(tx_power) + "dBm");
+	SerialAUX->println( "Frequency set to " + String(rf_frequency/1000000) + "MHz");
+	SerialAUX->println( "TX Power set to " + String(tx_power) + "dBm");
 }
 
 
@@ -150,7 +150,7 @@ void E28_2G4M20S::OnRxDone( void )
 	RadioData.payloadLength=0;
 	if(Radio->GetPayload(&RadioData.payload[0], &RadioData.payloadLength, MAX_PAYLOAD_LENGTH)){
 		// If return 1, then package size is larger than MAX_PAYLOAD_LENGTH
-		Serial.println("Oops! - New package is to big. Length="+String(RadioData.payloadLength)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
+		SerialAUX->println("Oops! - New package is to big. Length="+String(RadioData.payloadLength)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
 	}else{
 		//Extract and test CRC (last two bytes):
 		uint16_t temp_crc = (uint16_t)((RadioData.payload[RadioData.payloadLength-2] << 8) + RadioData.payload[RadioData.payloadLength-1]);
@@ -203,37 +203,37 @@ void E28_2G4M20S::IRQHandler( void )
 	RadioStatus.txDone=Radio->RadioPacketStatus.txDone;
 	RadioStatus.rxTimeout=Radio->RadioPacketStatus.rxTimeout;
 	RadioStatus.txTimeout=Radio->RadioPacketStatus.txTimeout;
-	//Serial.println("E28 Radio Interrupt!");
+	//SerialAUX->println("E28 Radio Interrupt!");
 	
 	if(Radio->RadioPacketStatus.txDone == true){
-		//Serial.println("TX Done!");
+		SerialAUX->println("TX Done!");
 		this->OnTxDone();
 	}    
 	if(Radio->RadioPacketStatus.rxDone == true){
-		//Serial.println("RX Done!");
+		SerialAUX->println("RX Done!");
 		this->OnRxDone();
 		// read the message, check CRC if ok, make available.
 	}
 	if(Radio->RadioPacketStatus.rxSyncWordDone == true){
-		Serial.println("rxSyncWordDone!");
+		SerialAUX->println("rxSyncWordDone!");
 	}	
 	if(Radio->RadioPacketStatus.rxHeaderDone == true){
-		Serial.println("rxHeaderDone!");
+		SerialAUX->println("rxHeaderDone!");
 	}
 	if(Radio->RadioPacketStatus.txTimeout == true){
-		Serial.println("TX Timeout!");
+		SerialAUX->println("TX Timeout!");
 	}
 	if(Radio->RadioPacketStatus.rxTimeout == true){
-		Serial.println("RX Timeout!");
+		SerialAUX->println("RX Timeout!");
 	}	
 	if(Radio->RadioPacketStatus.rxError > 0x00){
-		Serial.println("IRQ Error! " + String(Radio->RadioPacketStatus.rxError));
+		SerialAUX->println("IRQ Error! " + String(Radio->RadioPacketStatus.rxError));
 	}
 	if(Radio->RadioPacketStatus.rangingDone > 0x00){
-		Serial.println("IRQ Ranging Code! " + String(Radio->RadioPacketStatus.rangingDone));
+		SerialAUX->println("IRQ Ranging Code! " + String(Radio->RadioPacketStatus.rangingDone));
 	}
 	if(Radio->RadioPacketStatus.cadDone == true){
-		Serial.println("CAD Done!");
+		SerialAUX->println("CAD Done!");
 	}
 	
 }
@@ -291,7 +291,7 @@ void E28_2G4M20S::Sleep(void){
 	SleepParameters.DataBufferRetention=1;
 	SleepParameters.DataRamRetention=1;
 	
-//	Serial.println("Radio Firmware version: " + String(Radio->GetFirmwareVersion()));
+//	SerialAUX->println("Radio Firmware version: " + String(Radio->GetFirmwareVersion()));
 	
 	digitalWrite(_txEnablePin, LOW);
 	digitalWrite(_rxEnablePin, LOW);

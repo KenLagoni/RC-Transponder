@@ -124,9 +124,6 @@ void PowerOFFGPS(void);
 void PowerONGPSBackup(void);
 void PowerOFFGPSBackup(void);
 
-
-void ReadSerialNumberFromChipFlash(void);
-
 void hwInit();
 void hwInit_debug_lowpower(void);
 

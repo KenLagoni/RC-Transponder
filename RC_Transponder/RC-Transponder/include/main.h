@@ -55,6 +55,7 @@ extern struct SystemInformation_t
 	uint32_t SerialNumber4= *AddrSerialNumber4;	
 
 	bool IsGroundStation = false;
+	uint8_t SecondsBatteryLowCounter = 0;
 }SystemInformation;
 
 

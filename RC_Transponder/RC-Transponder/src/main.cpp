@@ -85,7 +85,7 @@ GpsDataLite *GPSData = NULL;  // GPGGA GPS data:
 
 //ISR for radio
 void Radio_isr(void){
-//	Serial.println("Time:" + String(millis()));
+//	SerialAUX->Println("Time:" + String(millis()));
   //Radio->HandleIRQ(); // The radio module has something for us.
   RadioProtocol->IRQHandler();
 }
@@ -97,18 +97,22 @@ void setup() {
 		delay(5000); // Time to get USB bootloader ready.
 	#endif
 	
+	// Init Auxiliary serial port:
+	SerialAUX->begin(115200);
+	
 	// Init USB serial debug /setup:
 	Serial.begin(115200);
 	delay(500);
-	Serial.println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
+	
+	SerialAUX->println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
 	
 	// Read and store the 128 bit serial number.
 //	ReadSerialNumberFromChipFlash();
-	Serial.println("Chip unique serial number part 1:" + String(SystemInformation.SerialNumber1));
-	Serial.println("Chip unique serial number part 2:" + String(SystemInformation.SerialNumber2));
-	Serial.println("Chip unique serial number part 3:" + String(SystemInformation.SerialNumber3));
-	Serial.println("Chip unique serial number part 4:" + String(SystemInformation.SerialNumber4));
-	Serial.println("Chip unique serial number: \"" + String(SystemInformation.SerialNumber1) + String(SystemInformation.SerialNumber2) + String(SystemInformation.SerialNumber3) + String(SystemInformation.SerialNumber4)+"\"");
+	SerialAUX->println("Chip unique serial number part 1:" + String(SystemInformation.SerialNumber1));
+	SerialAUX->println("Chip unique serial number part 2:" + String(SystemInformation.SerialNumber2));
+	SerialAUX->println("Chip unique serial number part 3:" + String(SystemInformation.SerialNumber3));
+	SerialAUX->println("Chip unique serial number part 4:" + String(SystemInformation.SerialNumber4));
+	SerialAUX->println("Chip unique serial number: \"" + String(SystemInformation.SerialNumber1) + String(SystemInformation.SerialNumber2) + String(SystemInformation.SerialNumber3) + String(SystemInformation.SerialNumber4)+"\"");
 	#define SERIALNUMBER_SIZE 16
 	uint8_t data[SERIALNUMBER_SIZE];
 	data[0] = (byte)((SystemInformation.SerialNumber1 >> 24) & 0xFF);
@@ -127,7 +131,7 @@ void setup() {
 	data[13] = (byte)((SystemInformation.SerialNumber4 >> 16) & 0xFF);
 	data[14] = (byte)((SystemInformation.SerialNumber4 >> 8) & 0xFF);
 	data[15] = (byte)(SystemInformation.SerialNumber4 & 0xFF);
-	Serial.println("Chip unique serial number in Base64 encode:\"" + base64_encode(data,SERIALNUMBER_SIZE) +"\"");
+	SerialAUX->println("Chip unique serial number in Base64 encode:\"" + base64_encode(data,SERIALNUMBER_SIZE) +"\"");
 	
 	
 	/*
@@ -175,10 +179,6 @@ void setup() {
 	pinPeripheral(fryskySmartPortTXPin, PIO_SERCOM_ALT); //Assign TX function to pin.
 	FrskySport.begin(SerialfrskySPort, &FrskyGPS);
 			
-	// Init Auxiliary serial port:
-	//SerialAUX->begin(115200);
-	pinMode(auxTXPin, OUTPUT);
-	digitalWrite(auxTXPin, HIGH);
 
 	// Set Timer 3 as 1 sec interrupt.
 	//startTimer(1); // 1Hz
@@ -215,20 +215,12 @@ void Recharge(void){
 
 void loop() {
   
-    // LowPowerTest();
+     //LowPowerTest();
 	// Recharge();
-	Serial.println("Battery voltage is " + String(getBatteryVoltage()) + "V  Based on:" + String(analogRead(analogVbatPin)));
-	Serial.println("Input voltage is " + String(getInputVoltage()) + "V Based on:" + String(analogRead(analogVinPin)));
-	Serial.println("Input 5V voltage is " + String(getInput5VVoltage()) + "V Based on:" + String(analogRead(analogVin5VPin)));
-//	do{}while(1);
 	
-  /*
-	if(isGroundStation){
-		Do_ground_station_loop();
-	}
-	*/
-  
-	Serial.println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
+//	do{}while(1);
+	  
+	SerialAUX->println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
 
 	do{
 		BeaconService();
@@ -240,8 +232,7 @@ void loop() {
 			{
 				////// Below this line, code is executed fast!
 
-				// Measure all stuff here:
-				if(SystemInformation.InputVoltage <= 4.3){
+				if(SystemInformation.SecondsBatteryLowCounter > 60){
 					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;
 				}			
 				SerialProtocol->Service(); // Comunincation to PC.
@@ -260,7 +251,8 @@ void loop() {
 			
 			case RUNNING_ON_BATTERY:
 			{
-				if(SystemInformation.BatteryVoltage > 4.3){
+				//if(SystemInformation.InputVoltage > 4.3){
+				if(SystemInformation.InputVoltage > 6){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					PowerOFF(); // No more battery left, power off.
@@ -277,12 +269,13 @@ void loop() {
 			
 				// Set the radio to RX mode without timeout.
 				SystemInformation.SecondCounter=0; // reset second counter.
+				SystemInformation.SecondsBatteryLowCounter = 0;
 				SystemInformation.state=NORMAL;						
 			}
 			break;
 			 
 			default:
-				Serial.println("Error! - Unknown System State!");
+				SerialAUX->println("Error! - Unknown System State!");
 				SystemInformation.state = STARTING_UP;
 			break;
 		}
@@ -294,26 +287,29 @@ void loop() {
 void GoToSleep(void){
 	RadioProtocol->PowerDown();
 	USBDevice.detach();
-	digitalWrite(led2Pin, LOW);
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	__DSB();
 	__WFI();
 	USBDevice.attach();
-	digitalWrite(led2Pin, HIGH);
 	RadioProtocol->WakeUp();
 }
 
 void LowPowerTest(void){
 
 	PowerOFFGPS(); // Turn off  GPS to save battery.
-	Serial.println("Battery analog reading is " + String(analogRead(analogVbatPin)));
-	Serial.println("Battery voltage is " + String(getBatteryVoltage()) + "V");
+	PowerOFFGPSBackup(); // Ensure backup power is enabled for GPS.
+	
+	//
+	digitalWrite(SaftyLEDPin, HIGH); // Off!
+	
+	SerialAUX->println("Battery analog reading is " + String(analogRead(analogVbatPin)));
+	SerialAUX->println("Battery voltage is " + String(getBatteryVoltage()) + "V");
 	digitalWrite(led2Pin, LOW);
 	do
 	{
-	//	Serial.println("Sleep!");	
+	//	SerialAUX->Println("Sleep!");	
 		GoToSleep();
-	//	Serial.println("Wake!");
+	//	SerialAUX->Println("Wake!");
 	}while(1);
 
 }
@@ -325,16 +321,16 @@ void Do_ground_station_loop(void){
 	
 	do{
 //		if(Radio->telegramValid == true){
-			//Serial.println("We got a telegram!");
+			//SerialAUX->Println("We got a telegram!");
 			digitalWrite(led2Pin, HIGH);
-			//				Serial.println("We got a telegram!");
+			//				SerialAUX->Println("We got a telegram!");
 //			ReceiveTelegram = Radio->GetTelegram();
 			//				PrintRadioTelegram(ReceiveTelegram); // Debug to USB serial port.
 //			PrintRadioTelegramCSV(ReceiveTelegram); // Debug to USB serial port.
 			delay(100);
 			digitalWrite(led2Pin, LOW);
 //		}else{
-			//Serial.println("False!");
+			//SerialAUX->Println("False!");
 //		}
 		delay(100);
 	}while(1);
@@ -375,19 +371,32 @@ int freeMemory() {
 void One_second_Update(void){
 	//// only every second (check status)
 	while(SystemInformation.SecondCounter){
-		//				Serial.println("Seccond passed!");
+		//				SerialAUX->Println("Seccond passed!");
 		//				digitalWrite(led2Pin, HIGH);
 		SystemInformation.SecondCounter--;
 					
 		SystemInformation.BatteryVoltage = getBatteryVoltage();
 		SystemInformation.InputVoltage = getInputVoltage();
-				
+		SystemInformation.USBVoltage = getInput5VVoltage();				
+		
 		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
 		FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
 		
-		Serial.print(F("Free RAM = ")); //F function does the same and is now a built in library, in IDE > 1.0.0
-		Serial.println(freeMemory(), DEC);  // print how much RAM is available.
-	
+//		SerialAUX->Print(F("Free RAM = ")); //F function does the same and is now a built in library, in IDE > 1.0.0
+//		SerialAUX->Println(freeMemory(), DEC);  // print how much RAM is available.
+//		SerialAUX->Println("Battery voltage is " + String(SystemInformation.BatteryVoltage) + "V.");
+//		SerialAUX->Println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
+//		SerialAUX->Println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
+		SerialAUX->println("");
+
+		if(SystemInformation.InputVoltage <= 4.3){
+			if(SystemInformation.SecondsBatteryLowCounter < 255){
+				SystemInformation.SecondsBatteryLowCounter++;
+			}
+		}else{
+			SystemInformation.SecondsBatteryLowCounter=0;
+		}			
+
 	}
 }
 	
@@ -412,7 +421,6 @@ String base64_encode(byte bytes_to_encode[], int in_len)
 
 			for(i = 0; (i<4) ; i++)
 				ret += base64_chars[char_array_4[i]];
-				 
 			i = 0;
 		}
 	}
