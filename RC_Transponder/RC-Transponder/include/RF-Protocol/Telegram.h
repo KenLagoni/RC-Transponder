@@ -38,7 +38,7 @@ class Telegram
 	public:
 	virtual void SerialPrintMessage( void )=0; // Function for each message to print out the data to Serial.print	
 	RadioData_t * GetRadioData();
-
+	Telegram(){};
 	virtual ~Telegram(){}					 	 // Destructor is virtual to ensure correct destructor is used when deleting telegrams.
 	bool TelegramMatchUniqueID(uint32_t _destinationID_1, uint32_t _destinationID_2, uint32_t _destinationID_3, uint32_t _destinationID_4); // Function will compare input destination ID with message, and return true if message it is a match.
 

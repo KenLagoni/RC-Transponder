@@ -27,9 +27,9 @@
 	Radio->Init();
 	Radio->SetRXMode(false); // no timeout
 	this->RFstate = RX_IDLE;
-	
+	/*
 	for(int a=a;a<FIFO_SIZE;a++)	
-		SavedBeacons[a]=NULL;
+		SavedBeacons[a]=NULL;*/
  }
  
  void RFProtocol::AddData(RadioData_t *newdata)
@@ -95,37 +95,25 @@ RadioData_t * RFProtocol::GetData()
 		}
 	}
  }
-
-Telegram_MSG_2 * RFProtocol::GetSavedTransponderBeaconForRelay(){
+ /*
+Telegram_MSG_2 RFProtocol::GetSavedTransponderBeaconForRelay(){
 	
-	if(RFProtocolStatus.NumberOfBeaconsToRelay == 0){
-		return NULL;
-	}
-	
-	Telegram_MSG_1 *savedmsg = SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay-1];
 	RFProtocolStatus.NumberOfBeaconsToRelay--;	
 	
-	// Convert to relay msg
-	//Telegram_MSG_2 test = Telegram_MSG_2(savedmsg);
-	
-	Telegram_MSG_2 *msg = new Telegram_MSG_2(savedmsg);
-	delete savedmsg;
-
-	return msg;
-}
+	return SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay-1];
+}*/
 
 bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
-	 SerialAUX->println("msg seconds since last:" + String(msg->GetNumberOfSecondsSinceLastGroundStationCom()));
-	 SerialAUX->println("Number of beacons to relay:" + String(RFProtocolStatus.NumberOfBeaconsToRelay));
-	 
+//	 SerialAUX->println("msg seconds since last:" + String(msg->GetNumberOfSecondsSinceLastGroundStationCom()));
+//	 SerialAUX->println("Number of beacons to relay:" + String(RFProtocolStatus.NumberOfBeaconsToRelay));
 	 if(msg->GetNumberOfSecondsSinceLastGroundStationCom() > 20){
-		 SerialAUX->print("We should save this message...");
+//		 SerialAUX->print("We should save this message...");
 		 // Have we saved a beacon from this unit before? if so updated is:
 		 for(int a=0;a<RFProtocolStatus.NumberOfBeaconsToRelay; a++){
 			 //						SerialAUX->Print("Is memory location "+ String(a) + " from the same beacon?... ");
-			 if( SavedBeacons[a]->TelegramMatchUniqueID(msg->GetUniqueID1(), msg->GetUniqueID2(), msg->GetUniqueID3(), msg->GetUniqueID4()) == true ){
+			 if( SavedBeacons[a].TelegramMatchUniqueID(msg->GetUniqueID1(), msg->GetUniqueID2(), msg->GetUniqueID3(), msg->GetUniqueID4()) == true ){
 				 //							SerialAUX->Println("Yes! - Updating!");
-				 SavedBeacons[a] = msg;
+				 SavedBeacons[a] = Telegram_MSG_2(msg);
 				 SerialAUX->println("It was all-ready in the list! at:" + String(a) + " We have a total of:" + String(RFProtocolStatus.NumberOfBeaconsToRelay) + "To relay");
 				 return true; // Done, msg was updated in list.
 
@@ -137,10 +125,11 @@ bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 		 // We should save this if room
 		 if(RFProtocolStatus.NumberOfBeaconsToRelay < FIFO_SIZE){
 			 //			SerialAUX->Println("Message is saved in memory slot: " + String(NumberOfBeaconsToRelay));
-			 SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay] = msg;
-			 SerialAUX->println("It was added to the list at" + String( RFProtocolStatus.NumberOfBeaconsToRelay));
+			 SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay] = Telegram_MSG_2(msg);
+			 SerialAUX->println("It was added to the list at:" + String( RFProtocolStatus.NumberOfBeaconsToRelay));
+			 Serial.println("It was added to the list at:" + String( RFProtocolStatus.NumberOfBeaconsToRelay));
 			 RFProtocolStatus.NumberOfBeaconsToRelay++;
-			 return true; // Done, msg was added to list
+			 return false; // Done, msg was added to list
 		 }else{
 			 //	SerialAUX->Println("Memory is full! - can't save message" + String(NumberOfBeaconsToRelay));
 			 //		SerialAUX->Println("");
@@ -148,6 +137,7 @@ bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 			 
 			 // debug
 			 SerialAUX->println("FIFO Full! unable to save any more messages :-(");
+//			 Serial.println("FIFO Full! unable to save any more messages :-(");
 			 /*
 			 for(int a=0;a<FIFO_SIZE; a++){
 				 //			SerialAUX->Println("Messages number: " + String(a));
@@ -231,12 +221,15 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 								returnState=RX_IDLE;
 							}else
 							{
-								Telegram_MSG_2 * msgReply = GetSavedTransponderBeaconForRelay();
-								if(msgReply != NULL){
-									Radio->SendRadioData(msgReply->GetRadioData());
-									delete msgReply;
-									returnState=TX_WITHOUT_REPLY;
-								}	
+								if(RFProtocolStatus.NumberOfBeaconsToRelay > 0){
+									Telegram_MSG_2 msgReply = SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay-1];
+									RFProtocolStatus.NumberOfBeaconsToRelay--;
+									if(msgReply.GetRadioMSG_ID() == MSG_Beacon_Relay)
+									{
+										Radio->SendRadioData(msgReply.GetRadioData());
+										returnState=TX_WITHOUT_REPLY;
+									}
+								}
 							}
 							
 						}
@@ -248,7 +241,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 							digitalWrite(led2Pin, HIGH);	
 							delay(2000);
 							digitalWrite(led2Pin, LOW);	
-							SystemInformation->state = POWER_OFF;
+							SystemInformation->SaftySwitchPushed=true; // ensure next state is POWER_OFF
 						}
 						break;		
 						
@@ -698,4 +691,51 @@ void RFProtocol::SeccondCounter(){
 	if(RFProtocolStatus.SecondCounterSinceLasteGroundStationContact < 254){
 		RFProtocolStatus.SecondCounterSinceLasteGroundStationContact++;
 	}
+}
+
+
+
+
+static String base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+String RFProtocol::base64_encode(byte bytes_to_encode[], int in_len)
+{
+	String ret = "";
+	int i = 0;
+	int j = 0;
+	byte char_array_3[3];
+	byte char_array_4[4];
+	int place = 0;
+
+	while (in_len-- > 0) {
+		char_array_3[i++] = bytes_to_encode[place++];
+		if (i == 3) {
+			char_array_4[0] = (byte)((char_array_3[0] & 0xfc) >> 2);
+			char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
+			char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
+			char_array_4[3] = (byte)(char_array_3[2] & 0x3f);
+
+			for(i = 0; (i<4) ; i++)
+			ret += base64_chars[char_array_4[i]];
+			i = 0;
+		}
+	}
+
+	if (i > 0) {
+		for(j = i; j< 3; j++)
+		char_array_3[j] = 0;
+
+		char_array_4[0] = (byte)(( char_array_3[0] & 0xfc) >> 2);
+		char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
+		char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
+
+		for (j = 0; (j<i + 1); j++)
+		ret += base64_chars[char_array_4[j]];
+
+		while((i++ < 3))
+		ret += '=';
+
+	}
+
+	return ret;
+
 }

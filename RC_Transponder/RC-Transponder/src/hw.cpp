@@ -163,4 +163,12 @@ void PowerOFFGPS(void){
 		digitalWrite(GPSBackupPowerPin, LOW);  // High=On, Low= Off
 	}
 
+	void LEDSaftySwitchON(void){
+		digitalWrite(SaftyLEDPin, LOW);
+	}
+
+	void LEDSaftySwitchOFF(void){
+		digitalWrite(SaftyLEDPin, HIGH);
+	}
+
 #endif

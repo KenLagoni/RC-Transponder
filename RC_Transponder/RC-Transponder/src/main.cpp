@@ -198,6 +198,7 @@ void setup() {
 	SystemInformation.BatteryVoltage = getBatteryVoltage();
 	SystemInformation.InputVoltage = getInputVoltage();
 	SystemInformation.USBVoltage = getInput5VVoltage();
+	LEDSaftySwitchOFF();
 }
 
 void loop() {
@@ -211,7 +212,11 @@ void loop() {
 		GPS->update();  // Function empty serial buffer and analyzes string.
 		BeaconService();
 		RadioProtocol->RFService();
-				
+		
+		if(SystemInformation.SaftySwitchPushed == true){
+			SystemInformation.state=POWER_OFF;
+		}
+
 		switch(SystemInformation.state)
 		{
 			case NORMAL: 
@@ -303,9 +308,11 @@ void loop() {
 				do{
 					// CPU should have died here, but if we are still powered the flash fast led.
 					digitalWrite(led2Pin, HIGH);
-					delay(100);
+					LEDSaftySwitchON();
+					delay(50);
 					digitalWrite(led2Pin, LOW);
-					delay(100);
+					LEDSaftySwitchOFF();
+					delay(50);
 				}while(1);
 			}
 			break;			
@@ -452,6 +459,43 @@ void One_second_Update(void){
 			SystemInformation.SecondsBatteryLowCounter=0;
 		}			
 
+		Serial.println("Switch:" + String(digitalRead(SaftySwitchPin)));
+		
+		if(digitalRead(SaftySwitchPin) == HIGH)
+		{
+			int count=0;
+			for(int b=0;b<10;b++){
+				count += digitalRead(SaftySwitchPin);
+				delay(2);
+			}
+			if(count== 10){
+				SystemInformation.SafteSwitchPushedTimer++;
+				if(SystemInformation.SafteSwitchPushedTimer == 2){
+					LEDSaftySwitchON();
+					SystemInformation.SaftySwitchFirstTimePushed=true;
+				}else if(SystemInformation.SafteSwitchPushedTimer >= 4){
+					LEDSaftySwitchOFF();
+					SystemInformation.SaftySwitchFirstTimePushed=false;
+				}
+			}
+		}else{
+			if(SystemInformation.SaftySwitchFirstTimePushed==true)
+			{
+				for(int a=0;a<10;a++)
+				{
+					LEDSaftySwitchOFF();
+					delay(50);
+					LEDSaftySwitchON();
+					delay(50);
+				}
+				SystemInformation.SaftySwitchFirstTimePushed=false;
+				SystemInformation.SaftySwitchPushed=true;
+			}else
+			{
+				SystemInformation.SafteSwitchPushedTimer=0;
+			}
+		}
+		
 	}
 }
 	

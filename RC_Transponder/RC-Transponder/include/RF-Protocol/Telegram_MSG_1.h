@@ -22,13 +22,14 @@ class Telegram_MSG_1 : public Telegram
 	virtual void SerialPrintMessage();    // Function for each massage to print out the data to Serial.print.	
 
 	// Constructor to create empty messages. (only used for compile to allocate memory)
-	//Telegram_MSG_1();
+	Telegram_MSG_1();
 	
 	// Constructor to create message from variables. (Here Unique ID is From)
 	Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, uint32_t _UTCTime,  uint32_t _Lattitude, uint32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix, bool _RunningOnBattery,float _Pressure, float _GroundSpeed ,uint8_t _SecondsSinceLastGSContact, float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay);
 
 	// Constructor to create messages from Radio data struct.
 	Telegram_MSG_1(RadioData_t *radioData);
+
 	
 	virtual	~Telegram_MSG_1(){};	// destructor.
 

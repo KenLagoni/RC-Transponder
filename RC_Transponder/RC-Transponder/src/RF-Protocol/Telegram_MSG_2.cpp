@@ -191,3 +191,9 @@ void Telegram_MSG_2::SerialPrintMessage( void )
 	Serial.println("----------------------------------------------------------------");
 	Serial.println("");
 }
+
+
+uint32_t Telegram_MSG_2::GetUTCTime( void )
+{
+	return UTCTime;
+}

@@ -127,6 +127,9 @@ void PowerOFFGPSBackup(void);
 void hwInit();
 void hwInit_debug_lowpower(void);
 
+void LEDSaftySwitchON(void);
+void LEDSaftySwitchOFF(void);
+
 // Unique 128bit serial number from chip flash
 // Chip unique serial number part 1: 800256040
 // Chip unique serial number part 2:1347311437

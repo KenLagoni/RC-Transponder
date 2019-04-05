@@ -19,8 +19,9 @@ class Telegram_MSG_2 : public Telegram
 {
 	public:
 	virtual void SerialPrintMessage( void ); // Function for each massage to print out the data to Serial.print.	
+	uint32_t GetUTCTime();
 	// Constructor to create empty messages. (only used for compile to allocate memory)
-	//Telegram_MSG_2();
+	Telegram_MSG_2(){};
 		
 		
 	// Constructor to create message from variables. (Here Unique ID is From)
@@ -39,7 +40,7 @@ class Telegram_MSG_2 : public Telegram
 	
 	private:
 	void GeneratePayload();
-
+	
 	uint32_t UTCTime;				    	// UTC time Zulu in seconds 130032.000 -> 130032
 	int32_t Latitude;						//  5550.0898N -> 55500898 ||  5550.0898S -> -55500898
 	int32_t Longitude;						// 01224.0718E -> 12240718 || 01224.0718W -> -12240718

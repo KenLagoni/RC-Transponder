@@ -129,6 +129,9 @@ Telegram_MSG_1::Telegram_MSG_1(RadioData_t *radioData) : Telegram(radioData)
 	}
 }
 
+Telegram_MSG_1::Telegram_MSG_1() : Telegram() 
+{}
+
 void Telegram_MSG_1::FixedPayload( void ) // debug!
 {
 	MSG_ID = MSG_Beacon_Broadcast;

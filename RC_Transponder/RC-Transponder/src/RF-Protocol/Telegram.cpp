@@ -60,7 +60,6 @@
 	Unique_ID_4 = (uint32_t)((TelegramData.payload[13] << 24) + (TelegramData.payload[14] << 16) + (TelegramData.payload[15] << 8) + TelegramData.payload[16]);	
  }
  
- 
 ProtocolMSG_t Telegram::GetRadioMSG_ID(){
 	return MSG_ID;
 }

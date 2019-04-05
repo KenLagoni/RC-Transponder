@@ -56,6 +56,9 @@ extern struct SystemInformation_t
 	uint8_t SecondsBatteryLowCounter = 0;
 	bool SimulateRunningOnBattery = false;
 	uint16_t GPSActiveCounter = 0;
+	uint8_t SafteSwitchPushedTimer=0;
+	bool SaftySwitchFirstTimePushed =0;
+	bool SaftySwitchPushed =0;
 
 }SystemInformation;
 

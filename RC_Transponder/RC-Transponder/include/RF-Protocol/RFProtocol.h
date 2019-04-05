@@ -79,9 +79,9 @@ class RFProtocol
 	
 	RingBuf<Telegram*, FIFO_SIZE> rxFIFO;
 	RingBuf<Telegram*, FIFO_SIZE> txFIFO;
-	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
-//	Telegram_MSG_1 SavedBeacons[FIFO_SIZE];
-	Telegram_MSG_2 * GetSavedTransponderBeaconForRelay();
+//	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
+	Telegram_MSG_2 SavedBeacons[FIFO_SIZE];
+	//Telegram_MSG_2 GetSavedTransponderBeaconForRelay();
 
 	RFProtocolStates_t RXHandler();
 	RFProtocolStates_t TXHandler();
@@ -92,6 +92,8 @@ class RFProtocol
 	RadioData_t rxbuffer; // When using "GetData()" the Telegram is removed from FIFO and only RadioData is saved. Telegram is den deleted.
 	
 //	void ServiceStateMachine();
+	String base64_encode(byte bytes_to_encode[], int in_len);
+
 };
 
 
