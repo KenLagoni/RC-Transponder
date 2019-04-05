@@ -30,9 +30,12 @@ Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uin
 	this->PCBVersion = _PCBVersion;
 	this->NumberOfBeaconsToRelay = _NumberOfBeaconsToRelay;	
 
-	// test:
-	Latitude =  55562000;
-	Longitude = 12281500;
+	// test outside safezone:
+//	Latitude =  55562000;
+//	Longitude = 12281500;
+	// test inside safezone:
+//	Latitude =  55562260;
+//	Longitude = 12283510;
 
 	//Set TelegramData (RadioData) Payload
 	uint16_t temp_16= 0;

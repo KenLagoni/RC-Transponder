@@ -157,8 +157,9 @@ void E28_2G4M20S::OnRxDone( void )
 		RadioData.payload[RadioData.payloadLength-2]=0;
 		RadioData.payload[RadioData.payloadLength-1]=0;
 		RadioData.payloadLength -= 2; // we have removed CRC.
-			
+		SerialAUX->print("\n\n Checking CRC...");			
 		if(CalculateCRC(&RadioData.payload[0],RadioData.payloadLength) == temp_crc){
+			SerialAUX->println("OK!");			
 			// New data has been copied to buffer.
 			Radio->GetPacketStatus(&PacketStatus);
 			switch( PacketStatus.packetType )
@@ -186,8 +187,9 @@ void E28_2G4M20S::OnRxDone( void )
 				break;
 			}
 			RadioStatus.rxDone=true;
-//			RadioDataReady = true;
+			RadioDataReady = true;
 		}else{
+			SerialAUX->println("ERROR!");
 			RadioStatus.rxDone=false;
 		}
 	}

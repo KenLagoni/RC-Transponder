@@ -105,15 +105,15 @@ void setup() {
 	Serial.begin(115200);
 	delay(500);
 	
-	SerialAUX->println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
+	Serial.println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
 	
 	// Read and store the 128 bit serial number.
 //	ReadSerialNumberFromChipFlash();
-	SerialAUX->println("Chip unique serial number part 1:" + String(SystemInformation.SerialNumber1));
-	SerialAUX->println("Chip unique serial number part 2:" + String(SystemInformation.SerialNumber2));
-	SerialAUX->println("Chip unique serial number part 3:" + String(SystemInformation.SerialNumber3));
-	SerialAUX->println("Chip unique serial number part 4:" + String(SystemInformation.SerialNumber4));
-	SerialAUX->println("Chip unique serial number: \"" + String(SystemInformation.SerialNumber1) + String(SystemInformation.SerialNumber2) + String(SystemInformation.SerialNumber3) + String(SystemInformation.SerialNumber4)+"\"");
+	Serial.println("Chip unique serial number part 1:" + String(SystemInformation.SerialNumber1));
+	Serial.println("Chip unique serial number part 2:" + String(SystemInformation.SerialNumber2));
+	Serial.println("Chip unique serial number part 3:" + String(SystemInformation.SerialNumber3));
+	Serial.println("Chip unique serial number part 4:" + String(SystemInformation.SerialNumber4));
+	Serial.println("Chip unique serial number: \"" + String(SystemInformation.SerialNumber1) + String(SystemInformation.SerialNumber2) + String(SystemInformation.SerialNumber3) + String(SystemInformation.SerialNumber4)+"\"");
 	#define SERIALNUMBER_SIZE 16
 	uint8_t data[SERIALNUMBER_SIZE];
 	data[0] = (byte)((SystemInformation.SerialNumber1 >> 24) & 0xFF);
@@ -132,7 +132,7 @@ void setup() {
 	data[13] = (byte)((SystemInformation.SerialNumber4 >> 16) & 0xFF);
 	data[14] = (byte)((SystemInformation.SerialNumber4 >> 8) & 0xFF);
 	data[15] = (byte)(SystemInformation.SerialNumber4 & 0xFF);
-	SerialAUX->println("Chip unique serial number in Base64 encode:\"" + base64_encode(data,SERIALNUMBER_SIZE) +"\"");
+	Serial.println("Chip unique serial number in Base64 encode:\"" + base64_encode(data,SERIALNUMBER_SIZE) +"\"");
 	
 	
 	/*
@@ -208,6 +208,7 @@ void loop() {
 
 	do{
 		One_second_Update();
+		GPS->update();  // Function empty serial buffer and analyzes string.
 		BeaconService();
 		RadioProtocol->RFService();
 				
@@ -219,10 +220,10 @@ void loop() {
 
 				if(SystemInformation.SecondsBatteryLowCounter > 2){ // filter.
 					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;
+					SerialAUX->println("Main State: NORMAL -> GET_READY_TO_RUN_ON_BATTERY");
 				}else{
 				    // normal fast loop.
 					SerialProtocol->Service(); // Comunincation to PC.
-					GPS->update();  // Function empty serial buffer and analyzes string.
 					FrskySport.send(); // Service the Serial for SPORT.
 				}			
 			}
@@ -233,6 +234,7 @@ void loop() {
 				if(SystemInformation.SecondsBatteryLowCounter == 0){
 					// Power is back!
 					SystemInformation.state=NORMAL;
+					SerialAUX->println("Main State: NORMAL");
 				}
 				else{
 					// check if it is time to go to battery 
@@ -240,9 +242,9 @@ void loop() {
 						PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
 						SystemInformation.GPSActiveCounter=0; // ensure GPS active counter is reset.
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
+						SerialAUX->println("Main State: GET_READY_TO_RUN_ON_BATTERY -> RUNNING_ON_BATTERY_GPS_ON");
 					}else{
-						SerialProtocol->Service(); // Comunincation to PC.
-						GPS->update();  // Function empty serial buffer and analyzes string.
+						SerialProtocol->Service(); // Comunincation to PC;
 						FrskySport.send(); // Service the Serial for SPORT.
 					}
 				}
@@ -251,18 +253,23 @@ void loop() {
 			
 			case RUNNING_ON_BATTERY_GPS_ON:
 			{
+				SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
+					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					SystemInformation.state=POWER_OFF;
+					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
 				}else{
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 					if(++SystemInformation.GPSActiveCounter > 60){ // power off GPS after 1 min.
 						SystemInformation.GPSActiveCounter=0;
 						delay(2000); // busy wait while GPS serial gets time to receive data from GPS (Unable in sleep mode).
+						SerialAUX->println("Serial data for GPS available: " + String(SerialGPS->available())); 
 						GPS->update();  // Service the GPS.
 						PowerOFFGPS();// Turn OFF GPS main power.
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_OFF;
+						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> RUNNING_ON_BATTERY_GPS_OFF");
 					}
 				}
 			}
@@ -270,16 +277,20 @@ void loop() {
 
 			case RUNNING_ON_BATTERY_GPS_OFF:
 			{
+			    SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
+					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> STARTING_UP");		
 					}else if(SystemInformation.BatteryVoltage <= 3.0){
 						SystemInformation.state=POWER_OFF;
+						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> POWER_OFF");					
 					}else{
 						GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 						if(++SystemInformation.GPSActiveCounter > 600){ // Turn on GPS every 10 mins.
 							SystemInformation.GPSActiveCounter=0;
 							PowerONGPS();// Turn OFF GPS main power.
 							SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
+							SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> RUNNING_ON_BATTERY_GPS_ON");
 						}
 				}
 			}
@@ -306,12 +317,13 @@ void loop() {
 				// Set the radio to RX mode without timeout.
 				SystemInformation.SecondCounter=0; // reset second counter.
 				SystemInformation.SecondsBatteryLowCounter = 0;
-				SystemInformation.state=NORMAL;						
+				SystemInformation.state=NORMAL;		
+				SerialAUX->println("Main State: STARTING_UP -> NORMAL");								
 			}
 			break;
 			 
 			default:
-				SerialAUX->println("Error! - Unknown System State!");
+				SerialAUX->println("Main State: ERROR(default) -> STARTING_UP");		
 				SystemInformation.state = STARTING_UP;
 			break;
 		}
@@ -320,11 +332,16 @@ void loop() {
 
 void GoToSleep(void){
 	RadioProtocol->PowerDown();
+	
+	//delay(10); // time to TX Serial.
+
+	//delay(1000);	
 	USBDevice.detach();
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	__DSB();
 	__WFI();
 	USBDevice.attach();
+
 	RadioProtocol->WakeUp();
 }
 
@@ -378,7 +395,10 @@ void BeaconService(void){
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
 		if(SystemInformation.IsGroundStation==false){
 			RadioProtocol->SendBeacon();
+		}else{
+			SerialAUX->println("Im groundstation, NoPing!");
 		}
+		
 	}	
 }
 
@@ -422,8 +442,9 @@ void One_second_Update(void){
 //		SerialAUX->Println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
 //		SerialAUX->Println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
 		SerialAUX->println("");
+		SerialAUX->println("Beacon Counter: " + String(SystemInformation.BeaconSecondCounter));
 
-		if(SystemInformation.InputVoltage <= 4.3){
+		if(SystemInformation.InputVoltage <= 4.3 || (SystemInformation.SimulateRunningOnBattery)){
 			if(SystemInformation.SecondsBatteryLowCounter < 255){
 				SystemInformation.SecondsBatteryLowCounter++;
 			}

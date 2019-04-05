@@ -46,6 +46,7 @@ class RFProtocol
 	void WakeUp();
 //	void IRQHandler(); // Function to be called when Radio pin makes IRQ.
 	void RFService();
+	void SeccondCounter();
 
 	// General helper functions and varibels only used by inherited MSG classes.
 	protected:
@@ -79,6 +80,7 @@ class RFProtocol
 	RingBuf<Telegram*, FIFO_SIZE> rxFIFO;
 	RingBuf<Telegram*, FIFO_SIZE> txFIFO;
 	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
+//	Telegram_MSG_1 SavedBeacons[FIFO_SIZE];
 	Telegram_MSG_2 * GetSavedTransponderBeaconForRelay();
 
 	RFProtocolStates_t RXHandler();

@@ -8,6 +8,7 @@
 #include "hw.h"
 #include "main.h"
 #include "Arduino.h"
+#include "RFProtocol.h"
 
 
 void setTimerFrequency(int frequencyHz) {
@@ -80,10 +81,7 @@ void TC3_Handler() {
 		TC->INTFLAG.bit.MC0 = 1;
 		// Write callback here!!!
 		
-	
-		if(SystemInformation.SecondCounterSinceLasteGroundStationContact < 254){
-			SystemInformation.SecondCounterSinceLasteGroundStationContact++;
-		}
+		RadioProtocol->SeccondCounter(); // Count up the Seconds since laste ground contact.
 		
 		if(SystemInformation.SecondCounter < 254){
 			SystemInformation.SecondCounter++;

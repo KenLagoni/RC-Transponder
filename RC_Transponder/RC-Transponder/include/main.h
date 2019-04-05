@@ -11,6 +11,8 @@
 #include "hw.h"
 
 
+extern class RFProtocol *RadioProtocol;
+
 enum TRANSPONDER_STATES {
 	STARTING_UP,
 	NORMAL,
@@ -29,12 +31,9 @@ extern struct SystemInformation_t
 	// Counters
 	uint8_t SecondCounter = 0;
 	uint8_t BeaconSecondCounter = 0;
-	uint8_t SecondCounterSinceLasteGroundStationContact = 0;
 
 	// system overall statemachine
 	enum TRANSPONDER_STATES state=STARTING_UP;
-	
-	uint8_t NumberOfBeaconsToRelay = 0;
 
 	float BatteryVoltage = 0;
 	float InputVoltage = 0;
