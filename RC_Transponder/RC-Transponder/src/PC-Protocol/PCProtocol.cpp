@@ -1,5 +1,5 @@
 /*
-	SerialProtocol.cpp
+	PCProtocol.cpp
 
 	Copyright (c) 2019 Lagoni
 	Not for commercial use

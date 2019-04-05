@@ -25,7 +25,7 @@ enum TRANSPONDER_STATES {
 extern struct SystemInformation_t
 {	
 	// Hardware and Software version defines
-	const float FIRMWARE_VERSION = 0.95;
+	const float FIRMWARE_VERSION = 1.00;
 	const uint8_t pcbVersion = PCB_VERSION;
 	
 	// Counters

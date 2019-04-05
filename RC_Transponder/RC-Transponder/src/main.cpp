@@ -53,7 +53,6 @@ Generic Clock Generator 4-8 - Disabled
 
 //void HandelSerial(void);
 void LowPowerTest(void);
-void Do_ground_station_loop(void);
 void GoToSleep(void);
 String base64_encode(byte[], int);
 void BeaconService(void);
@@ -90,6 +89,11 @@ void Radio_isr(void){
   //Radio->HandleIRQ(); // The radio module has something for us.
 //  RadioProtocol->IRQHandler();
 }*/
+
+#define POWER_DOWN_DELAY 60 // Wait 60 seconds after power is lost before go to low power mode.
+#define GPS_ON_TIME   60 //  60 seconds
+#define GPS_OFF_TIME 600 // 600 seconds (10min)
+
 
 void setup() {	
 	hwInit(); // Setup all pins according to hardware.
@@ -181,18 +185,9 @@ void setup() {
 			
 
 	// Set Timer 3 as 1 sec interrupt.
-	//startTimer(1); // 1Hz
 	startTimer3(1); // 1Hz
 	
 	SystemInformation.state=STARTING_UP;
-	/*
-	if(isGroundStation){
-		Serial.println("I am a groundstation");
-		
-	}else{
-		Serial.println("I am a RC transponder");
-	}
-	*/
 	PowerON(); // Ensure transponder keeps running from battery if external power is lost.
 	PowerONGPSBackup(); // Enable backup power for GPS.
 	SystemInformation.BatteryVoltage = getBatteryVoltage();
@@ -225,7 +220,7 @@ void loop() {
 
 				if(SystemInformation.SecondsBatteryLowCounter > 2){ // filter.
 					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;
-					SerialAUX->println("Main State: NORMAL -> GET_READY_TO_RUN_ON_BATTERY");
+//					SerialAUX->println("Main State: NORMAL -> GET_READY_TO_RUN_ON_BATTERY");
 				}else{
 				    // normal fast loop.
 					SerialProtocol->Service(); // Comunincation to PC.
@@ -239,15 +234,15 @@ void loop() {
 				if(SystemInformation.SecondsBatteryLowCounter == 0){
 					// Power is back!
 					SystemInformation.state=NORMAL;
-					SerialAUX->println("Main State: NORMAL");
+//					SerialAUX->println("Main State: NORMAL");
 				}
 				else{
 					// check if it is time to go to battery 
-					if(SystemInformation.SecondsBatteryLowCounter > 60){
+					if(SystemInformation.SecondsBatteryLowCounter > POWER_DOWN_DELAY){
 						PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
 						SystemInformation.GPSActiveCounter=0; // ensure GPS active counter is reset.
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
-						SerialAUX->println("Main State: GET_READY_TO_RUN_ON_BATTERY -> RUNNING_ON_BATTERY_GPS_ON");
+//						SerialAUX->println("Main State: GET_READY_TO_RUN_ON_BATTERY -> RUNNING_ON_BATTERY_GPS_ON");
 					}else{
 						SerialProtocol->Service(); // Comunincation to PC;
 						FrskySport.send(); // Service the Serial for SPORT.
@@ -258,23 +253,23 @@ void loop() {
 			
 			case RUNNING_ON_BATTERY_GPS_ON:
 			{
-				SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
+//				SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
-					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					SystemInformation.state=POWER_OFF;
-					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
 				}else{
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
-					if(++SystemInformation.GPSActiveCounter > 60){ // power off GPS after 1 min.
+					if(++SystemInformation.GPSActiveCounter > GPS_ON_TIME){ // power off GPS after 1 min.
 						SystemInformation.GPSActiveCounter=0;
 						delay(2000); // busy wait while GPS serial gets time to receive data from GPS (Unable in sleep mode).
-						SerialAUX->println("Serial data for GPS available: " + String(SerialGPS->available())); 
+//						SerialAUX->println("Serial data for GPS available: " + String(SerialGPS->available())); 
 						GPS->update();  // Service the GPS.
 						PowerOFFGPS();// Turn OFF GPS main power.
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_OFF;
-						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> RUNNING_ON_BATTERY_GPS_OFF");
+//						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> RUNNING_ON_BATTERY_GPS_OFF");
 					}
 				}
 			}
@@ -282,20 +277,20 @@ void loop() {
 
 			case RUNNING_ON_BATTERY_GPS_OFF:
 			{
-			    SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
+//			    SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
-					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> STARTING_UP");		
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> STARTING_UP");		
 					}else if(SystemInformation.BatteryVoltage <= 3.0){
 						SystemInformation.state=POWER_OFF;
-						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> POWER_OFF");					
+//						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> POWER_OFF");					
 					}else{
 						GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
-						if(++SystemInformation.GPSActiveCounter > 600){ // Turn on GPS every 10 mins.
+						if(++SystemInformation.GPSActiveCounter > GPS_OFF_TIME){ // Turn on GPS every 10 mins.
 							SystemInformation.GPSActiveCounter=0;
 							PowerONGPS();// Turn OFF GPS main power.
 							SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
-							SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> RUNNING_ON_BATTERY_GPS_ON");
+//							SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> RUNNING_ON_BATTERY_GPS_ON");
 						}
 				}
 			}
@@ -325,12 +320,12 @@ void loop() {
 				SystemInformation.SecondCounter=0; // reset second counter.
 				SystemInformation.SecondsBatteryLowCounter = 0;
 				SystemInformation.state=NORMAL;		
-				SerialAUX->println("Main State: STARTING_UP -> NORMAL");								
+//				SerialAUX->println("Main State: STARTING_UP -> NORMAL");								
 			}
 			break;
 			 
 			default:
-				SerialAUX->println("Main State: ERROR(default) -> STARTING_UP");		
+//				SerialAUX->println("Main State: ERROR(default) -> STARTING_UP");		
 				SystemInformation.state = STARTING_UP;
 			break;
 		}
@@ -371,29 +366,6 @@ void LowPowerTest(void){
 	}while(1);
 
 }
-
-void Do_ground_station_loop(void){
-	
-	Radio->SetRXMode(false); // No timeout
-	digitalWrite(led2Pin, LOW);
-	
-	do{
-//		if(Radio->telegramValid == true){
-			//SerialAUX->Println("We got a telegram!");
-			digitalWrite(led2Pin, HIGH);
-			//				SerialAUX->Println("We got a telegram!");
-//			ReceiveTelegram = Radio->GetTelegram();
-			//				PrintRadioTelegram(ReceiveTelegram); // Debug to USB serial port.
-//			PrintRadioTelegramCSV(ReceiveTelegram); // Debug to USB serial port.
-			delay(100);
-			digitalWrite(led2Pin, LOW);
-//		}else{
-			//SerialAUX->Println("False!");
-//		}
-		delay(100);
-	}while(1);
-}
-
 
 // Ensure a beacon is transmitted every N second.
 void BeaconService(void){
@@ -448,8 +420,8 @@ void One_second_Update(void){
 //		SerialAUX->Println("Battery voltage is " + String(SystemInformation.BatteryVoltage) + "V.");
 //		SerialAUX->Println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
 //		SerialAUX->Println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
-		SerialAUX->println("");
-		SerialAUX->println("Beacon Counter: " + String(SystemInformation.BeaconSecondCounter));
+//		SerialAUX->println("");
+//		SerialAUX->println("Beacon Counter: " + String(SystemInformation.BeaconSecondCounter));
 
 		if(SystemInformation.InputVoltage <= 4.3 || (SystemInformation.SimulateRunningOnBattery)){
 			if(SystemInformation.SecondsBatteryLowCounter < 255){

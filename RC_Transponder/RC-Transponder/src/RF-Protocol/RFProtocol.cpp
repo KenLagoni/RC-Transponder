@@ -114,7 +114,7 @@ bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 			 if( SavedBeacons[a].TelegramMatchUniqueID(msg->GetUniqueID1(), msg->GetUniqueID2(), msg->GetUniqueID3(), msg->GetUniqueID4()) == true ){
 				 //							SerialAUX->Println("Yes! - Updating!");
 				 SavedBeacons[a] = Telegram_MSG_2(msg);
-				 SerialAUX->println("It was all-ready in the list! at:" + String(a) + " We have a total of:" + String(RFProtocolStatus.NumberOfBeaconsToRelay) + "To relay");
+//				 SerialAUX->println("It was all-ready in the list! at:" + String(a) + " We have a total of:" + String(RFProtocolStatus.NumberOfBeaconsToRelay) + "To relay");
 				 return true; // Done, msg was updated in list.
 
 				 }else{
@@ -126,7 +126,7 @@ bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 		 if(RFProtocolStatus.NumberOfBeaconsToRelay < FIFO_SIZE){
 			 //			SerialAUX->Println("Message is saved in memory slot: " + String(NumberOfBeaconsToRelay));
 			 SavedBeacons[RFProtocolStatus.NumberOfBeaconsToRelay] = Telegram_MSG_2(msg);
-			 SerialAUX->println("It was added to the list at:" + String( RFProtocolStatus.NumberOfBeaconsToRelay));
+//			 SerialAUX->println("It was added to the list at:" + String( RFProtocolStatus.NumberOfBeaconsToRelay));
 			 Serial.println("It was added to the list at:" + String( RFProtocolStatus.NumberOfBeaconsToRelay));
 			 RFProtocolStatus.NumberOfBeaconsToRelay++;
 			 return false; // Done, msg was added to list
@@ -136,7 +136,7 @@ bool RFProtocol::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 			 //			SerialAUX->Println("-------------- Printing Beacon messages saved in Memory -------------");
 			 
 			 // debug
-			 SerialAUX->println("FIFO Full! unable to save any more messages :-(");
+//			 SerialAUX->println("FIFO Full! unable to save any more messages :-(");
 //			 Serial.println("FIFO Full! unable to save any more messages :-(");
 			 /*
 			 for(int a=0;a<FIFO_SIZE; a++){
@@ -162,43 +162,44 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 		{
 			case MSG_Beacon_Broadcast:
 
-				SerialAUX->print("\n\r************ MSG - 1(MSG_Beacon_Broadcast) Received!....");
+//				SerialAUX->print("\n\r************ MSG - 1(MSG_Beacon_Broadcast) Received!....");
 				SaveTelegram = SaveTransponderBeacon((Telegram_MSG_1 *)msg);
 				
 				//Telegram_MSG_1 *msg1 = ((Telegram_MSG_1 *)msg).GetNumberOfBeaconsToRelay();				
-				SerialAUX->println("msg has number of beacons to relay:" + String(((Telegram_MSG_1 *)msg)->GetNumberOfBeaconsToRelay()));
-							
+//				SerialAUX->println("msg has number of beacons to relay:" + String(((Telegram_MSG_1 *)msg)->GetNumberOfBeaconsToRelay()));
+/*							
 				if(SaveTelegram){
 					SerialAUX->println("Saved");					
 				}else{
 					SerialAUX->println("Deleted");					
 				}
+*/
 			break;
 
 			case MSG_Beacon_Relay:
-				SerialAUX->println("\n\r************ MSG - 2(MSG_Beacon_Relay) Received!.... Delete");
+//				SerialAUX->println("\n\r************ MSG - 2(MSG_Beacon_Relay) Received!.... Delete");
 					// Do nothing.
 			break;
 
 			case MSG_Command:
-				SerialAUX->print("\n\r************ MSG - 3 Received!...");
+//				SerialAUX->print("\n\r************ MSG - 3 Received!...");
 				if(msg->TelegramMatchUniqueID(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4))
 				{
-					SerialAUX->println("For us!");
+//					SerialAUX->println("For us!");
 					RFProtocolStatus.SecondCounterSinceLasteGroundStationContact=0;
 					// Command received for us!
 					switch(((Telegram_MSG_3 *)msg)->GetCommand())
 					{
 						case CMD_Request_Transponder_Beacon:
 						{
-							SerialAUX->print("Reply with Transponder Beacon?...");
+//							SerialAUX->print("Reply with Transponder Beacon?...");
 							// Reply with transponder beacon:
 														
 							 if(RFProtocolStatus.Sleep == true){ // don't send reply if sleep mode is requested.
-								 SerialAUX->println("No - We are asleep zzzz");
+//								 SerialAUX->println("No - We are asleep zzzz");
 								 returnState=RX_IDLE;							
 							 }else{
-								 SerialAUX->println("Yes!");
+//								 SerialAUX->println("Yes!");
 								Telegram_MSG_1 msgReply = Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2,
  																		SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
  																		(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
@@ -214,7 +215,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 
 						case CMD_Request_NEXT_Beacon_Relay:
 						{
-							SerialAUX->println("Reply with next saved beacon if any beacons left to sent: " + String(RFProtocolStatus.NumberOfBeaconsToRelay));
+//							SerialAUX->println("Reply with next saved beacon if any beacons left to sent: " + String(RFProtocolStatus.NumberOfBeaconsToRelay));
 							// Reply with transponder beacon:
 
 							if(RFProtocolStatus.Sleep == true){ // don't send reply if sleep mode is requested.
@@ -237,7 +238,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 
 						case CMD_Do_Power_Off:
 						{
-							SerialAUX->println("Power off");
+//							SerialAUX->println("Power off");
 							digitalWrite(led2Pin, HIGH);	
 							delay(2000);
 							digitalWrite(led2Pin, LOW);	
@@ -247,7 +248,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 						
 						case CMD_Simulate_run_on_battery:
 						{
-							SerialAUX->println("RF Message says - Simulate run on battery");
+	//						SerialAUX->println("RF Message says - Simulate run on battery");
 							SystemInformation->SimulateRunningOnBattery = !SystemInformation->SimulateRunningOnBattery; // toggle.
 						}
 						break;
@@ -257,24 +258,24 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 					}
 				}
 				else{
-					SerialAUX->println("Not For us!");
+//					SerialAUX->println("Not For us!");
 				}
 			break;
 			
 			default:
-				SerialAUX->println("\n\r************MSG - ? Default!....");
+//				SerialAUX->println("\n\r************MSG - ? Default!....");
 			break;
 		}		
 					
 		// Save in RX FIFO:
 		if(!(rxFIFO.isFull()))
 		{
-			SerialAUX->println("Adding MSG to RX FIFO.");	
+//			SerialAUX->println("Adding MSG to RX FIFO.");	
 			rxFIFO.push(msg);
 			SaveTelegram=true;
 		}else
 		{
-			SerialAUX->println("RX FIFO full!.");	
+//			SerialAUX->println("RX FIFO full!.");	
 		}
 		
 		if(!SaveTelegram)
@@ -283,7 +284,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::RXHandler()
 		}
 		
 	}else{
-		SerialAUX->println("MSG is NULL!");
+//		SerialAUX->println("MSG is NULL!");
 	}
 	 // if msg!=null		
 	return returnState;
@@ -334,7 +335,7 @@ RFProtocol::RFProtocolStates_t RFProtocol::TXHandler(){
 						break;								
 								
 						default:
-							SerialAUX->println("Unknown MSG CMD to send !.");
+//							SerialAUX->println("Unknown MSG CMD to send !.");
 						break;					
 					}
 				break;
@@ -473,9 +474,9 @@ void RFProtocol::ServiceStateMachine()
   */
 Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete newdata to avoid memory leaks.
 { 
-	 SerialAUX->print("New message is...");
+//	 SerialAUX->print("New message is...");
 	 if(newdata == NULL){
-		SerialAUX->println("NULL!");
+//		SerialAUX->println("NULL!");
 		return NULL;
 	 }
 	 
@@ -488,21 +489,21 @@ Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete ne
 		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
 		 {
 			 msg = new Telegram_MSG_1(newdata);
-			 SerialAUX->println("MSG 1");
+//			 SerialAUX->println("MSG 1");
 		 }
 		 break;
 		 
 		 case MSG_Beacon_Relay: //Create Beacon Relay Telegram.
 		 {
 			 msg = new Telegram_MSG_2(newdata);
-			 SerialAUX->println("MSG 2");
+//			 SerialAUX->println("MSG 2");
 		 }
 		 break;
 		 
 		 case MSG_Command: // Create command Telegram.
 		 {
 			 msg = new Telegram_MSG_3(newdata);
-			 SerialAUX->println("MSG 3");
+//			 SerialAUX->println("MSG 3");
 		 }
 		 break;
 		 
@@ -558,7 +559,7 @@ void RFProtocol::RFService(){
 			if((status.txDone == true) || (status.txTimeout == true) || (status.rxTimeout == true))
 			{
 				// This must be a mistake?
-				SerialAUX->println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State - Nextstate set to RX_IDLE");
+//				SerialAUX->println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State - Nextstate set to RX_IDLE");
 				Radio->SetRXMode(false); // Set RX without timout.
 				nextState=RX_IDLE;
 			}else
@@ -585,7 +586,7 @@ void RFProtocol::RFService(){
 			if((status.txDone == true) || (status.txTimeout == true))
 			{
 				// This must be a mistake?
-				SerialAUX->println("RF Protocol Error: txDone||txTimeout in WAITTING_FOR_REPLY State - Nextstate set to RX_IDLE");
+//				SerialAUX->println("RF Protocol Error: txDone||txTimeout in WAITTING_FOR_REPLY State - Nextstate set to RX_IDLE");
 				Radio->SetRXMode(false); // Set RX without timout.
 				nextState=RX_IDLE;
 			}else
@@ -622,7 +623,7 @@ void RFProtocol::RFService(){
 			if((status.rxDone == true) || (status.rxTimeout == true) || (status.txTimeout == true)) 
 			{
 				// This must be a mistake?
-				SerialAUX->println("RF Protocol Error: rxDone||rxTimeout||txTimeout in TX_WITHOUT_REPLY State");
+//				SerialAUX->println("RF Protocol Error: rxDone||rxTimeout||txTimeout in TX_WITHOUT_REPLY State");
 				nextState=RX_IDLE;
 				Radio->SetRXMode(false); // Set RX without timout.
 			}else
@@ -650,7 +651,7 @@ void RFProtocol::RFService(){
 			if((status.rxDone == true) || (status.rxTimeout == true) || (status.txTimeout == true))
 			{
 				// This must be a mistake?
-				SerialAUX->println("RF Protocol Error: rxDone||rxTimeout||txTimeout in TX_WITHOUT_REPLY State");
+//				SerialAUX->println("RF Protocol Error: rxDone||rxTimeout||txTimeout in TX_WITHOUT_REPLY State");
 				nextState=RX_IDLE;
 				Radio->SetRXMode(false); // Set RX without timout.
 			}else
@@ -662,7 +663,7 @@ void RFProtocol::RFService(){
 				}else{
 					// nothing... perhaps software timeout here?
 					if(millis() > this->timeoutStart+TIMEOUT_MS){
-						SerialAUX->println("Software timeout on TX_WITHOUT_REPLY");
+//						SerialAUX->println("Software timeout on TX_WITHOUT_REPLY");
 						nextState=RX_IDLE;
 						Radio->SetRXMode(false); // Set RX without timout.
 					}
@@ -674,14 +675,14 @@ void RFProtocol::RFService(){
 		
 		default:
 			nextState=RX_IDLE;
-			SerialAUX->println("Error! - Default!");
+//			SerialAUX->println("Error! - Default!");
 			Radio->SetRXMode(false); // Set RX without.
 		break;
 	}
 	
 	if(this->RFstate != nextState){
 		this->timeoutStart = millis(); // for software timeout.
-		SerialAUX->println("New state! - RFSate:" +String(RFstate) + " NextState:" + String(nextState));
+//		SerialAUX->println("New state! - RFSate:" +String(RFstate) + " NextState:" + String(nextState));
 		this->RFstate=nextState;
 
 	}
@@ -693,49 +694,3 @@ void RFProtocol::SeccondCounter(){
 	}
 }
 
-
-
-
-static String base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-String RFProtocol::base64_encode(byte bytes_to_encode[], int in_len)
-{
-	String ret = "";
-	int i = 0;
-	int j = 0;
-	byte char_array_3[3];
-	byte char_array_4[4];
-	int place = 0;
-
-	while (in_len-- > 0) {
-		char_array_3[i++] = bytes_to_encode[place++];
-		if (i == 3) {
-			char_array_4[0] = (byte)((char_array_3[0] & 0xfc) >> 2);
-			char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
-			char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
-			char_array_4[3] = (byte)(char_array_3[2] & 0x3f);
-
-			for(i = 0; (i<4) ; i++)
-			ret += base64_chars[char_array_4[i]];
-			i = 0;
-		}
-	}
-
-	if (i > 0) {
-		for(j = i; j< 3; j++)
-		char_array_3[j] = 0;
-
-		char_array_4[0] = (byte)(( char_array_3[0] & 0xfc) >> 2);
-		char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
-		char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
-
-		for (j = 0; (j<i + 1); j++)
-		ret += base64_chars[char_array_4[j]];
-
-		while((i++ < 3))
-		ret += '=';
-
-	}
-
-	return ret;
-
-}
