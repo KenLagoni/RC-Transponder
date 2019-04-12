@@ -7,9 +7,24 @@
 #ifndef __E28_2G4M20S_H__
 #define __E28_2G4M20S_H__
 
-#include "Arduino.h" // Needed for Strings and Serial
-#include "radio.h"
-#include "sx1280-hal.h"
+//#if defined (__AVR__) || (__avr__) || (ARDUINO_SAMD_MKRZERO)
+	#include "sx1280-hal.h" // Hardware SPI for arduino
+//#else 
+//	#include "sx1280-hal-rasp.h" // Hardware SPI for Raspberry
+//#endif
+
+#ifndef LOW
+#define LOW             (0x0)
+#endif
+#ifndef HIGH
+#define HIGH            (0x1)
+#endif
+#ifndef INPUT
+#define INPUT           (0x0)
+#endif
+#ifndef OUTPUT
+#define OUTPUT            (0x1)
+#endif
 
 //#define MODE_BLE
 #define MODE_LORA
@@ -49,7 +64,7 @@ struct RadioData_t
 class E28_2G4M20S
 {
   public:
-    E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin);
+    E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin, int ledPin);
 	void Init(); 
 	void IRQHandler();
 	void SetRXMode(bool useTimeout); 
@@ -62,6 +77,7 @@ class E28_2G4M20S
 	RadioIRQStatus_t GetRadioStatus();
 	void ClearRadioStatus();
 	uint16_t CalculateCRC(uint8_t *data, uint8_t length);
+	uint16_t GetFirmwareVersion( void );
 		
   private:
     // Pins:
@@ -73,6 +89,7 @@ class E28_2G4M20S
 	int _dio3Pin;
 	int _txEnablePin;
 	int _rxEnablePin;
+	int _ledPin;
 	
 	// Callback functions
 	void OnTxDone( void ); // Function to be executed on Radio Tx Done event
@@ -91,7 +108,7 @@ class E28_2G4M20S
     PacketStatus_t PacketStatus;
     ModulationParams_t modulationParams;
   	
-    SX1280Hal *Radio = NULL;
+    SX1280Hal *Radio = nullptr; 
 	
 	RadioIRQStatus_t RadioStatus;
 	RadioData_t RadioData;
@@ -112,7 +129,11 @@ class E28_2G4M20S
 };
 
 
-static uint16_t crc_table[] PROGMEM = {
+//#if defined (__AVR__) || (__avr__) || (ARDUINO_SAMD_MKRZERO)
+	const uint16_t crc_table[] = {
+//#else 
+//	static uint16_t crc_table[] = {
+//#endif
 	0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
 	0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
 	0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6,

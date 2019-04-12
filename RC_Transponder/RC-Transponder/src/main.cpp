@@ -31,7 +31,6 @@ Generic Clock Generator 4-8 - Disabled
 */
 
 #include <Arduino.h>
-#include <SPI.h>
 // GPS NMEA decoder
 #include <GPSL80Lite.h>
  
@@ -170,7 +169,7 @@ void setup() {
 	//pinPeripheral(sBUSRXPin, PIO_SERCOM_ALT); //Assign RX function to pin SBUS pin.
 	
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data rtained, it costs ~70uA.
-	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin);
+	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin, led2Pin);
 	RadioProtocol = new RFProtocol(Radio, GPSData, &SystemInformation);
 //	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
 	

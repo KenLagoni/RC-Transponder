@@ -27,6 +27,7 @@
 	Radio->Init();
 	Radio->SetRXMode(false); // no timeout
 	this->RFstate = RX_IDLE;
+
 	/*
 	for(int a=a;a<FIFO_SIZE;a++)	
 		SavedBeacons[a]=NULL;*/

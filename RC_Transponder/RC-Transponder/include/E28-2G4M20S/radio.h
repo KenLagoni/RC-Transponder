@@ -24,6 +24,8 @@ I downloaded the source code from Semtech website: "https://os.mbed.com/teams/Se
 #define __RADIO_H__
 
 #include <stdint.h>
+#include <string.h>
+#include <math.h>
 
 /*!
  * \brief Structure describing the radio status

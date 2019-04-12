@@ -166,6 +166,7 @@ void Telegram_MSG_2::SerialPrintMessage( void )
 			Serial.println("Payload["+String(a)+"]=" + String(Payload[a]));
 		}
 		*/
+		/*
 	Serial.println("");
 	Serial.println("Message Header:");
 	Serial.println("MSG ID                 :" + String(this->MSG_ID));
@@ -189,7 +190,7 @@ void Telegram_MSG_2::SerialPrintMessage( void )
 	Serial.println("RSSI Relay            :" + String(this->RSSI_relay));
 	Serial.println("SNR Relay             :" + String(this->SNR_relay));
 	Serial.println("----------------------------------------------------------------");
-	Serial.println("");
+	Serial.println("");*/
 }
 
 

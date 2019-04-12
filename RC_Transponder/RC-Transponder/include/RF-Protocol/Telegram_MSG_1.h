@@ -10,7 +10,6 @@
 #ifndef TELEGRAM_MSG_1_H_
 #define TELEGRAM_MSG_1_H_
 
-#include "Arduino.h" // Needed for uint8 types mf.
 #include "Telegram.h"
 #include "E28-2G4M20S.h" // for RadioData_t struct.
 

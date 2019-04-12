@@ -152,10 +152,10 @@ src/PC-Protocol/PCProtocol.d src/PC-Protocol/PCProtocol.o: \
  ..\\..\ArduinoCore\include\core/USB/USB_host.h \
  ..\\..\ArduinoCore\include\core/USB/samd21_host.h \
  ..\\include\PC-Protocol/PCProtocol.h \
- ..\\include\E28-2G4M20S/E28-2G4M20S.h ..\\include\E28-2G4M20S/radio.h \
+ ..\\include\E28-2G4M20S/E28-2G4M20S.h \
  ..\\include\E28-2G4M20S/sx1280-hal.h ..\\include\E28-2G4M20S/sx1280.h \
- ..\\..\ArduinoCore\include\libraries\spi/SPI.h \
- ..\\include\RF-Protocol/RFProtocol.h ..\\include\RF-Protocol/Telegram.h \
+ ..\\include\E28-2G4M20S/radio.h ..\\include\RF-Protocol/RFProtocol.h \
+ ..\\include\RF-Protocol/Telegram.h \
  ..\\include\RF-Protocol/Telegram_MSG_1.h \
  ..\\include\RF-Protocol/Telegram_MSG_2.h \
  ..\\include\RF-Protocol/Telegram_MSG_3.h ..\\include/GPSL80Lite.h \
@@ -467,13 +467,11 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\arm\arm-gnu-toolchain\arm-no
 
 ..\\include\E28-2G4M20S/E28-2G4M20S.h:
 
-..\\include\E28-2G4M20S/radio.h:
-
 ..\\include\E28-2G4M20S/sx1280-hal.h:
 
 ..\\include\E28-2G4M20S/sx1280.h:
 
-..\\..\ArduinoCore\include\libraries\spi/SPI.h:
+..\\include\E28-2G4M20S/radio.h:
 
 ..\\include\RF-Protocol/RFProtocol.h:
 

@@ -35,6 +35,7 @@ ProtocolCMD_t Telegram_MSG_3::GetCommand( void ){
 
 void Telegram_MSG_3::SerialPrintMessage( void )
 {
+/*
 	Serial.println("");
 	Serial.println("Message Header:");
 	Serial.println("MSG ID                 :" + String(this->MSG_ID));
@@ -43,5 +44,5 @@ void Telegram_MSG_3::SerialPrintMessage( void )
 	Serial.println("Message Data:");
 	Serial.println("Command ID             :" + String(this->cmd));
 	Serial.println("----------------------------------------------");
-	Serial.println("");
+	Serial.println("");*/
 }

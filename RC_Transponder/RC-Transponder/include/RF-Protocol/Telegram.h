@@ -10,7 +10,6 @@
 #ifndef TELEGRAM_H_
 #define TELEGRAM_H_
 
-#include "Arduino.h" // Needed for uint8 types mf.
 #include "E28-2G4M20S.h" // Needed for RadioData_t
 
 #define HEADER_SIZE 17 

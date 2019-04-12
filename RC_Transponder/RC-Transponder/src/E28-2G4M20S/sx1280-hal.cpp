@@ -20,7 +20,10 @@ Not for commercial use
 
 I downloaded the source code from Semtech website: "https://os.mbed.com/teams/Semtech/code/SX1280Lib/" But no LICENSE.TXT was included in the project.
 */
+
 #include "sx1280-hal.h"
+#include <SPI.h>
+#include <Arduino.h>
 
 /*!
  * \brief Helper macro to avoid duplicating code for setting dio pins parameters
@@ -39,6 +42,7 @@ I downloaded the source code from Semtech website: "https://os.mbed.com/teams/Se
                 dio->rise( this, static_cast <Trigger>( callback ) );  \
             }
 #endif
+
 /*!
  * \brief Used to block execution waiting for low state on radio busy pin.
  *        Essentially used in SPI communications
@@ -51,17 +55,27 @@ I downloaded the source code from Semtech website: "https://os.mbed.com/teams/Se
 #define assert_param( ... )
 #endif
 
-SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst)
+SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst,  int txEnablePin, int rxEnablePin, int ledPin)
         :   SX1280( )
 {
 	RadioNss = nss;
     RadioReset = rst;
     BUSY = busy;
+	TXENPIN = txEnablePin;
+	RXENPIN = rxEnablePin;
+	LEDPIN = ledPin;
     
 	pinMode(RadioNss, OUTPUT);
     digitalWrite(RadioNss, HIGH);
 	pinMode(RadioReset, OUTPUT);
     digitalWrite(RadioReset, HIGH);
+	pinMode(BUSY, INPUT);
+	pinMode(TXENPIN, OUTPUT);
+    digitalWrite(TXENPIN, LOW);
+	pinMode(RXENPIN, OUTPUT);
+	digitalWrite(RXENPIN, HIGH);
+	pinMode(LEDPIN, OUTPUT);
+	digitalWrite(LEDPIN, LOW);
 
     SPI.begin();
 }
@@ -267,8 +281,15 @@ void SX1280Hal::ReadBuffer( uint8_t offset, uint8_t *buffer, uint8_t size )
  
     WaitOnBusy( );
 }
-/*
-uint8_t SX1280Hal::GetDioStatus( void )
-{
-    return ( *DIO3 << 3 ) | ( *DIO2 << 2 ) | ( *DIO1 << 1 ) | ( BUSY << 0 );
-}*/
+
+void SX1280Hal::SetLed(uint8_t output){
+	digitalWrite(LEDPIN, output);
+}
+
+void SX1280Hal::SetTxEnablePin(uint8_t output){
+	digitalWrite(TXENPIN, output);
+}
+
+void SX1280Hal::SetRxEnablePin(uint8_t output){
+	digitalWrite(RXENPIN, output);
+}

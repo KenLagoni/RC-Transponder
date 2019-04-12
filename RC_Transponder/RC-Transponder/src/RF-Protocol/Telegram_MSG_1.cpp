@@ -5,10 +5,8 @@
 	Not for commercial use
  */ 
   #include "Telegram_MSG_1.h"
-  #include "hw.h" // SerialAUX
-
-// constructor for main init.
-
+  
+// constructor 
 Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, 
 							   uint32_t _UTCTime,  uint32_t _Lattitude, uint32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix,
 							   bool _RunningOnBattery, float _Pressure, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
@@ -251,7 +249,7 @@ void Telegram_MSG_1::SerialPrintMessage( void )
 		for(int a=0;a<PayloadLength;a++){
 			Serial.println("Payload["+String(a)+"]=" + String(Payload[a]));
 		}
-		*/
+		*//*
 	SerialAUX->println("");
 	SerialAUX->println("Message Header:");
 	SerialAUX->println("MSG ID                 :" + String(this->MSG_ID));
@@ -274,5 +272,5 @@ void Telegram_MSG_1::SerialPrintMessage( void )
 	SerialAUX->println("PCB Version           :" + String(this->PCBVersion));
 	SerialAUX->println("# of Beacons to relay :" + String(this->NumberOfBeaconsToRelay));
 	SerialAUX->println("----------------------------------------------------------------");
-	SerialAUX->println("");
+	SerialAUX->println("");*/
 }

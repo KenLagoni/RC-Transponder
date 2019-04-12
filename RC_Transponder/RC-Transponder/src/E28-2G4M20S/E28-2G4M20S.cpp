@@ -6,12 +6,8 @@
  */ 
 
 #include "E28-2G4M20S.h"
-#include "radio.h"
-#include "sx1280-hal.h"
-#include "hw.h" // for pin define auxTXPin and LEDPIN
 
-
-E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin)
+E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin, int ledPin)
 {
 	_chipSelectPin = chipSelectPin;
 	_resetPin      = resetPin;
@@ -21,14 +17,10 @@ E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1P
 	_dio3Pin       = dio3Pin;
 	_txEnablePin   = txEnablePin;
 	_rxEnablePin   = rxEnablePin;
-	
-	Radio = new SX1280Hal(_chipSelectPin, _busyPin, _dio1Pin, _dio2Pin, _dio3Pin, _resetPin);	
+	_ledPin		   = ledPin;
 		
-	pinMode(_txEnablePin, OUTPUT);
-	digitalWrite(_txEnablePin, LOW);	
-	pinMode(_rxEnablePin, OUTPUT);
-	digitalWrite(_rxEnablePin, HIGH);		
-	
+	Radio = new SX1280Hal(_chipSelectPin, _busyPin, _dio1Pin, _dio2Pin, _dio3Pin, _resetPin, _txEnablePin, _rxEnablePin, _ledPin);	
+		
 	RadioStatus.rxDone=false;
 	RadioStatus.txDone=false;
 	RadioStatus.rxTimeout=false;
@@ -37,14 +29,14 @@ E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1P
 
 void E28_2G4M20S::SetTxModeActive( void )
 {
-	digitalWrite(_rxEnablePin, LOW);
-	digitalWrite(_txEnablePin, HIGH);	
+	Radio->SetRxEnablePin(LOW);
+	Radio->SetTxEnablePin(HIGH);
 }
 
 void E28_2G4M20S::SetRxModeActive( void )
 {
-	digitalWrite(_txEnablePin, LOW);
-	digitalWrite(_rxEnablePin, HIGH);	
+	Radio->SetTxEnablePin(LOW);
+	Radio->SetRxEnablePin(HIGH);
 }
 
 void E28_2G4M20S::Init()
@@ -55,7 +47,7 @@ void E28_2G4M20S::Init()
 	 
 	#if defined( MODE_BLE )
 
-    SerialUSB.print( "\nRunning in BLE mode\n\r");
+//    SerialUSB.print( "\nRunning in BLE mode\n\r");
     modulationParams.PacketType                   = PACKET_TYPE_BLE;
     modulationParams.Params.Ble.BitrateBandwidth  = GEN_BLE_BR_0_125_BW_0_3;
     modulationParams.Params.Ble.ModulationIndex   = GEN_BLE_MOD_IND_1_00;
@@ -69,7 +61,7 @@ void E28_2G4M20S::Init()
 
 	#elif defined( MODE_GENERIC )
 
-    SerialUSB.print( "\nRunning in GENERIC mode\n\r");
+//    SerialUSB.print( "\nRunning in GENERIC mode\n\r");
     modulationParams.PacketType                       = PACKET_TYPE_GENERIC;
     modulationParams.Params.Generic.BitrateBandwidth  = GEN_BLE_BR_0_125_BW_0_3;
     modulationParams.Params.Generic.ModulationIndex   = GEN_BLE_MOD_IND_1_00;
@@ -86,10 +78,10 @@ void E28_2G4M20S::Init()
 
 	#elif defined( MODE_LORA )
 	
-    SerialAUX->println( "Running in LORA mode");
-	SerialAUX->println( "Spreading factor set to 7");
-	SerialAUX->println( "Bandwidth set to 400kHz");
-	SerialAUX->println( "CR encoding set to 4/5");
+//    SerialAUX->println( "Running in LORA mode");
+//	SerialAUX->println( "Spreading factor set to 7");
+//	SerialAUX->println( "Bandwidth set to 400kHz");
+//	SerialAUX->println( "CR encoding set to 4/5");
     modulationParams.PacketType                  = PACKET_TYPE_LORA;
     modulationParams.Params.LoRa.SpreadingFactor = LORA_SF7;
     modulationParams.Params.LoRa.Bandwidth       = LORA_BW_0400;
@@ -104,7 +96,7 @@ void E28_2G4M20S::Init()
 
 	#elif defined( MODE_FLRC )
 
-    SerialUSB.print( "\nRunning in FLRC mode\n\r");
+//    SerialUSB.print( "\nRunning in FLRC mode\n\r");
     modulationParams.PacketType                    = PACKET_TYPE_FLRC;
     modulationParams.Params.Flrc.BitrateBandwidth  = FLRC_BR_0_260_BW_0_3;
     modulationParams.Params.Flrc.CodingRate        = FLRC_CR_1_2;
@@ -131,8 +123,8 @@ void E28_2G4M20S::Init()
     Radio->SetRfFrequency( rf_frequency );
     Radio->SetBufferBaseAddresses( 0x00, 0x00 );
     Radio->SetTxParams( tx_power, RADIO_RAMP_20_US ); 
-	SerialAUX->println( "Frequency set to " + String(rf_frequency/1000000) + "MHz");
-	SerialAUX->println( "TX Power set to " + String(tx_power) + "dBm");
+//	SerialAUX->println( "Frequency set to " + String(rf_frequency/1000000) + "MHz");
+//	SerialAUX->println( "TX Power set to " + String(tx_power) + "dBm");
 }
 
 
@@ -141,7 +133,7 @@ void E28_2G4M20S::OnTxDone( void )
 	// switch PA to RX.
 	SetRxModeActive();
 	SetRXMode(false); // Set to RX with no timeout.
-	digitalWrite(led2Pin, LOW);
+	Radio->SetLed(LOW);
 }
 
 void E28_2G4M20S::OnRxDone( void )
@@ -150,16 +142,16 @@ void E28_2G4M20S::OnRxDone( void )
 	RadioData.payloadLength=0;
 	if(Radio->GetPayload(&RadioData.payload[0], &RadioData.payloadLength, MAX_PAYLOAD_LENGTH)){
 		// If return 1, then package size is larger than MAX_PAYLOAD_LENGTH
-		SerialAUX->println("Oops! - New package is to big. Length="+String(RadioData.payloadLength)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
+//		SerialAUX->println("Oops! - New package is to big. Length="+String(RadioData.payloadLength)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
 	}else{
 		//Extract and test CRC (last two bytes):
 		uint16_t temp_crc = (uint16_t)((RadioData.payload[RadioData.payloadLength-2] << 8) + RadioData.payload[RadioData.payloadLength-1]);
 		RadioData.payload[RadioData.payloadLength-2]=0;
 		RadioData.payload[RadioData.payloadLength-1]=0;
 		RadioData.payloadLength -= 2; // we have removed CRC.
-		SerialAUX->print("\n\n Checking CRC...");			
+//		SerialAUX->print("\n\n Checking CRC...");			
 		if(CalculateCRC(&RadioData.payload[0],RadioData.payloadLength) == temp_crc){
-			SerialAUX->println("OK!");			
+//			SerialAUX->println("OK!");			
 			// New data has been copied to buffer.
 			Radio->GetPacketStatus(&PacketStatus);
 			switch( PacketStatus.packetType )
@@ -189,7 +181,7 @@ void E28_2G4M20S::OnRxDone( void )
 			RadioStatus.rxDone=true;
 			RadioDataReady = true;
 		}else{
-			SerialAUX->println("ERROR!");
+//			SerialAUX->println("ERROR!");
 			RadioStatus.rxDone=false;
 		}
 	}
@@ -209,34 +201,34 @@ void E28_2G4M20S::IRQHandler( void )
 	//SerialAUX->println("E28 Radio Interrupt!");
 	
 	if(Radio->RadioPacketStatus.txDone == true){
-		SerialAUX->println("TX Done!");
+//		SerialAUX->println("TX Done!");
 		this->OnTxDone();
 	}    
 	if(Radio->RadioPacketStatus.rxDone == true){
-		SerialAUX->println("RX Done!");
+//		SerialAUX->println("RX Done!");
 		this->OnRxDone();
 		// read the message, check CRC if ok, make available.
 	}
 	if(Radio->RadioPacketStatus.rxSyncWordDone == true){
-		SerialAUX->println("rxSyncWordDone!");
+//		SerialAUX->println("rxSyncWordDone!");
 	}	
 	if(Radio->RadioPacketStatus.rxHeaderDone == true){
-		SerialAUX->println("rxHeaderDone!");
+//		SerialAUX->println("rxHeaderDone!");
 	}
 	if(Radio->RadioPacketStatus.txTimeout == true){
-		SerialAUX->println("TX Timeout!");
+//		SerialAUX->println("TX Timeout!");
 	}
 	if(Radio->RadioPacketStatus.rxTimeout == true){
-		SerialAUX->println("RX Timeout!");
+//		SerialAUX->println("RX Timeout!");
 	}	
 	if(Radio->RadioPacketStatus.rxError > 0x00){
-		SerialAUX->println("IRQ Error! " + String(Radio->RadioPacketStatus.rxError));
+//		SerialAUX->println("IRQ Error! " + String(Radio->RadioPacketStatus.rxError));
 	}
 	if(Radio->RadioPacketStatus.rangingDone > 0x00){
-		SerialAUX->println("IRQ Ranging Code! " + String(Radio->RadioPacketStatus.rangingDone));
+//		SerialAUX->println("IRQ Ranging Code! " + String(Radio->RadioPacketStatus.rangingDone));
 	}
 	if(Radio->RadioPacketStatus.cadDone == true){
-		SerialAUX->println("CAD Done!");
+//		SerialAUX->println("CAD Done!");
 	}
 	
 }
@@ -259,21 +251,8 @@ void E28_2G4M20S::SendRadioData(RadioData_t *data)
 	Radio->SendPayload(&RadioData.payload[0], RadioData.payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
 	
 	//Debug:
-	digitalWrite(led2Pin, HIGH);	
+	Radio->SetLed(HIGH);
 }
-
-
-/*
-void E28_2G4M20S::SendPackage(uint8_t *payload, uint8_t payloadLength)
-{
-   this->SetTxModeActive(); // Switch the hardware amplifier to TX mode.
-   Radio->SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on TX complete on DI01.
-   this->PacketParams.Params.LoRa.PayloadLength = payloadLength;
-   Radio->SetPacketParams( &PacketParams );
-   Radio->SendPayload(payload, payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
-   digitalWrite(21, HIGH);	
-}
-*/
 
 void E28_2G4M20S::SetRXMode(bool useTimeout)
 {
@@ -296,12 +275,13 @@ void E28_2G4M20S::Sleep(void){
 	
 //	SerialAUX->println("Radio Firmware version: " + String(Radio->GetFirmwareVersion()));
 	
-	digitalWrite(_txEnablePin, LOW);
-	digitalWrite(_rxEnablePin, LOW);
+	Radio->SetTxEnablePin(LOW);
+	Radio->SetRxEnablePin(LOW);
 		
 	Radio->SetSaveContext();
 	Radio->SetSleep(SleepParameters);	
-	digitalWrite(_chipSelectPin, HIGH);
+
+//	digitalWrite(_chipSelectPin, HIGH);
 }
 
 void E28_2G4M20S::WakeUp(void){
@@ -315,20 +295,20 @@ RadioData_t * E28_2G4M20S::GetRadioData()
 		RadioDataReady = false;
 		return &RadioData;	
 	}else{
-		return NULL;
+		return nullptr;
 	}
 }
 
 RadioIRQStatus_t E28_2G4M20S::GetRadioStatus(){
 	return this->RadioStatus;
 }
+
 void E28_2G4M20S::ClearRadioStatus(){
 	RadioStatus.rxDone=false;
 	RadioStatus.txDone=false;
 	RadioStatus.rxTimeout=false;
 	RadioStatus.txTimeout=false;	
 }
-
 
 uint16_t E28_2G4M20S::CalculateCRC(uint8_t *data, uint8_t length){
 	uint16_t count;
@@ -342,4 +322,8 @@ uint16_t E28_2G4M20S::CalculateCRC(uint8_t *data, uint8_t length){
 	}
 
 	return (uint16_t)(crc ^ 0x0000);
+}
+
+uint16_t  E28_2G4M20S::GetFirmwareVersion( void ){
+	return Radio->GetFirmwareVersion();
 }

@@ -10,7 +10,6 @@
 #ifndef TELEGRAM_MSG_2_H_
 #define TELEGRAM_MSG_2_H_
 
-#include "Arduino.h" // Needed for uint8 types mf.
 #include "Telegram.h"
 #include "Telegram_MSG_1.h" // For constructor using MSG_1 type
 #include "E28-2G4M20S.h" // for RadioData_t struct.

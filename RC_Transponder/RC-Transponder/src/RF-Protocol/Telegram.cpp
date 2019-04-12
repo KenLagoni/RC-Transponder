@@ -5,8 +5,7 @@
 	Not for commercial use
  */ 
  #include "Telegram.h"
- #include "Arduino.h" // for serial.print
-
+ 
  
  Telegram::Telegram(ProtocolMSG_t _MSG_ID,  uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4)
  {
