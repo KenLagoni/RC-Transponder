@@ -71,6 +71,7 @@ class E28_2G4M20S
 	void Debug();
 	void Sleep();
 	void WakeUp(void);
+	uint8_t GetDioPinStatus();
 	
 	void SendRadioData(RadioData_t *data);
 	RadioData_t * GetRadioData();

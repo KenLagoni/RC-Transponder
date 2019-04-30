@@ -45,7 +45,15 @@
 #ifndef __RINGBUF_H__
 #define __RINGBUF_H__
 
-#include <Arduino.h>
+
+
+#if defined (__AVR__) || (__avr__) || (ARDUINO_SAMD_MKRZERO)
+	#include <Arduino.h>
+#else
+	#define noInterrupts() (void)0
+	#define interrupts() (void)0
+#endif
+
 
 /*
  * Set the integer size used to store the size of the buffer according of

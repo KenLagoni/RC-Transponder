@@ -38,7 +38,7 @@ Generic Clock Generator 4-8 - Disabled
 #include "timer.h"
 #include "main.h"
 #include "hw.h"
-#include "RFProtocol.h"
+#include "RFService.h"
 #include "PCProtocol.h"
 
 // Radio
@@ -74,7 +74,7 @@ FrSkySportTelemetry FrskySport;           // Create telemetry object without pol
 
 // Object and varibels for SX1280/E28_2G4 radio chip
 E28_2G4M20S *Radio = NULL;
-RFProtocol *RadioProtocol = NULL;
+RFService *RadioService = NULL;
 PCProtocol *SerialProtocol = NULL;
 
 // $GPGGA,193648.000,5550.0838,N,01224.0718,E,2,8,0.96,32.7,M,41.5,M,0000,0000*62
@@ -170,10 +170,10 @@ void setup() {
 	
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data rtained, it costs ~70uA.
 	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin, led2Pin);
-	RadioProtocol = new RFProtocol(Radio, GPSData, &SystemInformation);
+	RadioService = new RFService(Radio, GPSData, &SystemInformation);
 //	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
 	
-	SerialProtocol = new PCProtocol(RadioProtocol, Radio);
+	SerialProtocol = new PCProtocol(RadioService, Radio);
 	
 	// Init Frsky Smart port:
 	SerialfrskySPort = new Uart(&sercom3, fryskySmartPortRXPin, fryskySmartPortTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the Frsky SPORT module
@@ -205,7 +205,7 @@ void loop() {
 		One_second_Update();
 		GPS->update();  // Function empty serial buffer and analyzes string.
 		BeaconService();
-		RadioProtocol->RFService();
+		RadioService->Service();
 		
 		if(SystemInformation.SaftySwitchPushed == true){
 			SystemInformation.state=POWER_OFF;
@@ -332,7 +332,7 @@ void loop() {
 }
 
 void GoToSleep(void){
-	RadioProtocol->PowerDown();
+	RadioService->PowerDown();
 	
 	//delay(10); // time to TX Serial.
 
@@ -343,7 +343,7 @@ void GoToSleep(void){
 	__WFI();
 	USBDevice.attach();
 
-	RadioProtocol->WakeUp();
+	RadioService->WakeUp();
 }
 
 void LowPowerTest(void){
@@ -372,7 +372,7 @@ void BeaconService(void){
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
 		if(SystemInformation.IsGroundStation==false){
-			RadioProtocol->SendBeacon();
+			RadioService->SendBeacon();
 		}else{
 			SerialAUX->println("Im groundstation, NoPing!");
 		}

@@ -10,23 +10,17 @@
 #ifndef RFPROTOCOL_H_
 #define RFPROTOCOL_H_
 
- // Radio
- #include "E28-2G4M20S.h"
+// Radio
+#include "E28-2G4M20S.h"
 
- // Radio protocol
- #include "Telegram.h"
- #include "Telegram_MSG_1.h"
- #include "Telegram_MSG_2.h"
- #include "Telegram_MSG_3.h"
+// Radio protocol
+#include "Telegram.h"
+#include "Telegram_MSG_1.h"
+#include "Telegram_MSG_2.h"
+#include "Telegram_MSG_3.h"
 
- // GPS
- #include "GPSL80Lite.h"
-
- //FIFO
- #include "RingBuf.h"
-
- // SystemInformation
- #include "main.h"
+//FIFO
+#include "RingBuf.h"
 
 #define FIFO_SIZE 30
 #define TIMEOUT_MS 100
@@ -35,34 +29,16 @@ class RFProtocol
 {
 	// Public functions to be used on all Messages
 	public:
-	RFProtocol(E28_2G4M20S *RadioModule, GpsDataLite *GPS, SystemInformation_t *status); //constructor.
+	RFProtocol(E28_2G4M20S *RadioModule); //constructor.
 	
 	void AddData(RadioData_t *msg); // Add to TX FIFO.
 	RadioData_t * GetData();
-
 	int Available(); // returns number of Telegrams in RX FIFO.
-	void SendBeacon(); // Add a beacon message to TX FIFO.
-	void PowerDown();
-	void WakeUp();
-//	void IRQHandler(); // Function to be called when Radio pin makes IRQ.
-	void RFService();
-	void SeccondCounter();
+	void Service();
 
 	// General helper functions and varibels only used by inherited MSG classes.
 	protected:
 	
-	// Parameters only used on Telegram mother class.
-	private:
-
-	struct RFProtocolStatus_t
-	{
-		uint8_t NumberOfBeaconsToRelay = 0;
-		uint8_t SecondCounterSinceLasteGroundStationContact = 0;
-		bool Sleep = false;
-	};
-
-	RFProtocolStatus_t RFProtocolStatus;
-
 	enum RFProtocolStates_t {
 		RX_IDLE = 0,
 		WAITING_FOR_REPLY,
@@ -70,30 +46,27 @@ class RFProtocol
 		TX_WITH_REPLY,
 	};
 	
-	RFProtocolStates_t RFstate = RX_IDLE;
-	unsigned long timeoutStart = 0;
-
-	E28_2G4M20S *Radio = NULL;
-	GpsDataLite *GPSData = NULL;
-	SystemInformation_t *SystemInformation = NULL;
+	virtual uint32_t milliSeconds() = 0;
+	virtual RFProtocolStates_t RXHandler() = 0;
+	virtual RFProtocolStates_t TXHandler() = 0;
+	void _WakeUp();
+	void _PowerDown();
 	
+	E28_2G4M20S *Radio = NULL;
 	RingBuf<Telegram*, FIFO_SIZE> rxFIFO;
 	RingBuf<Telegram*, FIFO_SIZE> txFIFO;
-//	Telegram_MSG_1* SavedBeacons[FIFO_SIZE];
-	Telegram_MSG_2 SavedBeacons[FIFO_SIZE];
-	//Telegram_MSG_2 GetSavedTransponderBeaconForRelay();
+	
 
-	RFProtocolStates_t RXHandler();
-	RFProtocolStates_t TXHandler();
-
+	
+	RFProtocolStates_t RFstate = RX_IDLE;
 	Telegram * ConvertToTelegram(RadioData_t *data); // return pointer to incomming package if CRC is ok, else NULL.
-	bool SaveTransponderBeacon(Telegram_MSG_1 *msg); // Return true if message is saved
-
+			
+	// Parameters only used on Telegram mother class.
+	private:
+	unsigned long timeoutStart = 0;
 	RadioData_t rxbuffer; // When using "GetData()" the Telegram is removed from FIFO and only RadioData is saved. Telegram is den deleted.
 	
-//	void ServiceStateMachine();
-	String base64_encode(byte bytes_to_encode[], int in_len);
-
+	//String base64_encode(byte bytes_to_encode[], int in_len);
 };
 
 

@@ -80,7 +80,7 @@ void PCProtocol::clearInputData(){
 				case READ_DATA_LENGTH:
 					if(_newChar >= MAX_PAYLOAD_LENGTH ){
 		//					SerialAUX->println("Length too long.");
-							SerialAUX->println("Length too long.");
+	//						SerialAUX->println("Length too long.");
 							SerialState=LOOKING_FOR_START; // Error.			
 					}else if(_newChar == 0x1E){
 						clearInputData();

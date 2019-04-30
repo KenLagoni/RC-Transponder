@@ -11,7 +11,7 @@
 #include "hw.h"
 
 
-extern class RFProtocol *RadioProtocol;
+extern class RFService *RadioService;
 
 enum TRANSPONDER_STATES {
 	STARTING_UP,

@@ -327,3 +327,7 @@ uint16_t E28_2G4M20S::CalculateCRC(uint8_t *data, uint8_t length){
 uint16_t  E28_2G4M20S::GetFirmwareVersion( void ){
 	return Radio->GetFirmwareVersion();
 }
+
+uint8_t E28_2G4M20S::GetDioPinStatus(void){
+	return Radio->GetDioPinStatus();
+}

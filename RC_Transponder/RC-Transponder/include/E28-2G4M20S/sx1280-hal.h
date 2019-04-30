@@ -151,6 +151,8 @@ public:
 	void SetTxEnablePin(uint8_t output);
 	
 	void SetRxEnablePin(uint8_t output);
+	
+	uint8_t GetDioPinStatus( void );
 
 protected:
 

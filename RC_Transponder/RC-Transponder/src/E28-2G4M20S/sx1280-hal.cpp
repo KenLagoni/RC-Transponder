@@ -61,6 +61,7 @@ SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, 
 	RadioNss = nss;
     RadioReset = rst;
     BUSY = busy;
+	DIO1 = dio1;
 	TXENPIN = txEnablePin;
 	RXENPIN = rxEnablePin;
 	LEDPIN = ledPin;
@@ -69,6 +70,7 @@ SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, 
     digitalWrite(RadioNss, HIGH);
 	pinMode(RadioReset, OUTPUT);
     digitalWrite(RadioReset, HIGH);
+	pinMode(DIO1, INPUT);
 	pinMode(BUSY, INPUT);
 	pinMode(TXENPIN, OUTPUT);
     digitalWrite(TXENPIN, LOW);
@@ -292,4 +294,8 @@ void SX1280Hal::SetTxEnablePin(uint8_t output){
 
 void SX1280Hal::SetRxEnablePin(uint8_t output){
 	digitalWrite(RXENPIN, output);
+}
+
+uint8_t SX1280Hal::GetDioPinStatus(){
+	return digitalRead(DIO1);
 }
