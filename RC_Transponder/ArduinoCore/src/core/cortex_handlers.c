@@ -33,7 +33,16 @@ void Dummy_Handler(void)
 #if defined DEBUG
   __BKPT(3);
 #endif
-  for (;;) { }
+  pinMode(21, 1);
+  for (;;) {
+	  for(int a=0;a<10;a++){
+		digitalWrite(21, 1);
+		delay(50);
+		digitalWrite(21, 0);
+		delay(50);	  
+	  }
+	  delay(950);
+  }
 }
 
 /* Cortex-M0+ core handlers */

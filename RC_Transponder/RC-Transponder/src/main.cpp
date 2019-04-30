@@ -31,8 +31,6 @@ Generic Clock Generator 4-8 - Disabled
 */
 
 #include <Arduino.h>
-#include <SPI.h>
-
 // GPS NMEA decoder
 #include <GPSL80Lite.h>
  
@@ -40,15 +38,11 @@ Generic Clock Generator 4-8 - Disabled
 #include "timer.h"
 #include "main.h"
 #include "hw.h"
+#include "RFService.h"
+#include "PCProtocol.h"
 
 // Radio
 #include "E28-2G4M20S.h"
-
-// Radio protocol
-#include "Telegram.h"
-#include "Telegram_MSG_1.h"
-#include "Telegram_MSG_2.h"
-#include "Telegram_MSG_3.h"
 
 // for SPORT
 #include "FrSkySportSensor.h"
@@ -56,22 +50,15 @@ Generic Clock Generator 4-8 - Disabled
 #include "FrSkySportSingleWireSerial.h"
 #include "FrSkySportTelemetry.h"
 
-void HandelSerial(void);
-void HandelRadio(void);
+//void HandelSerial(void);
 void LowPowerTest(void);
-void Do_ground_station_loop(void);
-float getBatteryVoltage(void);
-float getInputVoltage(void);
-bool BeaconService(void);
 void GoToSleep(void);
 String base64_encode(byte[], int);
+void BeaconService(void);
+void One_second_Update(void);
 
-//Global variables
-Telegram_MSG_1 SavedBeacons[MAX_NUMBER_OF_BEACONS_TO_SAVE];
-
-
-uint8_t NumberOfBeaconsToRelay = 0;
-float BatteryVoltage = 0;
+// System information
+SystemInformation_t SystemInformation;
 
 // FRSKY SPORT GPS
 FrSkySportSensorGps FrskyGPS;                 // Create GPS sensor with default ID
@@ -87,54 +74,67 @@ FrSkySportTelemetry FrskySport;           // Create telemetry object without pol
 
 // Object and varibels for SX1280/E28_2G4 radio chip
 E28_2G4M20S *Radio = NULL;
-//Telegram *msg = NULL;
+RFService *RadioService = NULL;
+PCProtocol *SerialProtocol = NULL;
 
 // $GPGGA,193648.000,5550.0838,N,01224.0718,E,2,8,0.96,32.7,M,41.5,M,0000,0000*62
 GPSL80Lite *GPS = NULL; // GPS class, defined in GPSL80.h
 GpsDataLite *GPSData = NULL;  // GPGGA GPS data:
 
 //ISR for radio
+/*
 void Radio_isr(void){
-//	Serial.println("Time:" + String(millis()));
-  Radio->HandleIRQ(); // The radio module has something for us.
-}
+//	SerialAUX->Println("Time:" + String(millis()));
+  //Radio->HandleIRQ(); // The radio module has something for us.
+//  RadioProtocol->IRQHandler();
+}*/
 
-void setup() {
-			
+#define POWER_DOWN_DELAY 60 // Wait 60 seconds after power is lost before go to low power mode.
+#define GPS_ON_TIME   60 //  60 seconds
+#define GPS_OFF_TIME 600 // 600 seconds (10min)
+
+
+void setup() {	
 	hwInit(); // Setup all pins according to hardware.
 	
-	delay(5000); // Time to get USB bootloader ready.
+	#ifndef DEBUG
+		delay(5000); // Time to get USB bootloader ready, but only if debugger is not connected.
+	#endif
+	
+	// Init Auxiliary serial port:
+	SerialAUX->begin(115200);
 	
 	// Init USB serial debug /setup:
 	Serial.begin(115200);
 	delay(500);
-	Serial.println("Starting RC Transponder ver. " + String((int)FIRMWARE_VERSION) + "." + String((int)((FIRMWARE_VERSION-((int)FIRMWARE_VERSION))*100)));
+	
+	Serial.println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
 	
 	// Read and store the 128 bit serial number.
-	ReadSerialNumberFromChipFlash();
-	Serial.println("Chip unique serial number part 1:" + String(SerialNumber1));
-	Serial.println("Chip unique serial number part 2:" + String(SerialNumber2));
-	Serial.println("Chip unique serial number part 3:" + String(SerialNumber3));
-	Serial.println("Chip unique serial number part 4:" + String(SerialNumber4));
-	Serial.println("Chip unique serial number: \"" + String(SerialNumber1) + String(SerialNumber2) + String(SerialNumber3) + String(SerialNumber4)+"\"");
+//	ReadSerialNumberFromChipFlash();
+	Serial.println("Chip unique serial number part 1:" + String(SystemInformation.SerialNumber1));
+	Serial.println("Chip unique serial number part 2:" + String(SystemInformation.SerialNumber2));
+	Serial.println("Chip unique serial number part 3:" + String(SystemInformation.SerialNumber3));
+	Serial.println("Chip unique serial number part 4:" + String(SystemInformation.SerialNumber4));
+	Serial.println("Chip unique serial number: \"" + String(SystemInformation.SerialNumber1) + String(SystemInformation.SerialNumber2) + String(SystemInformation.SerialNumber3) + String(SystemInformation.SerialNumber4)+"\"");
 	#define SERIALNUMBER_SIZE 16
 	uint8_t data[SERIALNUMBER_SIZE];
-	data[0] = (byte)((SerialNumber1 >> 24) & 0xFF);
-	data[1] = (byte)((SerialNumber1 >> 16) & 0xFF);
-	data[2] = (byte)((SerialNumber1 >> 8) & 0xFF);
-	data[3] = (byte)(SerialNumber1 & 0xFF);
-	data[4] = (byte)((SerialNumber2 >> 24) & 0xFF);
-	data[5] = (byte)((SerialNumber2 >> 16) & 0xFF);
-	data[6] = (byte)((SerialNumber2 >> 8) & 0xFF);
-	data[7] = (byte)(SerialNumber2 & 0xFF);
-	data[8] = (byte)((SerialNumber3 >> 24) & 0xFF);
-	data[9] = (byte)((SerialNumber3 >> 16) & 0xFF);
-	data[10] = (byte)((SerialNumber3 >> 8) & 0xFF);
-	data[11] = (byte)(SerialNumber3 & 0xFF);
-	data[12] = (byte)((SerialNumber4 >> 24) & 0xFF);
-	data[13] = (byte)((SerialNumber4 >> 16) & 0xFF);
-	data[14] = (byte)((SerialNumber4 >> 8) & 0xFF);
-	data[15] = (byte)(SerialNumber4 & 0xFF);
+	data[0] = (byte)((SystemInformation.SerialNumber1 >> 24) & 0xFF);
+	data[1] = (byte)((SystemInformation.SerialNumber1 >> 16) & 0xFF);
+	data[2] = (byte)((SystemInformation.SerialNumber1 >> 8) & 0xFF);
+	data[3] = (byte)(SystemInformation.SerialNumber1 & 0xFF);
+	data[4] = (byte)((SystemInformation.SerialNumber2 >> 24) & 0xFF);
+	data[5] = (byte)((SystemInformation.SerialNumber2 >> 16) & 0xFF);
+	data[6] = (byte)((SystemInformation.SerialNumber2 >> 8) & 0xFF);
+	data[7] = (byte)(SystemInformation.SerialNumber2 & 0xFF);
+	data[8] = (byte)((SystemInformation.SerialNumber3 >> 24) & 0xFF);
+	data[9] = (byte)((SystemInformation.SerialNumber3 >> 16) & 0xFF);
+	data[10] = (byte)((SystemInformation.SerialNumber3 >> 8) & 0xFF);
+	data[11] = (byte)(SystemInformation.SerialNumber3 & 0xFF);
+	data[12] = (byte)((SystemInformation.SerialNumber4 >> 24) & 0xFF);
+	data[13] = (byte)((SystemInformation.SerialNumber4 >> 16) & 0xFF);
+	data[14] = (byte)((SystemInformation.SerialNumber4 >> 8) & 0xFF);
+	data[15] = (byte)(SystemInformation.SerialNumber4 & 0xFF);
 	Serial.println("Chip unique serial number in Base64 encode:\"" + base64_encode(data,SERIALNUMBER_SIZE) +"\"");
 	
 	
@@ -169,10 +169,11 @@ void setup() {
 	//pinPeripheral(sBUSRXPin, PIO_SERCOM_ALT); //Assign RX function to pin SBUS pin.
 	
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data rtained, it costs ~70uA.
-	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin);
-	Radio->Init();
-	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
-	//attachInterrupt(dio1Pin, Radio->Init, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
+	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin, led2Pin);
+	RadioService = new RFService(Radio, GPSData, &SystemInformation);
+//	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.h to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
+	
+	SerialProtocol = new PCProtocol(RadioService, Radio);
 	
 	// Init Frsky Smart port:
 	SerialfrskySPort = new Uart(&sercom3, fryskySmartPortRXPin, fryskySmartPortTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the Frsky SPORT module
@@ -181,549 +182,335 @@ void setup() {
 	pinPeripheral(fryskySmartPortTXPin, PIO_SERCOM_ALT); //Assign TX function to pin.
 	FrskySport.begin(SerialfrskySPort, &FrskyGPS);
 			
-	// Init Auxiliary serial port:
-	SerialAUX->begin(115200);
 
 	// Set Timer 3 as 1 sec interrupt.
-	//startTimer(1); // 1Hz
 	startTimer3(1); // 1Hz
 	
-	state=STARTING_UP;
-	/*
-	if(isGroundStation){
-		Serial.println("I am a groundstation");
-		
-	}else{
-		Serial.println("I am a RC transponder");
-	}
-	*/
+	SystemInformation.state=STARTING_UP;
 	PowerON(); // Ensure transponder keeps running from battery if external power is lost.
 	PowerONGPSBackup(); // Enable backup power for GPS.
-	BatteryVoltage = getBatteryVoltage();
-}
-
-void Recharge(void){
-		PowerOFFGPS(); // Turn off  GPS to save battery.
-		Radio->Sleep(); // Put radio to sleep to save power.
-		PowerOFF(); 
-		do
-		{
-		//	LowPower.sleep(5000);
-			digitalWrite(led2Pin, HIGH);
-		//	LowPower.sleep(1000);
-			digitalWrite(led2Pin, LOW);
-		}while(1);	
+	SystemInformation.BatteryVoltage = getBatteryVoltage();
+	SystemInformation.InputVoltage = getInputVoltage();
+	SystemInformation.USBVoltage = getInput5VVoltage();
+	LEDSaftySwitchOFF();
 }
 
 void loop() {
   
-    // LowPowerTest();
-  
-	// Recharge();
-
-	Serial.println("Battery voltage is " + String(getBatteryVoltage()) + "V  Based on:" + String(analogRead(analogVbatPin)));
-	Serial.println("Input voltage is " + String(getInputVoltage()) + "V Based on:" + String(analogRead(analogVinPin)));
-	Serial.println("Input 5V voltage is " + String(getInput5VVoltage()) + "V Based on:" + String(analogRead(analogVin5VPin)));
-
-	
-//	do{}while(1);
-	
-  /*
-	if(isGroundStation){
-		Do_ground_station_loop();
-	}
-	*/
-  
-	
+     //LowPowerTest();
 	  
-	Serial.println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
-	
-	do{
-		if(state == NORMAL)
-		{	
-			//// only every second (check status)
-			while(SecondCounter){
-//				Serial.println("Seccond passed!");
-//				digitalWrite(led2Pin, HIGH);
-				SecondCounter--;
-	
-				BatteryVoltage = getBatteryVoltage();
-	
-				// Measure all stuff here:
-				if(getInputVoltage() <= 4.3){
-					state=GET_READY_TO_RUN_ON_BATTERY;				
-				}
-		
-			
-				// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
-				FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);		
-				
-				if(!BeaconService()){ // Transmit beacon every N second.	
-					 // Enter here when no beacon is sent...
-					 			
-					 // Request transponder data from ID 2: (debug)
-					 // Telegram_MSG_1 msg = Telegram_MSG_1(2,UNIT_ID,MSG_Transponder_Data);
-					 // Radio->SendPackage(msg.Payload, msg.GetPayloadLength());
-				}			
+//	SerialAUX->println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
 
-			}
-	
-			////// Below this line, code is executed fast! 
-			HandelSerial();	 // Communication via USB (only if used as groundstation
-			HandelRadio();  // Read new messages and reply as needed.  
-			GPS->update();  // Function empty serial buffer and analyzes string.
-			// RCin->read();  // SBUS, PPM or PWM. 
-			FrskySport.send(); // Service the Serial for SPORT. 	
-			
-		}else if(state == GET_READY_TO_RUN_ON_BATTERY){ // Power off GPS
-			PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
-			PowerOFFGPS();// Turn OFF GPS.
-			state=RUNNING_ON_BATTERY;
-		}else if(state == RUNNING_ON_BATTERY){
-			BeaconService();
-			
-			if(BatteryVoltage > 4.3){
-				state=STARTING_UP;
-			}else if(BatteryVoltage <= 3.0){
-					PowerOFF(); // No more battery left, power off.
-					do{}while(1);
-			}else{
-				do{}while(!Radio->IsIdle()); // Wait for Beacon to be transmitted before sleep.
-				GoToSleep(); // Sleep until 1 sec interrupt will wake us up.		
-				BatteryVoltage = getBatteryVoltage();
-			}
-			
-		}else if(state == STARTING_UP){
-			PowerONGPS();// Turn on GPS. 			
-			
-			// Set the radio to RX mode without timeout.
-			Radio->SetRXMode(false); // No timeout
-			SecondCounter=0; // reset second counter.
-			state=NORMAL;
+	do{
+		One_second_Update();
+		GPS->update();  // Function empty serial buffer and analyzes string.
+		BeaconService();
+		RadioService->Service();
+		
+		if(SystemInformation.SaftySwitchPushed == true){
+			SystemInformation.state=POWER_OFF;
 		}
 
+		switch(SystemInformation.state)
+		{
+			case NORMAL: 
+			{
+				////// Below this line, code is executed fast!
+
+				if(SystemInformation.SecondsBatteryLowCounter > 2){ // filter.
+					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;
+//					SerialAUX->println("Main State: NORMAL -> GET_READY_TO_RUN_ON_BATTERY");
+				}else{
+				    // normal fast loop.
+					SerialProtocol->Service(); // Comunincation to PC.
+					FrskySport.send(); // Service the Serial for SPORT.
+				}			
+			}
+			break;
+			 
+			case GET_READY_TO_RUN_ON_BATTERY:
+			{
+				if(SystemInformation.SecondsBatteryLowCounter == 0){
+					// Power is back!
+					SystemInformation.state=NORMAL;
+//					SerialAUX->println("Main State: NORMAL");
+				}
+				else{
+					// check if it is time to go to battery 
+					if(SystemInformation.SecondsBatteryLowCounter > POWER_DOWN_DELAY){
+						PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
+						SystemInformation.GPSActiveCounter=0; // ensure GPS active counter is reset.
+						SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
+//						SerialAUX->println("Main State: GET_READY_TO_RUN_ON_BATTERY -> RUNNING_ON_BATTERY_GPS_ON");
+					}else{
+						SerialProtocol->Service(); // Comunincation to PC;
+						FrskySport.send(); // Service the Serial for SPORT.
+					}
+				}
+			} 
+			break;
+			
+			case RUNNING_ON_BATTERY_GPS_ON:
+			{
+//				SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
+				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
+					SystemInformation.state=STARTING_UP;
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
+				}else if(SystemInformation.BatteryVoltage <= 3.0){
+					SystemInformation.state=POWER_OFF;
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
+				}else{
+					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
+					if(++SystemInformation.GPSActiveCounter > GPS_ON_TIME){ // power off GPS after 1 min.
+						SystemInformation.GPSActiveCounter=0;
+						delay(2000); // busy wait while GPS serial gets time to receive data from GPS (Unable in sleep mode).
+//						SerialAUX->println("Serial data for GPS available: " + String(SerialGPS->available())); 
+						GPS->update();  // Service the GPS.
+						PowerOFFGPS();// Turn OFF GPS main power.
+						SystemInformation.state=RUNNING_ON_BATTERY_GPS_OFF;
+//						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> RUNNING_ON_BATTERY_GPS_OFF");
+					}
+				}
+			}
+			break;
+
+			case RUNNING_ON_BATTERY_GPS_OFF:
+			{
+//			    SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
+				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
+					SystemInformation.state=STARTING_UP;
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> STARTING_UP");		
+					}else if(SystemInformation.BatteryVoltage <= 3.0){
+						SystemInformation.state=POWER_OFF;
+//						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> POWER_OFF");					
+					}else{
+						GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
+						if(++SystemInformation.GPSActiveCounter > GPS_OFF_TIME){ // Turn on GPS every 10 mins.
+							SystemInformation.GPSActiveCounter=0;
+							PowerONGPS();// Turn OFF GPS main power.
+							SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
+//							SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> RUNNING_ON_BATTERY_GPS_ON");
+						}
+				}
+			}
+			break;
+
+
+			case POWER_OFF:
+			{
+				PowerOFF(); 
+				do{
+					// CPU should have died here, but if we are still powered the flash fast led.
+					digitalWrite(led2Pin, HIGH);
+					LEDSaftySwitchON();
+					delay(50);
+					digitalWrite(led2Pin, LOW);
+					LEDSaftySwitchOFF();
+					delay(50);
+				}while(1);
+			}
+			break;			
+
+
+			case STARTING_UP:
+			{
+				PowerONGPS();// Turn on GPS.
+				// Set the radio to RX mode without timeout.
+				SystemInformation.SecondCounter=0; // reset second counter.
+				SystemInformation.SecondsBatteryLowCounter = 0;
+				SystemInformation.state=NORMAL;		
+//				SerialAUX->println("Main State: STARTING_UP -> NORMAL");								
+			}
+			break;
+			 
+			default:
+//				SerialAUX->println("Main State: ERROR(default) -> STARTING_UP");		
+				SystemInformation.state = STARTING_UP;
+			break;
+		}
 	}while(1); 
-  
 }
 
 void GoToSleep(void){
-	Radio->Sleep(); // Put radio to sleep to save power.
+	RadioService->PowerDown();
+	
+	//delay(10); // time to TX Serial.
+
+	//delay(1000);	
 	USBDevice.detach();
-	digitalWrite(led2Pin, LOW);
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	__DSB();
 	__WFI();
 	USBDevice.attach();
-	digitalWrite(led2Pin, HIGH);
-	Radio->WakeUp(); // Wake up radio.
+
+	RadioService->WakeUp();
 }
 
 void LowPowerTest(void){
 
 	PowerOFFGPS(); // Turn off  GPS to save battery.
-	Serial.println("Battery analog reading is " + String(analogRead(analogVbatPin)));
-	Serial.println("Battery voltage is " + String(getBatteryVoltage()) + "V");
+	PowerOFFGPSBackup(); // Ensure backup power is enabled for GPS.
+	
+	//
+	digitalWrite(SaftyLEDPin, HIGH); // Off!
+	
+	SerialAUX->println("Battery analog reading is " + String(analogRead(analogVbatPin)));
+	SerialAUX->println("Battery voltage is " + String(getBatteryVoltage()) + "V");
 	digitalWrite(led2Pin, LOW);
 	do
 	{
-	//	Serial.println("Sleep!");	
+	//	SerialAUX->Println("Sleep!");	
 		GoToSleep();
-	//	Serial.println("Wake!");
+	//	SerialAUX->Println("Wake!");
 	}while(1);
 
 }
-
-void Do_ground_station_loop(void){
-	
-	Radio->SetRXMode(false); // No timeout
-	digitalWrite(led2Pin, LOW);
-	
-	do{
-//		if(Radio->telegramValid == true){
-			//Serial.println("We got a telegram!");
-			digitalWrite(led2Pin, HIGH);
-			//				Serial.println("We got a telegram!");
-//			ReceiveTelegram = Radio->GetTelegram();
-			//				PrintRadioTelegram(ReceiveTelegram); // Debug to USB serial port.
-//			PrintRadioTelegramCSV(ReceiveTelegram); // Debug to USB serial port.
-			delay(100);
-			digitalWrite(led2Pin, LOW);
-//		}else{
-			//Serial.println("False!");
-//		}
-		delay(100);
-	}while(1);
-}
-
-
-uint8_t Serialmsg[50];
-
-void HandelRadio(void){
-	if(Radio->NewPackageReady()){
-//		Serial.println("New Messages received!");
-		// New telegram ready
-		
-		uint8_t size;
-		uint8_t *data = Radio->GetPayload(size);
-		if(data == NULL){
-			Serial.println("NULL");
-			return;
-		}
-		
-		ProtocolMSG_t newMessageID = (ProtocolMSG_t)data[0];
-		
-//		for(int a=0;a<size;a++)
-//			Serial.println("data["+String(a)+"]=" + String(data[a]));
-		
-//		Serial.println("Message ID="+String(newMessageID));
-		switch(newMessageID)
-		{
-			case MSG_Beacon_Broadcast:
-			{				
-				Telegram_MSG_1 msg = Telegram_MSG_1(data, size);
-				
-				if(msg.CRCValid()){
-						
-					volatile uint8_t crc_test_radiomsg_length = msg.GetSerialMSGLength();								
-					volatile uint16_t crc_test = msg.CalculateCRC(msg.GetRadioMSG(),41);						
-							
-					memcpy(&Serialmsg[0], msg.GetSerialMSG(), msg.GetSerialMSGLength());									
-					Serial.write(Serialmsg, msg.GetSerialMSGLength());
-					uint8_t *data = Serialmsg;
-					for(int a =0;a<msg.GetSerialMSGLength();a++){
-						SerialAUX->println("Data["+ String(a) + "]=" + String(*data++));					
-					}					
-
-				
-				
-				
-
-		
-
-		//			Serial.println("Message 1 Received! (Beacon)");
-		//			msg.SerialPrintMessage();
-										
-					// We have received a beacon... Check if it has contact with ground station, if not then save it and indicate it is ready to relay.
-					if(msg.GetNumberOfSecondsSinceLastGroundStationCom() > 20){
-						
-						bool updateComplete = false;
-						
-						// Have we saved a beacon from this unit before? if so updated is:
-						for(int a=0;a<NumberOfBeaconsToRelay; a++){
-	//						Serial.print("Is memory location "+ String(a) + " from the same beacon?... ");
-						
-							if( SavedBeacons[a].TelegramMatchUniqueID(msg.GetUniqueID1(), msg.GetUniqueID2(), msg.GetUniqueID3(), msg.GetUniqueID4()) == true ){
-	//							Serial.println("Yes! - Updating!");	
-								SavedBeacons[a] = msg;
-								updateComplete = true;
-								break;
-							}else{
-			//					Serial.println("No!");
-							}	
-																	
-						}
-						
-						if(updateComplete)
-							break;
-																		
-						// We should save this if room 
-						if(NumberOfBeaconsToRelay < MAX_NUMBER_OF_BEACONS_TO_SAVE){					
-				//			Serial.println("Message is saved in memory slot: " + String(NumberOfBeaconsToRelay));						
-						
-							SavedBeacons[NumberOfBeaconsToRelay] = msg;
-							NumberOfBeaconsToRelay++;	
-						}else{
-						//	Serial.println("Memory is full! - can't save message" + String(NumberOfBeaconsToRelay));						
-					//		Serial.println("");
-					//			Serial.println("-------------- Printing Beacon messages saved in Memory -------------");
-						
-							for(int a=0;a<MAX_NUMBER_OF_BEACONS_TO_SAVE; a++){
-					//			Serial.println("Messages number: " + String(a));
-								SavedBeacons[a].SerialPrintMessage();								
-							}							
-						}									
-					}
-				} // CRC Valid
-			}
-			break;
-			
-			case MSG_Beacon_Relay:
-			{
-				// Don't do anything with relay messages.				
-			}
-			break;
-		
-			case MSG_Command:
-			{
-				Telegram_MSG_3 msg = Telegram_MSG_3(data, size);
-				if(msg.CRCValid()){
-					Serial.println("Message 3 Received!...");
-					if(msg.TelegramMatchUniqueID(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4)){
-						Serial.println("For me! - Reading command ID: " + String(msg.GetCommand()));
-							ProtocolCMD_t messageCMD = msg.GetCommand();	
-							
-							// A command was received for us (reset counter for last ground station contact..  also what to do now:
-							SecondCounterSinceLasteGroundStationContact = 0;
-							
-							switch(messageCMD)
-							{								
-								case CMD_Request_Transponder_Beacon:
-								{
-									Serial.println("Reply with Transponder Beacon!");
-									// Reply with transponder beacon:
-									Telegram_MSG_1 msgReply = Telegram_MSG_1(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4,
-																			(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
-																			GPSData->NumberOfSatellites, GPSData->FixDecimal, (state==RUNNING_ON_BATTERY),
-																			0, 0,
-																			SecondCounterSinceLasteGroundStationContact, BatteryVoltage, FIRMWARE_VERSION, PCB_VERSION, NumberOfBeaconsToRelay);
-									do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-									Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());						
-								}
-								break;
-
-								case CMD_Request_NEXT_Beacon_Relay:
-								{
-										Serial.println("Reply with next saved beacon if any beacons left to sent: " + String(NumberOfBeaconsToRelay));
-										// Reply with transponder beacon:
-										
-										if(NumberOfBeaconsToRelay != 0){
-											Telegram_MSG_2 msgReply = Telegram_MSG_2(&SavedBeacons[NumberOfBeaconsToRelay-1]);
-											NumberOfBeaconsToRelay--;
-											do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-											Radio->SendPackage(msgReply.GetRadioMSG(), msgReply.GetRadioMSGLength());
-										}
-										
-								}
-								break;
-
-								case CMD_Do_Power_Off:
-								{
-										Serial.println("Power off");
-								}
-								break;
-
-								default:
-										Serial.println("Unknown command.");
-								break;							
-							}
-							
-							
-//							msg.SerialPrintMessage();
-						}else{
-						Serial.println("Not For me! :-(");
-					}
-				}
-				
-			}
-			break;		
-			
-			default:
-				break;
-		}
-		Radio->SetBufferReady(false);
-	}
-}
-
 
 // Ensure a beacon is transmitted every N second.
-bool BeaconService(void){
-	if(BeaconSecondCounter == 5){
+void BeaconService(void){
+	if(SystemInformation.BeaconSecondCounter >= 5){
 		// Send a Standard beacon:
-		BeaconSecondCounter =  0; // Reset Beacon counter.
-
-		//Serial.println("Send Beacon!");
-
-		// Make beacon msg
-		float pressure=0;
-		float groundspeed=0;
+		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
+		if(SystemInformation.IsGroundStation==false){
+			RadioService->SendBeacon();
+		}else{
+			SerialAUX->println("Im groundstation, NoPing!");
+		}
 		
-		Telegram_MSG_1 msg = Telegram_MSG_1(SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4,
-											(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
-											GPSData->NumberOfSatellites, GPSData->FixDecimal, (state==RUNNING_ON_BATTERY),
-											pressure, groundspeed,								
-											SecondCounterSinceLasteGroundStationContact, BatteryVoltage, FIRMWARE_VERSION, PCB_VERSION, NumberOfBeaconsToRelay);																					
-		
-		do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.													
-		
-		Radio->SendPackage(msg.GetRadioMSG(), msg.GetRadioMSGLength());
-		return true;	
 	}	
-	return false;
 }
 
 
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+	char top;
+	#ifdef __arm__
+	return &top - reinterpret_cast<char*>(sbrk(0));
+	#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+	return &top - __brkval;
+	#else  // __arm__
+	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+	#endif  // __arm__
+}
 
 
-enum StateMachine{
-	LOOKING_FOR_START,
-	READ_MSG_LENGTH,
-	READ_DATA
-};
-
-#define INPUT_BUFFER_SIZE 64
-StateMachine SerialState = LOOKING_FOR_START;
-char _newChar;
-uint8_t incommingData[INPUT_BUFFER_SIZE];
-uint8_t dataLength;
-uint8_t dataIndex;
-int NumberOfBytesToRead;
-
-void HandelSerial(void){
-	
-	do
-	{
-		NumberOfBytesToRead = Serial.available();
+void One_second_Update(void){
+	//// only every second (check status)
+	while(SystemInformation.SecondCounter){
+		//				SerialAUX->Println("Seccond passed!");
+		//				digitalWrite(led2Pin, HIGH);
+		SystemInformation.SecondCounter--;
+					
+		SystemInformation.BatteryVoltage = getBatteryVoltage();
+		SystemInformation.InputVoltage = getInputVoltage();
+		SystemInformation.USBVoltage = getInput5VVoltage();				
 		
-		// fail fast
-		if(NumberOfBytesToRead == 0)
-		return;
+		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
+		FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
 		
-		// input data: 0x1E [LENGTH] [PAYLOAD]
+//		SerialAUX->Print(F("Free RAM = ")); //F function does the same and is now a built in library, in IDE > 1.0.0
+//		SerialAUX->Println(freeMemory(), DEC);  // print how much RAM is available.
+//		SerialAUX->Println("Battery voltage is " + String(SystemInformation.BatteryVoltage) + "V.");
+//		SerialAUX->Println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
+//		SerialAUX->Println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
+//		SerialAUX->println("");
+//		SerialAUX->println("Beacon Counter: " + String(SystemInformation.BeaconSecondCounter));
+
+		if(SystemInformation.InputVoltage <= 4.3 || (SystemInformation.SimulateRunningOnBattery)){
+			if(SystemInformation.SecondsBatteryLowCounter < 255){
+				SystemInformation.SecondsBatteryLowCounter++;
+			}
+		}else{
+			SystemInformation.SecondsBatteryLowCounter=0;
+		}			
+
+		Serial.println("Switch:" + String(digitalRead(SaftySwitchPin)));
 		
-		if(NumberOfBytesToRead)
+		if(digitalRead(SaftySwitchPin) == HIGH)
 		{
-			_newChar=Serial.read(); // read char from input buffer
-						
-			switch (SerialState)
-			{
-				case LOOKING_FOR_START: // look for 0x1E in incoming data
-				if(_newChar == 0x1E)
-				{				
-					SerialAUX->println("Start found!");
-					dataLength = 0;    // counter number of bytes read.
-					dataIndex = 0;
-					SerialState=READ_MSG_LENGTH; // Start of string found!
+			int count=0;
+			for(int b=0;b<10;b++){
+				count += digitalRead(SaftySwitchPin);
+				delay(2);
+			}
+			if(count== 10){
+				SystemInformation.SafteSwitchPushedTimer++;
+				if(SystemInformation.SafteSwitchPushedTimer == 2){
+					LEDSaftySwitchON();
+					SystemInformation.SaftySwitchFirstTimePushed=true;
+				}else if(SystemInformation.SafteSwitchPushedTimer >= 4){
+					LEDSaftySwitchOFF();
+					SystemInformation.SaftySwitchFirstTimePushed=false;
 				}
-				break;
-				
-				case READ_MSG_LENGTH:
-				
-					if(_newChar >= INPUT_BUFFER_SIZE){		
-						SerialAUX->println("Length too long.");
-						SerialState=LOOKING_FOR_START; // Error, restart:				
-					}
-					
-					dataLength = _newChar;
-					SerialAUX->println("Length is:" + String(dataLength));
-					SerialState=READ_DATA; // Start of string found!
-				break;
-				
-				case READ_DATA: 
-					incommingData[dataIndex] = _newChar;
-				//	SerialAUX->println("dataIndex[" + String(dataIndex) + "]=" + String(_newChar));
-									
-					if(dataIndex < INPUT_BUFFER_SIZE)
-						dataIndex++;
-					
-					if(dataIndex >= dataLength){
-					
-					
-					
-						// Analyse input data.						
-						
-						SerialAUX->println("Reading Complete - Analysinging data!");
-						
-						for(int a=0;a<dataLength;a++){
-							SerialAUX->println("Inputdata " + String(a) + ":" + String(incommingData[a]));
-						}
-						
-						ProtocolMSG_t newMessageID = (ProtocolMSG_t)incommingData[0];
-						
-						switch(newMessageID) // MSG ID
-						{
-							case MSG_UART_GORUNDSTATION: // UART Identify
-							{
-								SerialAUX->println("Send UART ID reply message");
-								// Groundstation needs a reply to indicate this devices is a ground station.
-								uint8_t SerialReply[3];
-								SerialReply[0] = 0x1E;
-								SerialReply[1] = 1;
-								SerialReply[2] = 0;
-								Serial.write(SerialReply, 3);																
-							}
-							break;
-							
-							case MSG_Beacon_Broadcast: 
-							{
-																
-							}
-							break;
-							
-							case MSG_Beacon_Relay: 
-							{								
-								
-							}
-							break;
-							
-							case MSG_Command:
-							{
-								SerialAUX->println("Ping transponder!");
-								Telegram_MSG_3 msg = Telegram_MSG_3(incommingData, dataLength);
-								if(msg.CRCValid()){
-									do{	} while(!Radio->IsIdle());	// Ensure we wait for other TX job to finish first.
-									Radio->SendPackage(msg.GetRadioMSG(), msg.GetRadioMSGLength());
-								}
-							}
-							break;
-							
-							default:
-							break;
-						}												
-						SerialState=LOOKING_FOR_START; // Done, restart.
-					}
-				break;
-				
-				default:
-				SerialState = LOOKING_FOR_START;
-				break;
+			}
+		}else{
+			if(SystemInformation.SaftySwitchFirstTimePushed==true)
+			{
+				for(int a=0;a<10;a++)
+				{
+					LEDSaftySwitchOFF();
+					delay(50);
+					LEDSaftySwitchON();
+					delay(50);
+				}
+				SystemInformation.SaftySwitchFirstTimePushed=false;
+				SystemInformation.SaftySwitchPushed=true;
+			}else
+			{
+				SystemInformation.SafteSwitchPushedTimer=0;
 			}
 		}
-	}while(NumberOfBytesToRead); // loop until buffer is empty
-	
+		
+	}
 }
+	
 
-  static String base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static String base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+String base64_encode(byte bytes_to_encode[], int in_len)
+{
+	String ret = "";
+	int i = 0;
+	int j = 0;
+	byte char_array_3[3];
+	byte char_array_4[4];
+	int place = 0;
 
-  String base64_encode(byte bytes_to_encode[], int in_len)
-  {
-	  String ret = "";
-	  int i = 0;
-	  int j = 0;
-	  byte char_array_3[3];
-	  byte char_array_4[4];
-	  int place = 0;
+	while (in_len-- > 0) {
+		char_array_3[i++] = bytes_to_encode[place++];
+		if (i == 3) {
+			char_array_4[0] = (byte)((char_array_3[0] & 0xfc) >> 2);
+			char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
+			char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
+			char_array_4[3] = (byte)(char_array_3[2] & 0x3f);
 
-	  while (in_len-- > 0) {
-		  char_array_3[i++] = bytes_to_encode[place++];
-		  if (i == 3) {
-			  char_array_4[0] = (byte)((char_array_3[0] & 0xfc) >> 2);
-			  char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
-			  char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
-			  char_array_4[3] = (byte)(char_array_3[2] & 0x3f);
+			for(i = 0; (i<4) ; i++)
+				ret += base64_chars[char_array_4[i]];
+			i = 0;
+		}
+	}
 
-			  for(i = 0; (i<4) ; i++)
-				 ret += base64_chars[char_array_4[i]];
-				 
-			  i = 0;
-		  }
-	  }
+	if (i > 0) {
+		for(j = i; j< 3; j++)
+		char_array_3[j] = 0;
 
-	  if (i > 0) {
-		  for(j = i; j< 3; j++)
-			char_array_3[j] = 0;
+		char_array_4[0] = (byte)(( char_array_3[0] & 0xfc) >> 2);
+		char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
+		char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
 
-		  char_array_4[0] = (byte)(( char_array_3[0] & 0xfc) >> 2);
-		  char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
-		  char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
+		for (j = 0; (j<i + 1); j++)
+		ret += base64_chars[char_array_4[j]];
 
-		  for (j = 0; (j<i + 1); j++)
-			ret += base64_chars[char_array_4[j]];
+		while((i++ < 3))
+		ret += '=';
 
-		  while((i++ < 3))
-			ret += '=';
+	}
 
-	  }
+	return ret;
 
-	  return ret;
-
-  }
+}

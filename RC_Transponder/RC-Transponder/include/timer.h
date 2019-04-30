@@ -18,9 +18,7 @@
 
 void startTimer3(int frequencyHz);
 void setTimerFrequency(int frequencyHz);
-extern uint8_t SecondCounter;
-extern uint8_t BeaconSecondCounter;
-extern uint8_t SecondCounterSinceLasteGroundStationContact;
+
 //// For TIMER ISR -----------------
 
 

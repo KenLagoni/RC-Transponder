@@ -21,9 +21,6 @@ Uart *SerialSBUS = NULL;
 Uart *SerialAUX = NULL;
 //Uart auxSerial(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);                                // Create the new UART instance for auxillary serial.
 
-// Chip 128 bit unique serial number from flash
-uint32_t SerialNumber1, SerialNumber2, SerialNumber3, SerialNumber4;
-
 void hwInit() {
 
 
@@ -94,7 +91,7 @@ void hwInit() {
 		digitalWrite(SaftyLEDPin, LOW);
 	#endif
 	
-	// Now that the GPS has been power cycled, we know it is talking 9600.
+	// Make SerialAUX Uart:
 	SerialAUX = new Uart(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the AUX serial port
 	
 }
@@ -165,16 +162,13 @@ void PowerOFFGPS(void){
 	void PowerOFFGPSBackup(void){
 		digitalWrite(GPSBackupPowerPin, LOW);  // High=On, Low= Off
 	}
+
+	void LEDSaftySwitchON(void){
+		digitalWrite(SaftyLEDPin, LOW);
+	}
+
+	void LEDSaftySwitchOFF(void){
+		digitalWrite(SaftyLEDPin, HIGH);
+	}
+
 #endif
-
-
-void ReadSerialNumberFromChipFlash(void){
-	volatile uint32_t *ptr1 = (volatile uint32_t *)0x0080A00C;
-	SerialNumber1 = *ptr1;
-	volatile uint32_t *ptr = (volatile uint32_t *)0x0080A040;
-	SerialNumber2 = *ptr;
-	ptr++;
-	SerialNumber3 = *ptr;
-	ptr++;
-	SerialNumber4 = *ptr;
-}

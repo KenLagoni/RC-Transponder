@@ -6,11 +6,10 @@
  */ 
 #include "timer.h"
 #include "hw.h"
+#include "main.h"
 #include "Arduino.h"
+#include "RFService.h"
 
-uint8_t SecondCounter = 0;
-uint8_t BeaconSecondCounter = 0;
-uint8_t SecondCounterSinceLasteGroundStationContact = 0;
 
 void setTimerFrequency(int frequencyHz) {
 	
@@ -82,17 +81,14 @@ void TC3_Handler() {
 		TC->INTFLAG.bit.MC0 = 1;
 		// Write callback here!!!
 		
-	
-		if(SecondCounterSinceLasteGroundStationContact < 254){
-			SecondCounterSinceLasteGroundStationContact++;
+		RadioService->SeccondCounter(); // Count up the Seconds since laste ground contact.
+		
+		if(SystemInformation.SecondCounter < 254){
+			SystemInformation.SecondCounter++;
 		}
 		
-		if(SecondCounter < 254){
-			SecondCounter++;
-		}
-		
-		if(BeaconSecondCounter < 20){
-			BeaconSecondCounter++;
+		if(SystemInformation.BeaconSecondCounter < 20){
+			SystemInformation.BeaconSecondCounter++;
 		}
 	}
 }

@@ -24,7 +24,6 @@ I downloaded the source code from Semtech website: "https://os.mbed.com/teams/Se
 #define __SX1280_HAL_H__
 
 #include "sx1280.h"
-#include <SPI.h>
 
 /*!
  * \brief Actual implementation of a SX1280 radio
@@ -37,7 +36,7 @@ public:
      *
      * Represents the physical connectivity with the radio and set callback functions on radio interrupts
      */
-    SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst);//,
+    SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, int txEnablePin, int rxEnablePin, int ledPin);//,
                //RadioCallbacks_t *callbacks );
 			   
 
@@ -147,6 +146,14 @@ public:
      */
     //virtual uint8_t GetDioStatus( void );
 
+	void SetLed(uint8_t output);
+
+	void SetTxEnablePin(uint8_t output);
+	
+	void SetRxEnablePin(uint8_t output);
+	
+	uint8_t GetDioPinStatus( void );
+
 protected:
 
     int RadioNss;                                   //!< The pin connected to Radio chip select (active low)
@@ -155,9 +162,10 @@ protected:
     int DIO1;                              //!< The pin connected to DIO1
     int DIO2;                              //!< The pin connected to DIO2
     int DIO3;                              //!< The pin connected to DIO3
-
-
-
+	int TXENPIN;
+	int RXENPIN;
+	int LEDPIN;
+	
     /*!
      * \brief Sets the callback functions to be run on DIO1..3 interrupt
      *

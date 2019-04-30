@@ -12,7 +12,7 @@
 	#include "wiring_private.h" // need for pinPeripheral when running on SAMD ARM (Arduino MKRZero)
 #endif
 #include <stdlib.h>
-
+#include "hw.h"
 /*
 Uart::Uart(SERCOM *_s, uint8_t _pinRX, uint8_t _pinTX, SercomRXPad _padRX, SercomUartTXPad _padTX) :
 Uart(_s, _pinRX, _pinTX, _padRX, _padTX, NO_RTS_PIN, NO_CTS_PIN)
@@ -357,12 +357,17 @@ bool GPSL80Lite::inputValid(char input)
 
 void GPSL80Lite::update()
 {
+	bool printOnes = false;
 	do
 	{
 		dataReady=SerialGPS->available();
 		
 		if(dataReady)
 		{
+			if(printOnes==false){
+//				SerialAUX->print("GPS Bytes to analyze=" + String(dataReady));	
+				printOnes=true;
+			}
 			_newChar=SerialGPS->read(); // read char from input buffer
 //			Serial.print(_newChar);
 //			data[byteNumber++] = _newChar; // Save the incomming data to buffer.
@@ -664,7 +669,9 @@ void GPSL80Lite::update()
 					if(CRC_RESULT == CRC) // check if CRC is ok.
 					{
 //						Serial.print("CRC is ok!");
-						updateData();							
+						SerialAUX->print(" CRC OK, Updating GPS data->");
+						updateData();	
+						SerialAUX->println("UTC:"+ String(dataOut->UTCTime) + "#sat=" + String(dataOut->NumberOfSatellites) + " Fix:" + String(dataOut->Fix));												
 					}
 					else
 					{
