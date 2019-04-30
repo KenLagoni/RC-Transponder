@@ -836,45 +836,45 @@ uint8_t E28_2G4M20S::GetDioPinStatus(void){
     24f4:	bd10      	pop	{r4, pc}
 
 000024f6 <_ZN9SX1280HalD1Ev>:
+
+    SPI.begin();
 }
 
 SX1280Hal::~SX1280Hal( void )
 {
- 
-};
     24f6:	4770      	bx	lr
 
 000024f8 <_ZN9SX1280Hal13WriteRegisterEth>:
+	digitalWrite(RadioNss, HIGH);
+	SPI.endTransaction();
    
     WaitOnBusy( );
 }
 
-void SX1280Hal::WriteRegister( uint16_t address, uint8_t value )
-{
     24f8:	b513      	push	{r0, r1, r4, lr}
     24fa:	0013      	movs	r3, r2
     24fc:	466a      	mov	r2, sp
     24fe:	3207      	adds	r2, #7
     2500:	7013      	strb	r3, [r2, #0]
-    WriteRegister( address, &value, 1 );
+void SX1280Hal::WriteRegister( uint16_t address, uint8_t value )
     2502:	6803      	ldr	r3, [r0, #0]
     2504:	699c      	ldr	r4, [r3, #24]
     2506:	2301      	movs	r3, #1
     2508:	47a0      	blx	r4
-}
+{
     250a:	bd13      	pop	{r0, r1, r4, pc}
 
 0000250c <_ZN9SX1280Hal12ReadRegisterEt>:
+	digitalWrite(RadioNss, HIGH);
+	SPI.endTransaction();
 
     WaitOnBusy( );
 }
 
+    250c:	b537      	push	{r0, r1, r2, r4, r5, lr}
 uint8_t SX1280Hal::ReadRegister( uint16_t address )
 {
-    250c:	b537      	push	{r0, r1, r2, r4, r5, lr}
     uint8_t data;
-
-    ReadRegister( address, &data, 1 );
     250e:	466b      	mov	r3, sp
     2510:	1ddc      	adds	r4, r3, #7
     2512:	6803      	ldr	r3, [r0, #0]
@@ -882,57 +882,57 @@ uint8_t SX1280Hal::ReadRegister( uint16_t address )
     2516:	6a1d      	ldr	r5, [r3, #32]
     2518:	2301      	movs	r3, #1
     251a:	47a8      	blx	r5
-    return data;
+
     251c:	7820      	ldrb	r0, [r4, #0]
-}
+    ReadRegister( address, &data, 1 );
     251e:	bd3e      	pop	{r1, r2, r3, r4, r5, pc}
 
 00002520 <_ZN9SX1280HalD0Ev>:
-SX1280Hal::~SX1280Hal( void )
+}
     2520:	b510      	push	{r4, lr}
     2522:	0004      	movs	r4, r0
-};
+{
     2524:	f003 fdd0 	bl	60c8 <_ZdlPv>
     2528:	0020      	movs	r0, r4
     252a:	bd10      	pop	{r4, pc}
 
 0000252c <_ZN9SX1280Hal5ResetEv>:
-{
+*/
     252c:	b510      	push	{r4, lr}
     252e:	0004      	movs	r4, r0
-    delay( 20 );
+{
     2530:	2014      	movs	r0, #20
     2532:	f003 fd89 	bl	6048 <delay>
-    pinMode(RadioReset, OUTPUT);
+//    noInterrupts();
     2536:	6a60      	ldr	r0, [r4, #36]	; 0x24
     2538:	2101      	movs	r1, #1
     253a:	f005 fa53 	bl	79e4 <pinMode>
-    digitalWrite(RadioReset, LOW);
+    delay( 20 );
     253e:	2100      	movs	r1, #0
     2540:	6a60      	ldr	r0, [r4, #36]	; 0x24
     2542:	f005 fa9b 	bl	7a7c <digitalWrite>
-    delay( 50 );
+    pinMode(RadioReset, OUTPUT);
     2546:	2032      	movs	r0, #50	; 0x32
     2548:	f003 fd7e 	bl	6048 <delay>
-    digitalWrite(RadioReset, HIGH);
+    digitalWrite(RadioReset, LOW);
     254c:	6a60      	ldr	r0, [r4, #36]	; 0x24
     254e:	2101      	movs	r1, #1
     2550:	f005 fa94 	bl	7a7c <digitalWrite>
-    pinMode(RadioReset, INPUT); // Using the internal pull-up
+    delay( 50 );
     2554:	2100      	movs	r1, #0
     2556:	6a60      	ldr	r0, [r4, #36]	; 0x24
     2558:	f005 fa44 	bl	79e4 <pinMode>
-    delay( 20 );
+    digitalWrite(RadioReset, HIGH);
     255c:	2014      	movs	r0, #20
     255e:	f003 fd73 	bl	6048 <delay>
-}
+    delay( 20 );
     2562:	bd10      	pop	{r4, pc}
 
 00002564 <_ZN9SX1280Hal6WakeupEv>:
-{
+
     2564:	b573      	push	{r0, r1, r4, r5, r6, lr}
     2566:	0005      	movs	r5, r0
-	digitalWrite(RadioNss, LOW);
+    //Don't wait for BUSY	here
     2568:	2100      	movs	r1, #0
     256a:	6a00      	ldr	r0, [r0, #32]
     256c:	f005 fa86 	bl	7a7c <digitalWrite>
@@ -954,7 +954,7 @@ SX1280Hal::~SX1280Hal( void )
     this->bitOrder = (bitOrder == MSBFIRST ? MSB_FIRST : LSB_FIRST);
     2578:	2600      	movs	r6, #0
     257a:	466b      	mov	r3, sp
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+	digitalWrite(RadioNss, LOW);
     257c:	4c0e      	ldr	r4, [pc, #56]	; (25b8 <_ZN9SX1280Hal6WakeupEv+0x54>)
     257e:	715e      	strb	r6, [r3, #5]
 
@@ -967,53 +967,53 @@ SX1280Hal::~SX1280Hal( void )
     2584:	490d      	ldr	r1, [pc, #52]	; (25bc <_ZN9SX1280Hal6WakeupEv+0x58>)
     2586:	0020      	movs	r0, r4
     2588:	f005 fc8c 	bl	7ea4 <_ZN8SPIClass16beginTransactionE11SPISettings>
-    SPI.transfer( RADIO_GET_STATUS );
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     258c:	21c0      	movs	r1, #192	; 0xc0
     258e:	0020      	movs	r0, r4
     2590:	f005 fcb8 	bl	7f04 <_ZN8SPIClass8transferEh>
-    SPI.transfer( 0 );
+//	digitalWrite(21, LOW);	 debug
     2594:	0031      	movs	r1, r6
     2596:	0020      	movs	r0, r4
     2598:	f005 fcb4 	bl	7f04 <_ZN8SPIClass8transferEh>
-    digitalWrite(RadioNss, HIGH);
+    SPI.transfer( RADIO_GET_STATUS );
     259c:	6a28      	ldr	r0, [r5, #32]
     259e:	2101      	movs	r1, #1
     25a0:	f005 fa6c 	bl	7a7c <digitalWrite>
-	SPI.endTransaction();
+    SPI.transfer( 0 );
     25a4:	0020      	movs	r0, r4
     25a6:	f005 fc99 	bl	7edc <_ZN8SPIClass14endTransactionEv>
-    WaitOnBusy( );
+		
     25aa:	6aa8      	ldr	r0, [r5, #40]	; 0x28
     25ac:	f005 fa92 	bl	7ad4 <digitalRead>
     25b0:	2801      	cmp	r0, #1
     25b2:	d0fa      	beq.n	25aa <_ZN9SX1280Hal6WakeupEv+0x46>
-}
+    WaitOnBusy( );
     25b4:	bd73      	pop	{r0, r1, r4, r5, r6, pc}
     25b6:	46c0      	nop			; (mov r8, r8)
     25b8:	200009d0 	.word	0x200009d0
     25bc:	001e8480 	.word	0x001e8480
 
 000025c0 <_ZN9SX1280Hal12WriteCommandE15RadioCommands_uPht>:
-{
+
     25c0:	b5f0      	push	{r4, r5, r6, r7, lr}
     25c2:	0005      	movs	r5, r0
     25c4:	000f      	movs	r7, r1
     25c6:	b085      	sub	sp, #20
     25c8:	9200      	str	r2, [sp, #0]
     25ca:	9301      	str	r3, [sp, #4]
-    WaitOnBusy( );
+void SX1280Hal::WriteCommand( RadioCommands_t command, uint8_t *buffer, uint16_t size )
     25cc:	6aa8      	ldr	r0, [r5, #40]	; 0x28
     25ce:	f005 fa81 	bl	7ad4 <digitalRead>
     25d2:	2801      	cmp	r0, #1
     25d4:	d0fa      	beq.n	25cc <_ZN9SX1280Hal12WriteCommandE15RadioCommands_uPht+0xc>
     this->bitOrder = (bitOrder == MSBFIRST ? MSB_FIRST : LSB_FIRST);
     25d6:	2400      	movs	r4, #0
-    digitalWrite(RadioNss, LOW);
+
     25d8:	2100      	movs	r1, #0
     25da:	6a28      	ldr	r0, [r5, #32]
     25dc:	f005 fa4e 	bl	7a7c <digitalWrite>
     25e0:	ab02      	add	r3, sp, #8
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+   
     25e2:	4e13      	ldr	r6, [pc, #76]	; (2630 <_ZN9SX1280Hal12WriteCommandE15RadioCommands_uPht+0x70>)
     25e4:	715c      	strb	r4, [r3, #5]
         this->dataMode = SERCOM_SPI_MODE_0; break;
@@ -1022,67 +1022,67 @@ SX1280Hal::~SX1280Hal( void )
     25ea:	0030      	movs	r0, r6
     25ec:	9a03      	ldr	r2, [sp, #12]
     25ee:	f005 fc59 	bl	7ea4 <_ZN8SPIClass16beginTransactionE11SPISettings>
-    SPI.transfer( ( uint8_t )command );
+    digitalWrite(RadioNss, LOW);
     25f2:	0039      	movs	r1, r7
     25f4:	0030      	movs	r0, r6
     25f6:	f005 fc85 	bl	7f04 <_ZN8SPIClass8transferEh>
-    for( uint16_t i = 0; i < size; i++ )
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     25fa:	9b01      	ldr	r3, [sp, #4]
     25fc:	429c      	cmp	r4, r3
     25fe:	da07      	bge.n	2610 <_ZN9SX1280Hal12WriteCommandE15RadioCommands_uPht+0x50>
-        SPI.transfer( buffer[i] );
+    for( uint16_t i = 0; i < size; i++ )
     2600:	9b00      	ldr	r3, [sp, #0]
     2602:	0030      	movs	r0, r6
     2604:	5d19      	ldrb	r1, [r3, r4]
-    for( uint16_t i = 0; i < size; i++ )
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     2606:	3401      	adds	r4, #1
-        SPI.transfer( buffer[i] );
-    2608:	f005 fc7c 	bl	7f04 <_ZN8SPIClass8transferEh>
     for( uint16_t i = 0; i < size; i++ )
+    2608:	f005 fc7c 	bl	7f04 <_ZN8SPIClass8transferEh>
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     260c:	b2a4      	uxth	r4, r4
     260e:	e7f4      	b.n	25fa <_ZN9SX1280Hal12WriteCommandE15RadioCommands_uPht+0x3a>
-    digitalWrite(RadioNss, HIGH);
+        SPI.transfer( buffer[i] );
     2610:	6a28      	ldr	r0, [r5, #32]
     2612:	2101      	movs	r1, #1
     2614:	f005 fa32 	bl	7a7c <digitalWrite>
-	SPI.endTransaction();
+    }
     2618:	0030      	movs	r0, r6
     261a:	f005 fc5f 	bl	7edc <_ZN8SPIClass14endTransactionEv>
-    if( command != RADIO_SET_SLEEP )
+	SPI.endTransaction();
     261e:	2f84      	cmp	r7, #132	; 0x84
     2620:	d004      	beq.n	262c <_ZN9SX1280Hal12WriteCommandE15RadioCommands_uPht+0x6c>
-        WaitOnBusy( );
+    if( command != RADIO_SET_SLEEP )
     2622:	6aa8      	ldr	r0, [r5, #40]	; 0x28
     2624:	f005 fa56 	bl	7ad4 <digitalRead>
     2628:	2801      	cmp	r0, #1
     262a:	d0fa      	beq.n	2622 <_ZN9SX1280Hal12WriteCommandE15RadioCommands_uPht+0x62>
-}
+        WaitOnBusy( );
     262c:	b005      	add	sp, #20
     262e:	bdf0      	pop	{r4, r5, r6, r7, pc}
     2630:	200009d0 	.word	0x200009d0
     2634:	001e8480 	.word	0x001e8480
 
 00002638 <_ZN9SX1280Hal11ReadCommandE15RadioCommands_uPht>:
-{
+
     2638:	b5f0      	push	{r4, r5, r6, r7, lr}
     263a:	0006      	movs	r6, r0
     263c:	000f      	movs	r7, r1
     263e:	b085      	sub	sp, #20
     2640:	9200      	str	r2, [sp, #0]
     2642:	9301      	str	r3, [sp, #4]
-    WaitOnBusy( );
+void SX1280Hal::ReadCommand( RadioCommands_t command, uint8_t *buffer, uint16_t size )
     2644:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     2646:	f005 fa45 	bl	7ad4 <digitalRead>
     264a:	2801      	cmp	r0, #1
     264c:	d0fa      	beq.n	2644 <_ZN9SX1280Hal11ReadCommandE15RadioCommands_uPht+0xc>
     this->bitOrder = (bitOrder == MSBFIRST ? MSB_FIRST : LSB_FIRST);
     264e:	2400      	movs	r4, #0
-    digitalWrite(RadioNss, LOW);
+    WaitOnBusy( );
     2650:	2100      	movs	r1, #0
     2652:	6a30      	ldr	r0, [r6, #32]
     2654:	f005 fa12 	bl	7a7c <digitalWrite>
     2658:	ab02      	add	r3, sp, #8
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+
     265a:	4d1c      	ldr	r5, [pc, #112]	; (26cc <_ZN9SX1280Hal11ReadCommandE15RadioCommands_uPht+0x94>)
     265c:	715c      	strb	r4, [r3, #5]
         this->dataMode = SERCOM_SPI_MODE_0; break;
@@ -1091,88 +1091,88 @@ SX1280Hal::~SX1280Hal( void )
     2662:	0028      	movs	r0, r5
     2664:	9a03      	ldr	r2, [sp, #12]
     2666:	f005 fc1d 	bl	7ea4 <_ZN8SPIClass16beginTransactionE11SPISettings>
-		buffer[0] = SPI.transfer( ( uint8_t )command );
+	 if( command == RADIO_GET_STATUS )
     266a:	0039      	movs	r1, r7
     266c:	0028      	movs	r0, r5
-	 if( command == RADIO_GET_STATUS )
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     266e:	2fc0      	cmp	r7, #192	; 0xc0
     2670:	d119      	bne.n	26a6 <_ZN9SX1280Hal11ReadCommandE15RadioCommands_uPht+0x6e>
-		buffer[0] = SPI.transfer( ( uint8_t )command );
+	 if( command == RADIO_GET_STATUS )
     2672:	f005 fc47 	bl	7f04 <_ZN8SPIClass8transferEh>
     2676:	9b00      	ldr	r3, [sp, #0]
-		SPI.transfer( 0 );
+     {
     2678:	0021      	movs	r1, r4
-		buffer[0] = SPI.transfer( ( uint8_t )command );
+	 if( command == RADIO_GET_STATUS )
     267a:	7018      	strb	r0, [r3, #0]
-		SPI.transfer( 0 );
+     {
     267c:	0028      	movs	r0, r5
     267e:	f005 fc41 	bl	7f04 <_ZN8SPIClass8transferEh>
-		SPI.transfer( 0 );
+		buffer[0] = SPI.transfer( ( uint8_t )command );
     2682:	0021      	movs	r1, r4
     2684:	0028      	movs	r0, r5
     2686:	f005 fc3d 	bl	7f04 <_ZN8SPIClass8transferEh>
-	digitalWrite(RadioNss, HIGH);
+         }
     268a:	6a30      	ldr	r0, [r6, #32]
     268c:	2101      	movs	r1, #1
     268e:	f005 f9f5 	bl	7a7c <digitalWrite>
-	SPI.endTransaction();
+	 }
     2692:	0028      	movs	r0, r5
     2694:	f005 fc22 	bl	7edc <_ZN8SPIClass14endTransactionEv>
-    WaitOnBusy( );
+	SPI.endTransaction();
     2698:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     269a:	f005 fa1b 	bl	7ad4 <digitalRead>
     269e:	2801      	cmp	r0, #1
     26a0:	d0fa      	beq.n	2698 <_ZN9SX1280Hal11ReadCommandE15RadioCommands_uPht+0x60>
-}
+	
     26a2:	b005      	add	sp, #20
     26a4:	bdf0      	pop	{r4, r5, r6, r7, pc}
-		 SPI.transfer( ( uint8_t )command );
+	 }else
     26a6:	f005 fc2d 	bl	7f04 <_ZN8SPIClass8transferEh>
-		 SPI.transfer( 0 );
+	 {
     26aa:	0021      	movs	r1, r4
     26ac:	0028      	movs	r0, r5
     26ae:	f005 fc29 	bl	7f04 <_ZN8SPIClass8transferEh>
-		 for( uint16_t i = 0; i < size; i++ )
+		 SPI.transfer( ( uint8_t )command );
     26b2:	9b01      	ldr	r3, [sp, #4]
     26b4:	429c      	cmp	r4, r3
     26b6:	dae8      	bge.n	268a <_ZN9SX1280Hal11ReadCommandE15RadioCommands_uPht+0x52>
-             buffer[i] = SPI.transfer( 0 );
+		 for( uint16_t i = 0; i < size; i++ )
     26b8:	9b00      	ldr	r3, [sp, #0]
     26ba:	2100      	movs	r1, #0
     26bc:	0028      	movs	r0, r5
     26be:	191f      	adds	r7, r3, r4
     26c0:	f005 fc20 	bl	7f04 <_ZN8SPIClass8transferEh>
-		 for( uint16_t i = 0; i < size; i++ )
+		 SPI.transfer( ( uint8_t )command );
     26c4:	3401      	adds	r4, #1
-             buffer[i] = SPI.transfer( 0 );
-    26c6:	7038      	strb	r0, [r7, #0]
 		 for( uint16_t i = 0; i < size; i++ )
+    26c6:	7038      	strb	r0, [r7, #0]
+		 SPI.transfer( ( uint8_t )command );
     26c8:	b2a4      	uxth	r4, r4
     26ca:	e7f2      	b.n	26b2 <_ZN9SX1280Hal11ReadCommandE15RadioCommands_uPht+0x7a>
     26cc:	200009d0 	.word	0x200009d0
     26d0:	001e8480 	.word	0x001e8480
 
 000026d4 <_ZN9SX1280Hal13WriteRegisterEtPht>:
-{
+
     26d4:	b5f0      	push	{r4, r5, r6, r7, lr}
     26d6:	0006      	movs	r6, r0
     26d8:	000f      	movs	r7, r1
     26da:	b085      	sub	sp, #20
     26dc:	9200      	str	r2, [sp, #0]
     26de:	9301      	str	r3, [sp, #4]
-    WaitOnBusy( );
+void SX1280Hal::WriteRegister( uint16_t address, uint8_t *buffer, uint16_t size )
     26e0:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     26e2:	f005 f9f7 	bl	7ad4 <digitalRead>
     26e6:	2801      	cmp	r0, #1
     26e8:	d0fa      	beq.n	26e0 <_ZN9SX1280Hal13WriteRegisterEtPht+0xc>
     this->bitOrder = (bitOrder == MSBFIRST ? MSB_FIRST : LSB_FIRST);
     26ea:	2400      	movs	r4, #0
-	digitalWrite(RadioNss, LOW);
+    WaitOnBusy( );
     26ec:	2100      	movs	r1, #0
     26ee:	6a30      	ldr	r0, [r6, #32]
     26f0:	f005 f9c4 	bl	7a7c <digitalWrite>
     26f4:	ab02      	add	r3, sp, #8
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+
     26f6:	4d16      	ldr	r5, [pc, #88]	; (2750 <_ZN9SX1280Hal13WriteRegisterEtPht+0x7c>)
     26f8:	715c      	strb	r4, [r3, #5]
         this->dataMode = SERCOM_SPI_MODE_0; break;
@@ -1181,72 +1181,72 @@ SX1280Hal::~SX1280Hal( void )
     26fe:	4915      	ldr	r1, [pc, #84]	; (2754 <_ZN9SX1280Hal13WriteRegisterEtPht+0x80>)
     2700:	0028      	movs	r0, r5
     2702:	f005 fbcf 	bl	7ea4 <_ZN8SPIClass16beginTransactionE11SPISettings>
-	SPI.transfer( RADIO_WRITE_REGISTER );
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     2706:	2118      	movs	r1, #24
     2708:	0028      	movs	r0, r5
     270a:	f005 fbfb 	bl	7f04 <_ZN8SPIClass8transferEh>
-	SPI.transfer( ( address & 0xFF00 ) >> 8  );
+	
     270e:	0a39      	lsrs	r1, r7, #8
     2710:	0028      	movs	r0, r5
     2712:	f005 fbf7 	bl	7f04 <_ZN8SPIClass8transferEh>
-	SPI.transfer( address & 0x00FF  );
+	SPI.transfer( RADIO_WRITE_REGISTER );
     2716:	b2f9      	uxtb	r1, r7
     2718:	0028      	movs	r0, r5
     271a:	f005 fbf3 	bl	7f04 <_ZN8SPIClass8transferEh>
-	for( uint16_t i = 0; i < size; i++ )
+	SPI.transfer( address & 0x00FF  );
     271e:	9b01      	ldr	r3, [sp, #4]
     2720:	429c      	cmp	r4, r3
     2722:	da07      	bge.n	2734 <_ZN9SX1280Hal13WriteRegisterEtPht+0x60>
-            SPI.transfer( buffer[i] );
+	for( uint16_t i = 0; i < size; i++ )
     2724:	9b00      	ldr	r3, [sp, #0]
     2726:	0028      	movs	r0, r5
     2728:	5d19      	ldrb	r1, [r3, r4]
-	for( uint16_t i = 0; i < size; i++ )
+	SPI.transfer( address & 0x00FF  );
     272a:	3401      	adds	r4, #1
-            SPI.transfer( buffer[i] );
-    272c:	f005 fbea 	bl	7f04 <_ZN8SPIClass8transferEh>
 	for( uint16_t i = 0; i < size; i++ )
+    272c:	f005 fbea 	bl	7f04 <_ZN8SPIClass8transferEh>
+	SPI.transfer( address & 0x00FF  );
     2730:	b2a4      	uxth	r4, r4
     2732:	e7f4      	b.n	271e <_ZN9SX1280Hal13WriteRegisterEtPht+0x4a>
-	digitalWrite(RadioNss, HIGH);
+    }
     2734:	6a30      	ldr	r0, [r6, #32]
     2736:	2101      	movs	r1, #1
     2738:	f005 f9a0 	bl	7a7c <digitalWrite>
-	SPI.endTransaction();
+		
     273c:	0028      	movs	r0, r5
     273e:	f005 fbcd 	bl	7edc <_ZN8SPIClass14endTransactionEv>
-    WaitOnBusy( );
+	SPI.endTransaction();
     2742:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     2744:	f005 f9c6 	bl	7ad4 <digitalRead>
     2748:	2801      	cmp	r0, #1
     274a:	d0fa      	beq.n	2742 <_ZN9SX1280Hal13WriteRegisterEtPht+0x6e>
-}
+   
     274c:	b005      	add	sp, #20
     274e:	bdf0      	pop	{r4, r5, r6, r7, pc}
     2750:	200009d0 	.word	0x200009d0
     2754:	001e8480 	.word	0x001e8480
 
 00002758 <_ZN9SX1280Hal12ReadRegisterEtPht>:
-{
+
     2758:	b5f0      	push	{r4, r5, r6, r7, lr}
     275a:	0006      	movs	r6, r0
     275c:	000f      	movs	r7, r1
     275e:	b085      	sub	sp, #20
     2760:	9200      	str	r2, [sp, #0]
     2762:	9301      	str	r3, [sp, #4]
-    WaitOnBusy( );
+void SX1280Hal::ReadRegister( uint16_t address, uint8_t *buffer, uint16_t size )
     2764:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     2766:	f005 f9b5 	bl	7ad4 <digitalRead>
     276a:	2801      	cmp	r0, #1
     276c:	d0fa      	beq.n	2764 <_ZN9SX1280Hal12ReadRegisterEtPht+0xc>
     this->bitOrder = (bitOrder == MSBFIRST ? MSB_FIRST : LSB_FIRST);
     276e:	2400      	movs	r4, #0
-    digitalWrite(RadioNss, LOW);
+    WaitOnBusy( );
     2770:	2100      	movs	r1, #0
     2772:	6a30      	ldr	r0, [r6, #32]
     2774:	f005 f982 	bl	7a7c <digitalWrite>
     2778:	ab02      	add	r3, sp, #8
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+
     277a:	4d19      	ldr	r5, [pc, #100]	; (27e0 <_ZN9SX1280Hal12ReadRegisterEtPht+0x88>)
     277c:	715c      	strb	r4, [r3, #5]
         this->dataMode = SERCOM_SPI_MODE_0; break;
@@ -1255,81 +1255,81 @@ SX1280Hal::~SX1280Hal( void )
     2782:	4918      	ldr	r1, [pc, #96]	; (27e4 <_ZN9SX1280Hal12ReadRegisterEtPht+0x8c>)
     2784:	0028      	movs	r0, r5
     2786:	f005 fb8d 	bl	7ea4 <_ZN8SPIClass16beginTransactionE11SPISettings>
-	SPI.transfer( RADIO_READ_REGISTER );
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     278a:	2119      	movs	r1, #25
     278c:	0028      	movs	r0, r5
     278e:	f005 fbb9 	bl	7f04 <_ZN8SPIClass8transferEh>
-	SPI.transfer( ( address & 0xFF00 ) >> 8  );
+	
     2792:	0a39      	lsrs	r1, r7, #8
     2794:	0028      	movs	r0, r5
     2796:	f005 fbb5 	bl	7f04 <_ZN8SPIClass8transferEh>
-	SPI.transfer( address & 0x00FF  );
+	SPI.transfer( RADIO_READ_REGISTER );
     279a:	b2f9      	uxtb	r1, r7
     279c:	0028      	movs	r0, r5
     279e:	f005 fbb1 	bl	7f04 <_ZN8SPIClass8transferEh>
-	SPI.transfer( 0 );	 
+	SPI.transfer( ( address & 0xFF00 ) >> 8  );
     27a2:	0021      	movs	r1, r4
     27a4:	0028      	movs	r0, r5
     27a6:	f005 fbad 	bl	7f04 <_ZN8SPIClass8transferEh>
-	for( uint16_t i = 0; i < size; i++ )
+	SPI.transfer( address & 0x00FF  );
     27aa:	9b01      	ldr	r3, [sp, #4]
     27ac:	429c      	cmp	r4, r3
     27ae:	da09      	bge.n	27c4 <_ZN9SX1280Hal12ReadRegisterEtPht+0x6c>
-            buffer[i] = SPI.transfer( 0 );
+	for( uint16_t i = 0; i < size; i++ )
     27b0:	9b00      	ldr	r3, [sp, #0]
     27b2:	2100      	movs	r1, #0
     27b4:	0028      	movs	r0, r5
     27b6:	191f      	adds	r7, r3, r4
     27b8:	f005 fba4 	bl	7f04 <_ZN8SPIClass8transferEh>
-	for( uint16_t i = 0; i < size; i++ )
+	SPI.transfer( address & 0x00FF  );
     27bc:	3401      	adds	r4, #1
-            buffer[i] = SPI.transfer( 0 );
-    27be:	7038      	strb	r0, [r7, #0]
 	for( uint16_t i = 0; i < size; i++ )
+    27be:	7038      	strb	r0, [r7, #0]
+	SPI.transfer( address & 0x00FF  );
     27c0:	b2a4      	uxth	r4, r4
     27c2:	e7f2      	b.n	27aa <_ZN9SX1280Hal12ReadRegisterEtPht+0x52>
-	digitalWrite(RadioNss, HIGH);
+    }
     27c4:	6a30      	ldr	r0, [r6, #32]
     27c6:	2101      	movs	r1, #1
     27c8:	f005 f958 	bl	7a7c <digitalWrite>
-	SPI.endTransaction();
+		
     27cc:	0028      	movs	r0, r5
     27ce:	f005 fb85 	bl	7edc <_ZN8SPIClass14endTransactionEv>
-    WaitOnBusy( );
+	SPI.endTransaction();
     27d2:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     27d4:	f005 f97e 	bl	7ad4 <digitalRead>
     27d8:	2801      	cmp	r0, #1
     27da:	d0fa      	beq.n	27d2 <_ZN9SX1280Hal12ReadRegisterEtPht+0x7a>
-}
+
     27dc:	b005      	add	sp, #20
     27de:	bdf0      	pop	{r4, r5, r6, r7, pc}
     27e0:	200009d0 	.word	0x200009d0
     27e4:	001e8480 	.word	0x001e8480
 
 000027e8 <_ZN9SX1280Hal11WriteBufferEhPhh>:
+    return data;
+}
 
-void SX1280Hal::WriteBuffer( uint8_t offset, uint8_t *buffer, uint8_t size )
-{
     27e8:	b5f0      	push	{r4, r5, r6, r7, lr}
     27ea:	0006      	movs	r6, r0
     27ec:	000f      	movs	r7, r1
     27ee:	b085      	sub	sp, #20
     27f0:	9200      	str	r2, [sp, #0]
     27f2:	9301      	str	r3, [sp, #4]
-    WaitOnBusy( );
+void SX1280Hal::WriteBuffer( uint8_t offset, uint8_t *buffer, uint8_t size )
     27f4:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     27f6:	f005 f96d 	bl	7ad4 <digitalRead>
     27fa:	2801      	cmp	r0, #1
     27fc:	d0fa      	beq.n	27f4 <_ZN9SX1280Hal11WriteBufferEhPhh+0xc>
     this->bitOrder = (bitOrder == MSBFIRST ? MSB_FIRST : LSB_FIRST);
     27fe:	2400      	movs	r4, #0
-
-	digitalWrite(RadioNss, LOW);
+{
+    WaitOnBusy( );
     2800:	2100      	movs	r1, #0
     2802:	6a30      	ldr	r0, [r6, #32]
     2804:	f005 f93a 	bl	7a7c <digitalWrite>
     2808:	ab02      	add	r3, sp, #8
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+
     280a:	4d14      	ldr	r5, [pc, #80]	; (285c <_ZN9SX1280Hal11WriteBufferEhPhh+0x74>)
     280c:	715c      	strb	r4, [r3, #5]
         this->dataMode = SERCOM_SPI_MODE_0; break;
@@ -1338,76 +1338,76 @@ void SX1280Hal::WriteBuffer( uint8_t offset, uint8_t *buffer, uint8_t size )
     2812:	9a03      	ldr	r2, [sp, #12]
     2814:	0028      	movs	r0, r5
     2816:	f005 fb45 	bl	7ea4 <_ZN8SPIClass16beginTransactionE11SPISettings>
-	
-	SPI.transfer( RADIO_WRITE_BUFFER );
+	digitalWrite(RadioNss, LOW);
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     281a:	211a      	movs	r1, #26
     281c:	0028      	movs	r0, r5
     281e:	f005 fb71 	bl	7f04 <_ZN8SPIClass8transferEh>
-	SPI.transfer( offset  );
+	
     2822:	0039      	movs	r1, r7
     2824:	0028      	movs	r0, r5
     2826:	f005 fb6d 	bl	7f04 <_ZN8SPIClass8transferEh>
-	for( uint16_t i = 0; i < size; i++ )
+	SPI.transfer( RADIO_WRITE_BUFFER );
     282a:	9b01      	ldr	r3, [sp, #4]
     282c:	429c      	cmp	r4, r3
     282e:	da07      	bge.n	2840 <_ZN9SX1280Hal11WriteBufferEhPhh+0x58>
-    {
-            SPI.transfer( buffer[i] );
+	SPI.transfer( offset  );
+	for( uint16_t i = 0; i < size; i++ )
     2830:	9b00      	ldr	r3, [sp, #0]
     2832:	0028      	movs	r0, r5
     2834:	5d19      	ldrb	r1, [r3, r4]
-	for( uint16_t i = 0; i < size; i++ )
+	SPI.transfer( RADIO_WRITE_BUFFER );
     2836:	3401      	adds	r4, #1
-            SPI.transfer( buffer[i] );
-    2838:	f005 fb64 	bl	7f04 <_ZN8SPIClass8transferEh>
 	for( uint16_t i = 0; i < size; i++ )
+    2838:	f005 fb64 	bl	7f04 <_ZN8SPIClass8transferEh>
+	SPI.transfer( RADIO_WRITE_BUFFER );
     283c:	b2a4      	uxth	r4, r4
     283e:	e7f4      	b.n	282a <_ZN9SX1280Hal11WriteBufferEhPhh+0x42>
+    {
+            SPI.transfer( buffer[i] );
     }
-		
-	digitalWrite(RadioNss, HIGH);
     2840:	6a30      	ldr	r0, [r6, #32]
     2842:	2101      	movs	r1, #1
     2844:	f005 f91a 	bl	7a7c <digitalWrite>
-	SPI.endTransaction();
+		
     2848:	0028      	movs	r0, r5
     284a:	f005 fb47 	bl	7edc <_ZN8SPIClass14endTransactionEv>
-	   
-    WaitOnBusy( );
+	digitalWrite(RadioNss, HIGH);
+	SPI.endTransaction();
     284e:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     2850:	f005 f940 	bl	7ad4 <digitalRead>
     2854:	2801      	cmp	r0, #1
     2856:	d0fa      	beq.n	284e <_ZN9SX1280Hal11WriteBufferEhPhh+0x66>
-}
+	   
     2858:	b005      	add	sp, #20
     285a:	bdf0      	pop	{r4, r5, r6, r7, pc}
     285c:	200009d0 	.word	0x200009d0
     2860:	001e8480 	.word	0x001e8480
 
 00002864 <_ZN9SX1280Hal10ReadBufferEhPhh>:
+    WaitOnBusy( );
+}
 
-void SX1280Hal::ReadBuffer( uint8_t offset, uint8_t *buffer, uint8_t size )
-{
     2864:	b5f0      	push	{r4, r5, r6, r7, lr}
     2866:	0006      	movs	r6, r0
     2868:	000f      	movs	r7, r1
     286a:	b085      	sub	sp, #20
     286c:	9200      	str	r2, [sp, #0]
     286e:	9301      	str	r3, [sp, #4]
-    WaitOnBusy( );
+void SX1280Hal::ReadBuffer( uint8_t offset, uint8_t *buffer, uint8_t size )
     2870:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     2872:	f005 f92f 	bl	7ad4 <digitalRead>
     2876:	2801      	cmp	r0, #1
     2878:	d0fa      	beq.n	2870 <_ZN9SX1280Hal10ReadBufferEhPhh+0xc>
     this->bitOrder = (bitOrder == MSBFIRST ? MSB_FIRST : LSB_FIRST);
     287a:	2400      	movs	r4, #0
-
-    digitalWrite(RadioNss, LOW);
+{
+    WaitOnBusy( );
     287c:	2100      	movs	r1, #0
     287e:	6a30      	ldr	r0, [r6, #32]
     2880:	f005 f8fc 	bl	7a7c <digitalWrite>
     2884:	ab02      	add	r3, sp, #8
-	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
+
     2886:	4d17      	ldr	r5, [pc, #92]	; (28e4 <_ZN9SX1280Hal10ReadBufferEhPhh+0x80>)
     2888:	715c      	strb	r4, [r3, #5]
         this->dataMode = SERCOM_SPI_MODE_0; break;
@@ -1416,51 +1416,51 @@ void SX1280Hal::ReadBuffer( uint8_t offset, uint8_t *buffer, uint8_t size )
     288e:	4916      	ldr	r1, [pc, #88]	; (28e8 <_ZN9SX1280Hal10ReadBufferEhPhh+0x84>)
     2890:	0028      	movs	r0, r5
     2892:	f005 fb07 	bl	7ea4 <_ZN8SPIClass16beginTransactionE11SPISettings>
-    SPI.transfer( RADIO_READ_BUFFER );
+    digitalWrite(RadioNss, LOW);
     2896:	211b      	movs	r1, #27
     2898:	0028      	movs	r0, r5
     289a:	f005 fb33 	bl	7f04 <_ZN8SPIClass8transferEh>
-    SPI.transfer( offset );
+	SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE0));
     289e:	0039      	movs	r1, r7
     28a0:	0028      	movs	r0, r5
     28a2:	f005 fb2f 	bl	7f04 <_ZN8SPIClass8transferEh>
-    SPI.transfer( 0 );
+    SPI.transfer( RADIO_READ_BUFFER );
     28a6:	0021      	movs	r1, r4
     28a8:	0028      	movs	r0, r5
     28aa:	f005 fb2b 	bl	7f04 <_ZN8SPIClass8transferEh>
-    for( uint16_t i = 0; i < size; i++ )
+    SPI.transfer( offset );
     28ae:	9b01      	ldr	r3, [sp, #4]
     28b0:	429c      	cmp	r4, r3
     28b2:	da09      	bge.n	28c8 <_ZN9SX1280Hal10ReadBufferEhPhh+0x64>
-    {
-        buffer[i] = SPI.transfer( 0 );
+    SPI.transfer( 0 );
+    for( uint16_t i = 0; i < size; i++ )
     28b4:	9b00      	ldr	r3, [sp, #0]
     28b6:	2100      	movs	r1, #0
     28b8:	0028      	movs	r0, r5
     28ba:	191f      	adds	r7, r3, r4
     28bc:	f005 fb22 	bl	7f04 <_ZN8SPIClass8transferEh>
-    for( uint16_t i = 0; i < size; i++ )
+    SPI.transfer( offset );
     28c0:	3401      	adds	r4, #1
-        buffer[i] = SPI.transfer( 0 );
-    28c2:	7038      	strb	r0, [r7, #0]
     for( uint16_t i = 0; i < size; i++ )
+    28c2:	7038      	strb	r0, [r7, #0]
+    SPI.transfer( offset );
     28c4:	b2a4      	uxth	r4, r4
     28c6:	e7f2      	b.n	28ae <_ZN9SX1280Hal10ReadBufferEhPhh+0x4a>
-    }
-    digitalWrite(RadioNss, HIGH);
+    {
+        buffer[i] = SPI.transfer( 0 );
     28c8:	6a30      	ldr	r0, [r6, #32]
     28ca:	2101      	movs	r1, #1
     28cc:	f005 f8d6 	bl	7a7c <digitalWrite>
-	SPI.endTransaction();
+    }
     28d0:	0028      	movs	r0, r5
     28d2:	f005 fb03 	bl	7edc <_ZN8SPIClass14endTransactionEv>
- 
-    WaitOnBusy( );
+    digitalWrite(RadioNss, HIGH);
+	SPI.endTransaction();
     28d6:	6ab0      	ldr	r0, [r6, #40]	; 0x28
     28d8:	f005 f8fc 	bl	7ad4 <digitalRead>
     28dc:	2801      	cmp	r0, #1
     28de:	d0fa      	beq.n	28d6 <_ZN9SX1280Hal10ReadBufferEhPhh+0x72>
-}
+ 
     28e0:	b005      	add	sp, #20
     28e2:	bdf0      	pop	{r4, r5, r6, r7, pc}
     28e4:	200009d0 	.word	0x200009d0
@@ -1503,16 +1503,16 @@ SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, 
     290a:	0008      	movs	r0, r1
     RadioReset = rst;
     290c:	6263      	str	r3, [r4, #36]	; 0x24
-	TXENPIN = txEnablePin;
+	DIO1 = dio1;
     290e:	9b07      	ldr	r3, [sp, #28]
     2910:	7125      	strb	r5, [r4, #4]
     2912:	63a3      	str	r3, [r4, #56]	; 0x38
-	RXENPIN = rxEnablePin;
+	TXENPIN = txEnablePin;
     2914:	9b08      	ldr	r3, [sp, #32]
 		RadioPacketStatus.rxDone=false;
     2916:	7165      	strb	r5, [r4, #5]
     2918:	63e3      	str	r3, [r4, #60]	; 0x3c
-	LEDPIN = ledPin;
+	RXENPIN = rxEnablePin;
     291a:	9b09      	ldr	r3, [sp, #36]	; 0x24
 		RadioPacketStatus.rxSyncWordDone=false;
     291c:	71a5      	strb	r5, [r4, #6]
@@ -1533,53 +1533,53 @@ SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, 
     292e:	7726      	strb	r6, [r4, #28]
 	RadioNss = nss;
     2930:	6221      	str	r1, [r4, #32]
-	pinMode(RadioNss, OUTPUT);
+    
     2932:	0031      	movs	r1, r6
     2934:	f005 f856 	bl	79e4 <pinMode>
-    digitalWrite(RadioNss, HIGH);
+	pinMode(RadioNss, OUTPUT);
     2938:	0031      	movs	r1, r6
     293a:	6a20      	ldr	r0, [r4, #32]
     293c:	f005 f89e 	bl	7a7c <digitalWrite>
-	pinMode(RadioReset, OUTPUT);
+    digitalWrite(RadioNss, HIGH);
     2940:	0031      	movs	r1, r6
     2942:	6a60      	ldr	r0, [r4, #36]	; 0x24
     2944:	f005 f84e 	bl	79e4 <pinMode>
-    digitalWrite(RadioReset, HIGH);
+	pinMode(RadioReset, OUTPUT);
     2948:	0031      	movs	r1, r6
     294a:	6a60      	ldr	r0, [r4, #36]	; 0x24
     294c:	f005 f896 	bl	7a7c <digitalWrite>
-	pinMode(BUSY, INPUT);
+    digitalWrite(RadioReset, HIGH);
     2950:	0029      	movs	r1, r5
     2952:	6aa0      	ldr	r0, [r4, #40]	; 0x28
     2954:	f005 f846 	bl	79e4 <pinMode>
-	pinMode(TXENPIN, OUTPUT);
+	pinMode(DIO1, INPUT);
     2958:	0031      	movs	r1, r6
     295a:	6ba0      	ldr	r0, [r4, #56]	; 0x38
     295c:	f005 f842 	bl	79e4 <pinMode>
-    digitalWrite(TXENPIN, LOW);
+	pinMode(BUSY, INPUT);
     2960:	0029      	movs	r1, r5
     2962:	6ba0      	ldr	r0, [r4, #56]	; 0x38
     2964:	f005 f88a 	bl	7a7c <digitalWrite>
-	pinMode(RXENPIN, OUTPUT);
+	pinMode(TXENPIN, OUTPUT);
     2968:	0031      	movs	r1, r6
     296a:	6be0      	ldr	r0, [r4, #60]	; 0x3c
     296c:	f005 f83a 	bl	79e4 <pinMode>
-	digitalWrite(RXENPIN, HIGH);
+    digitalWrite(TXENPIN, LOW);
     2970:	0031      	movs	r1, r6
     2972:	6be0      	ldr	r0, [r4, #60]	; 0x3c
     2974:	f005 f882 	bl	7a7c <digitalWrite>
-	pinMode(LEDPIN, OUTPUT);
+	pinMode(RXENPIN, OUTPUT);
     2978:	0031      	movs	r1, r6
     297a:	6c20      	ldr	r0, [r4, #64]	; 0x40
     297c:	f005 f832 	bl	79e4 <pinMode>
-	digitalWrite(LEDPIN, LOW);
+	digitalWrite(RXENPIN, HIGH);
     2980:	0029      	movs	r1, r5
     2982:	6c20      	ldr	r0, [r4, #64]	; 0x40
     2984:	f005 f87a 	bl	7a7c <digitalWrite>
-    SPI.begin();
+	digitalWrite(LEDPIN, LOW);
     2988:	4803      	ldr	r0, [pc, #12]	; (2998 <_ZN9SX1280HalC1Eiiiiiiiii+0xac>)
     298a:	f005 fa63 	bl	7e54 <_ZN8SPIClass5beginEv>
-}
+
     298e:	0020      	movs	r0, r4
     2990:	bd70      	pop	{r4, r5, r6, pc}
     2992:	46c0      	nop			; (mov r8, r8)
@@ -1587,44 +1587,44 @@ SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, 
     2998:	200009d0 	.word	0x200009d0
 
 0000299c <_ZN9SX1280Hal6SetLedEh>:
-
-void SX1280Hal::SetLed(uint8_t output){
+    WaitOnBusy( );
+}
     299c:	b510      	push	{r4, lr}
-	digitalWrite(LEDPIN, output);
+
     299e:	6c00      	ldr	r0, [r0, #64]	; 0x40
     29a0:	f005 f86c 	bl	7a7c <digitalWrite>
-}
+void SX1280Hal::SetLed(uint8_t output){
     29a4:	bd10      	pop	{r4, pc}
 
 000029a6 <_ZN9SX1280Hal14SetTxEnablePinEh>:
-
-void SX1280Hal::SetTxEnablePin(uint8_t output){
+	digitalWrite(LEDPIN, output);
+}
     29a6:	b510      	push	{r4, lr}
-	digitalWrite(TXENPIN, output);
+
     29a8:	6b80      	ldr	r0, [r0, #56]	; 0x38
     29aa:	f005 f867 	bl	7a7c <digitalWrite>
-}
+void SX1280Hal::SetTxEnablePin(uint8_t output){
     29ae:	bd10      	pop	{r4, pc}
 
 000029b0 <_ZN9SX1280Hal14SetRxEnablePinEh>:
-
-void SX1280Hal::SetRxEnablePin(uint8_t output){
+	digitalWrite(TXENPIN, output);
+}
     29b0:	b510      	push	{r4, lr}
-	digitalWrite(RXENPIN, output);
+
     29b2:	6bc0      	ldr	r0, [r0, #60]	; 0x3c
     29b4:	f005 f862 	bl	7a7c <digitalWrite>
-}
+void SX1280Hal::SetRxEnablePin(uint8_t output){
     29b8:	bd10      	pop	{r4, pc}
 
 000029ba <_ZN9SX1280Hal15GetDioPinStatusEv>:
-
-uint8_t SX1280Hal::GetDioPinStatus(){
+	digitalWrite(RXENPIN, output);
+}
     29ba:	b510      	push	{r4, lr}
-	return digitalRead(DIO1);
+
     29bc:	6ac0      	ldr	r0, [r0, #44]	; 0x2c
     29be:	f005 f889 	bl	7ad4 <digitalRead>
     29c2:	b2c0      	uxtb	r0, r0
-}
+uint8_t SX1280Hal::GetDioPinStatus(){
     29c4:	bd10      	pop	{r4, pc}
 
 000029c6 <_ZN6SX128018GetFirmwareVersionEv>:
