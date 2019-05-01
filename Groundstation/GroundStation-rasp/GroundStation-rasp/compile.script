@@ -1,0 +1,19 @@
+#!/bin/sh
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c main.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -c ../../../RC_Transponder/RC-Transponder/src/E28-2G4M20S/E28-2G4M20S.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -c ../../../RC_Transponder/RC-Transponder/src/E28-2G4M20S/sx1280.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -c sx1280-hal-rasp.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c ../../../RC_Transponder/RC-Transponder/src/RF-Protocol/Telegram.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c ../../../RC_Transponder/RC-Transponder/src/RF-Protocol/Telegram_MSG_1.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c ../../../RC_Transponder/RC-Transponder/src/RF-Protocol/Telegram_MSG_2.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c ../../../RC_Transponder/RC-Transponder/src/RF-Protocol/Telegram_MSG_3.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c ../../../RC_Transponder/RC-Transponder/src/RF-Protocol/RFProtocol.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c RFService.cpp
+g++ -I"../../../RC_Transponder/RC-Transponder/include/E28-2G4M20S/" -I"../../../RC_Transponder/RC-Transponder/include/RF-Protocol/" -c plane.cpp
+g++ -c log.cpp
+
+gcc -c bcm2835.c
+
+#gcc -c source_3.c
+
+g++ main.o E28-2G4M20S.o sx1280.o sx1280-hal-rasp.o bcm2835.o Telegram.o Telegram_MSG_1.o Telegram_MSG_2.o Telegram_MSG_3.o RFProtocol.o RFService.o plane.o log.o -o final
