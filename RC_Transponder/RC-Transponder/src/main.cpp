@@ -61,7 +61,7 @@ void One_second_Update(void);
 SystemInformation_t SystemInformation;
 
 // FRSKY SPORT GPS
-FrSkySportSensorGps FrskyGPS;                 // Create GPS sensor with default ID
+FrSkySportSensorGps FrskyGPS;             // Create GPS sensor with default ID
 FrSkySportTelemetry FrskySport;           // Create telemetry object without polling
 
 // a SBUS object, which is on hardware  serial port 4 (SERCOM4):

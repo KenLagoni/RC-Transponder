@@ -28,6 +28,9 @@ class Telegram_MSG_3 : public Telegram
 	// Constructor to create messages from Radio data struct.
 	Telegram_MSG_3(RadioData_t *radioData);
 	
+	// Constructor to create messages from Base64 encoded Unique ID.
+	Telegram_MSG_3(std::string Unique_ID, ProtocolCMD_t cmd);
+	
 	virtual	~Telegram_MSG_3(){}; 	// destructor.
 
 	protected:

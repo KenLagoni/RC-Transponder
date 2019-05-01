@@ -29,6 +29,16 @@ Telegram_MSG_3::Telegram_MSG_3(RadioData_t *radioData) : Telegram(radioData)
 	}
 }
 
+Telegram_MSG_3::Telegram_MSG_3(std::string Unique_ID, ProtocolCMD_t command): Telegram(MSG_Command, Unique_ID)
+{
+	//Payload
+	this->cmd = command;
+
+	//Set TelegramData (RadioData) Payload
+	TelegramData.payload[HEADER_SIZE+0] = (uint8_t)(cmd & 0xFF);
+	TelegramData.payloadLength = HEADER_SIZE + 0 + 1;
+}
+
 ProtocolCMD_t Telegram_MSG_3::GetCommand( void ){
 	return cmd;
 }

@@ -32,7 +32,11 @@ class RFProtocol
 	RFProtocol(E28_2G4M20S *RadioModule); //constructor.
 	
 	void AddData(RadioData_t *msg); // Add to TX FIFO.
+	void AddData(Telegram *msg);
 	RadioData_t * GetData();
+	
+	RadioData_t * GetDataIncludingRSSI();
+
 	int Available(); // returns number of Telegrams in RX FIFO.
 	void Service();
 

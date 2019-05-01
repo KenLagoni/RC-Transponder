@@ -31,6 +31,22 @@
 	}
 }
 
+
+void RFProtocol::AddData(Telegram *msg)
+{
+	// fail fast:
+	if(this->txFIFO.isFull()){
+		//		SerialAUX->println("Error! - Tx FIFO Full, deleting new data");
+		delete msg;
+		return;
+	}
+
+	if(msg!=NULL)
+	{
+		this->txFIFO.push(msg);	//Add to TX FIFO
+	}
+}
+
 RadioData_t * RFProtocol::GetData()
 {
 	if(this->rxFIFO.isEmpty())
@@ -47,6 +63,25 @@ RadioData_t * RFProtocol::GetData()
 		return &rxbuffer;
 	}
 }
+
+
+RadioData_t * RFProtocol::GetDataIncludingRSSI()
+{
+	if(this->rxFIFO.isEmpty())
+	return NULL;
+	else{
+		Telegram * msg = NULL;
+		rxFIFO.pop(msg);
+		memset(&rxbuffer.payload, 0 , MAX_PAYLOAD_LENGTH);
+		memcpy(&rxbuffer.payload, msg->GetRadioData()->payload, msg->GetRadioData()->payloadLength);	// copy the data.
+		rxbuffer.payload[msg->GetRadioData()->payloadLength] =(uint8_t)(msg->GetRadioData()->rssi);
+		rxbuffer.payload[msg->GetRadioData()->payloadLength+1] = (uint8_t)(msg->GetRadioData()->snr);
+		rxbuffer.payloadLength = msg->GetRadioData()->payloadLength+2;
+		delete msg;
+		return &rxbuffer;
+	}
+}
+
 
  int RFProtocol::Available()
  {
