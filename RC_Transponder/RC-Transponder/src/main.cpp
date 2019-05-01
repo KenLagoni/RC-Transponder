@@ -135,9 +135,10 @@ void setup() {
 	data[13] = (byte)((SystemInformation.SerialNumber4 >> 16) & 0xFF);
 	data[14] = (byte)((SystemInformation.SerialNumber4 >> 8) & 0xFF);
 	data[15] = (byte)(SystemInformation.SerialNumber4 & 0xFF);
-	Serial.println("Chip unique serial number in Base64 encode:\"" + base64_encode(data,SERIALNUMBER_SIZE) +"\"");
-	
-	
+	Serial.print("Chip unique serial number in Base64 encode:\"");
+	Serial.print(Telegram::base64_encode(data,SERIALNUMBER_SIZE).c_str());
+	Serial.println("\"");
+
 	/*
 	for(int a = 0;a<35;a++){
 		if(!((a == 22) || (a == 23))){
@@ -208,6 +209,7 @@ void loop() {
 		RadioService->Service();
 		
 		if(SystemInformation.SaftySwitchPushed == true){
+			SerialAUX->println("System - Button pushed! - go to POWER_OFF");
 			SystemInformation.state=POWER_OFF;
 		}
 
@@ -255,10 +257,10 @@ void loop() {
 //				SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
-//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
+					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					SystemInformation.state=POWER_OFF;
-//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
+					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
 				}else{
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 					if(++SystemInformation.GPSActiveCounter > GPS_ON_TIME){ // power off GPS after 1 min.
@@ -332,6 +334,9 @@ void loop() {
 }
 
 void GoToSleep(void){
+	SerialAUX->println("Going to sleep!");
+	delay(100);
+
 	RadioService->PowerDown();
 	
 	//delay(10); // time to TX Serial.
@@ -342,8 +347,11 @@ void GoToSleep(void){
 	__DSB();
 	__WFI();
 	USBDevice.attach();
+	SerialAUX->print("Wake-up...");
 
 	RadioService->WakeUp();
+
+	SerialAUX->println("Done!");
 }
 
 void LowPowerTest(void){
@@ -369,6 +377,7 @@ void LowPowerTest(void){
 // Ensure a beacon is transmitted every N second.
 void BeaconService(void){
 	if(SystemInformation.BeaconSecondCounter >= 5){
+		SerialAUX->print("Time to make beacon message...");
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
 		if(SystemInformation.IsGroundStation==false){
@@ -376,7 +385,7 @@ void BeaconService(void){
 		}else{
 			SerialAUX->println("Im groundstation, NoPing!");
 		}
-		
+		SerialAUX->println("Done!");	
 	}	
 }
 
@@ -403,7 +412,7 @@ int freeMemory() {
 void One_second_Update(void){
 	//// only every second (check status)
 	while(SystemInformation.SecondCounter){
-		//				SerialAUX->Println("Seccond passed!");
+		SerialAUX->print("One_Second_Updated...");
 		//				digitalWrite(led2Pin, HIGH);
 		SystemInformation.SecondCounter--;
 					
@@ -430,7 +439,7 @@ void One_second_Update(void){
 			SystemInformation.SecondsBatteryLowCounter=0;
 		}			
 
-		Serial.println("Switch:" + String(digitalRead(SaftySwitchPin)));
+//		Serial.println("Switch:" + String(digitalRead(SaftySwitchPin)));
 		
 		if(digitalRead(SaftySwitchPin) == HIGH)
 		{
@@ -466,51 +475,7 @@ void One_second_Update(void){
 				SystemInformation.SafteSwitchPushedTimer=0;
 			}
 		}
-		
+		SerialAUX->println("Done!");
 	}
 }
 	
-
-static String base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-String base64_encode(byte bytes_to_encode[], int in_len)
-{
-	String ret = "";
-	int i = 0;
-	int j = 0;
-	byte char_array_3[3];
-	byte char_array_4[4];
-	int place = 0;
-
-	while (in_len-- > 0) {
-		char_array_3[i++] = bytes_to_encode[place++];
-		if (i == 3) {
-			char_array_4[0] = (byte)((char_array_3[0] & 0xfc) >> 2);
-			char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
-			char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
-			char_array_4[3] = (byte)(char_array_3[2] & 0x3f);
-
-			for(i = 0; (i<4) ; i++)
-				ret += base64_chars[char_array_4[i]];
-			i = 0;
-		}
-	}
-
-	if (i > 0) {
-		for(j = i; j< 3; j++)
-		char_array_3[j] = 0;
-
-		char_array_4[0] = (byte)(( char_array_3[0] & 0xfc) >> 2);
-		char_array_4[1] = (byte)(((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4));
-		char_array_4[2] = (byte)(((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6));
-
-		for (j = 0; (j<i + 1); j++)
-		ret += base64_chars[char_array_4[j]];
-
-		while((i++ < 3))
-		ret += '=';
-
-	}
-
-	return ret;
-
-}
