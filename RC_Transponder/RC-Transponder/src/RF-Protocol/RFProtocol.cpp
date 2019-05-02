@@ -188,8 +188,11 @@ void RFProtocol::Service(){
 					nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 				}else
 				{
-					// No news, lets see if we need to send somthing from the buffer. 
-					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+					// No news, lets see if we need to send somthing from the buffer.
+					digitalWrite(led2Pin, HIGH);
+ 					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+					digitalWrite(led2Pin, LOW);
+
 				}
 			}
 //			SerialAUX->println("RX_IDLE: next state:" + String(nextState));

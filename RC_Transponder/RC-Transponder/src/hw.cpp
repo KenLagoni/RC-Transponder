@@ -112,7 +112,6 @@ void SERCOM4_Handler(){
 void SERCOM5_Handler(){
 	SerialAUX->IrqHandler();
 }
-	
 
 float getBatteryVoltage(void){
 	#if PCB_VERSION == 10

@@ -207,7 +207,7 @@ void loop() {
 		GPS->update();  // Function empty serial buffer and analyzes string.
 		BeaconService();
 		RadioService->Service();
-		
+	
 		if(SystemInformation.SaftySwitchPushed == true){
 			SerialAUX->println("System - Button pushed! - go to POWER_OFF");
 			SystemInformation.state=POWER_OFF;
@@ -415,13 +415,17 @@ void One_second_Update(void){
 		SerialAUX->print("One_Second_Updated...");
 		//				digitalWrite(led2Pin, HIGH);
 		SystemInformation.SecondCounter--;
-					
+		
 		SystemInformation.BatteryVoltage = getBatteryVoltage();
+		SerialAUX->print("Battery Voltage...");
 		SystemInformation.InputVoltage = getInputVoltage();
+		SerialAUX->print("Input Voltage...");
 		SystemInformation.USBVoltage = getInput5VVoltage();				
+		SerialAUX->print("USB Voltage...");
 		
 		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
 		FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
+		SerialAUX->print("FRsky Data update...");					
 		
 //		SerialAUX->Print(F("Free RAM = ")); //F function does the same and is now a built in library, in IDE > 1.0.0
 //		SerialAUX->Println(freeMemory(), DEC);  // print how much RAM is available.
@@ -476,6 +480,7 @@ void One_second_Update(void){
 			}
 		}
 		SerialAUX->println("Done!");
+		delay(100);
 	}
 }
 	
