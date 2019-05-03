@@ -5,7 +5,7 @@
 	Not for commercial use
  */ 
  #include "RFProtocol.h"
-
+ #include "hw.h" // only for SerialAUX debug
 
  RFProtocol::RFProtocol(E28_2G4M20S *Radio){
 	this->Radio = Radio;
@@ -19,7 +19,7 @@
  {
 	 // fail fast:
 	if(this->txFIFO.isFull()){
-//		SerialAUX->println("Error! - Tx FIFO Full, deleting new data");
+		SerialAUX->println("Error! - Tx FIFO Full!");
 		return;
 	}
 
@@ -36,7 +36,7 @@ void RFProtocol::AddData(Telegram *msg)
 {
 	// fail fast:
 	if(this->txFIFO.isFull()){
-		//		SerialAUX->println("Error! - Tx FIFO Full, deleting new data");
+		SerialAUX->println("Error! - Tx FIFO Full, deleting new data");
 		delete msg;
 		return;
 	}
@@ -68,8 +68,12 @@ RadioData_t * RFProtocol::GetData()
 RadioData_t * RFProtocol::GetDataIncludingRSSI()
 {
 	if(this->rxFIFO.isEmpty())
-	return NULL;
-	else{
+	{
+		SerialAUX->println("Error - No data to get (rx FIFO empty)!");
+		return NULL;
+	}
+	else
+	{
 		Telegram * msg = NULL;
 		rxFIFO.pop(msg);
 		memset(&rxbuffer.payload, 0 , MAX_PAYLOAD_LENGTH);
@@ -91,9 +95,9 @@ RadioData_t * RFProtocol::GetDataIncludingRSSI()
 
 Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete newdata to avoid memory leaks.
 { 
-//	 SerialAUX->print("New message is...");
+	 SerialAUX->print("New message is...");
 	 if(newdata == NULL){
-//		SerialAUX->println("NULL!");
+		SerialAUX->println("NULL!");
 		return NULL;
 	 }
 	 
@@ -106,26 +110,26 @@ Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete ne
 		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
 		 {
 			 msg = new Telegram_MSG_1(newdata);
-//			 SerialAUX->println("MSG 1");
+			 SerialAUX->println("MSG 1");
 		 }
 		 break;
 		 
 		 case MSG_Beacon_Relay: //Create Beacon Relay Telegram.
 		 {
 			 msg = new Telegram_MSG_2(newdata);
-//			 SerialAUX->println("MSG 2");
+			 SerialAUX->println("MSG 2");
 		 }
 		 break;
 		 
 		 case MSG_Command: // Create command Telegram.
 		 {
 			 msg = new Telegram_MSG_3(newdata);
-//			 SerialAUX->println("MSG 3");
+			 SerialAUX->println("MSG 3");
 		 }
 		 break;
 		 
 		 default:
-//			SerialAUX->println("Unknown/Null!");
+			SerialAUX->println("Unknown/Null!");
 			return NULL;
 		 break;
 	 }
@@ -151,6 +155,7 @@ void RFProtocol::_WakeUp(){
 void RFProtocol::Service(){
 
 	if(Radio->GetDioPinStatus() == HIGH){
+		SerialAUX->println("IRQ from Radio");	
 		this->Radio->IRQHandler();
 	}
 
@@ -172,7 +177,7 @@ void RFProtocol::Service(){
 			if((status.txDone == true) || (status.txTimeout == true) || (status.rxTimeout == true))
 			{
 				// This must be a mistake?
-//				SerialAUX->println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State - Nextstate set to RX_IDLE");
+				SerialAUX->println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State - Nextstate set to RX_IDLE");
 				Radio->SetRXMode(false); // Set RX without timout.
 				nextState=RX_IDLE;
 			}else
@@ -183,8 +188,8 @@ void RFProtocol::Service(){
 					nextState=RXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 				}else
 				{
-					// No news, lets see if we need to send somthing from the buffer. 
-					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
+					// No news, lets see if we need to send somthing from the buffer.
+ 					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 				}
 			}
 //			SerialAUX->println("RX_IDLE: next state:" + String(nextState));
@@ -297,6 +302,5 @@ void RFProtocol::Service(){
 		this->timeoutStart = milliSeconds(); // for software timeout.
 //		SerialAUX->println("New state! - RFSate:" +String(RFstate) + " NextState:" + String(nextState));
 		this->RFstate=nextState;
-
 	}
 }

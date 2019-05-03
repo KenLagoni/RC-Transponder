@@ -16,7 +16,9 @@
  	this->Unique_ID_2 = _Unique_ID_2;
  	this->Unique_ID_3 = _Unique_ID_3;
  	this->Unique_ID_4 = _Unique_ID_4;
-	
+
+	memset(&TelegramData.payload, 0x00, MAX_PAYLOAD_LENGTH); // Zero fills the buffer
+
 	//Telegram MSG
 	TelegramData.payload[0] = (uint8_t)MSG_ID;
 

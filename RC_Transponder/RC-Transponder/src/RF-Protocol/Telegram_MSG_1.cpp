@@ -117,13 +117,11 @@ Telegram_MSG_1::Telegram_MSG_1(RadioData_t *radioData) : Telegram(radioData)
 		SecondsSinceLastGSContact = (uint8_t)TelegramData.payload[HEADER_SIZE+16];
 		BatteryVoltage  = (float)TelegramData.payload[HEADER_SIZE+17];
 		BatteryVoltage = (BatteryVoltage/100)+2.0;
-			
-		FirmwareVersion = (float)((TelegramData.payload[HEADER_SIZE+18] << 8) + TelegramData.payload[HEADER_SIZE+19]);
-		FirmwareVersion = FirmwareVersion / 100;
+
+		FirmwareVersion = (float)(TelegramData.payload[HEADER_SIZE+18]) + ((float)(TelegramData.payload[HEADER_SIZE+19]))/100;
 			
 		PCBVersion      = (uint8_t)TelegramData.payload[HEADER_SIZE+20];
 		NumberOfBeaconsToRelay = (uint8_t)TelegramData.payload[HEADER_SIZE+21];
-		
 	}
 }
 

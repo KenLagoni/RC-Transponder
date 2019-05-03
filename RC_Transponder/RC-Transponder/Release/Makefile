@@ -166,7 +166,7 @@ ADDITIONAL_DEPENDENCIES:=
 OUTPUT_FILE_DEP:= ./makedep.mk
 
 LIB_DEP+=  \
-C:/Users/Kenneth/Documents/GitHub/RC-Transponder/RC_Transponder/ArduinoCore/Release/libArduinoCore.a
+C:/Users/klo/Documents/GitHub/RC-Transponder/RC_Transponder/ArduinoCore/Release/libArduinoCore.a
 
 LINKER_SCRIPT_DEP+=  \
 ../Device_Startup/samd21g18a_flash.ld \
@@ -328,7 +328,7 @@ all: $(OUTPUT_FILE_PATH) $(ADDITIONAL_DEPENDENCIES)
 $(OUTPUT_FILE_PATH): $(OBJS) $(USER_OBJS) $(OUTPUT_FILE_DEP) $(LIB_DEP) $(LINKER_SCRIPT_DEP)
 	@echo Building target: $@
 	@echo Invoking: ARM/GNU Linker : 6.3.1
-	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\arm\arm-gnu-toolchain\bin\arm-none-eabi-g++.exe$(QUOTE) -o$(OUTPUT_FILE_PATH_AS_ARGS) $(OBJS_AS_ARGS) $(USER_OBJS) $(LIBS) -mthumb -Wl,-Map="RC-Transponder.map" --specs=nano.specs --specs=nosys.specs -Wl,--start-group -lm -lArduinoCore  -Wl,--end-group -L"..\\Device_Startup" -L"..\linker_scripts\linker_scripts\gcc" -L"C:\Users\Kenneth\Documents\GitHub\RC-Transponder\RC_Transponder\ArduinoCore\Release"  -Wl,--gc-sections -mcpu=cortex-m0plus -Tflash_with_bootloader.ld -Wl,--cref -Os -Wl,--check-sections -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align  
+	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\arm\arm-gnu-toolchain\bin\arm-none-eabi-g++.exe$(QUOTE) -o$(OUTPUT_FILE_PATH_AS_ARGS) $(OBJS_AS_ARGS) $(USER_OBJS) $(LIBS) -mthumb -Wl,-Map="RC-Transponder.map" --specs=nano.specs --specs=nosys.specs -Wl,--start-group -lm -lArduinoCore  -Wl,--end-group -L"..\\Device_Startup" -L"..\linker_scripts\linker_scripts\gcc" -L"C:\Users\klo\Documents\GitHub\RC-Transponder\RC_Transponder\ArduinoCore\Release"  -Wl,--gc-sections -mcpu=cortex-m0plus -Tflash_with_bootloader.ld -Wl,--cref -Os -Wl,--check-sections -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align  
 	@echo Finished building target: $@
 	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\arm\arm-gnu-toolchain\bin\arm-none-eabi-objcopy.exe" -O binary "RC-Transponder.elf" "RC-Transponder.bin"
 	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\arm\arm-gnu-toolchain\bin\arm-none-eabi-objcopy.exe" -O ihex -R .eeprom -R .fuse -R .lock -R .signature  "RC-Transponder.elf" "RC-Transponder.hex"

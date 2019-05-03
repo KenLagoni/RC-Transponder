@@ -30,20 +30,33 @@ uint32_t phantomISR = 9999;
 /* Default empty handler */
 void Dummy_Handler(void)
 {
-#if defined DEBUG
-  __BKPT(3);
-#endif
-  pinMode(21, 1);
-  for (;;) {
-	  for(int a=0;a<10;a++){
-		digitalWrite(21, 1);
-		delay(50);
-		digitalWrite(21, 0);
-		delay(50);	  
-	  }
-	  delay(950);
-  }
+	uint32_t a,b = 0;
+
+	#if defined DEBUG
+	__BKPT(3);
+	#endif
+
+	for (;;) 
+	{
+		for(b=0;b<10;b++)
+		{
+		
+		  for(a=0;a<25000;a++) 
+		  {
+		   digitalWrite(21, 0); 
+		   asm volatile ("nop"::);
+		  }
+
+		  for(a=0;a<25000;a++) 
+		  {	
+			digitalWrite(21, 1); 
+		    asm volatile ("nop"::);
+		  }
+		}
+		for(a=0;a<2500000;a++)  {asm volatile ("nop"::); }  
+	}
 }
+
 
 /* Cortex-M0+ core handlers */
 void HardFault_Handler(void) __attribute__ ((weak, alias("Dummy_Handler")));

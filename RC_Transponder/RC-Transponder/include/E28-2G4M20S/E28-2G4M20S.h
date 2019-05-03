@@ -23,7 +23,7 @@
 #define INPUT           (0x0)
 #endif
 #ifndef OUTPUT
-#define OUTPUT            (0x1)
+#define OUTPUT          (0x1)
 #endif
 
 //#define MODE_BLE

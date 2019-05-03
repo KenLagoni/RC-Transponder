@@ -50,8 +50,7 @@ class RFService : public RFProtocol
 	};
 
 	RFProtocolStatus_t RFProtocolStatus;
-		
-	E28_2G4M20S *Radio = nullptr;
+	
 	GpsDataLite *GPSData = nullptr;
 	SystemInformation_t *SystemInformation = nullptr;	
 	Telegram_MSG_2 SavedBeacons[SAVED_BEACONS_FIFO_SIZE];

@@ -361,11 +361,12 @@ void GPSL80Lite::update()
 	do
 	{
 		dataReady=SerialGPS->available();
-		
+	
 		if(dataReady)
 		{
 			if(printOnes==false){
-//				SerialAUX->print("GPS Bytes to analyze=" + String(dataReady));	
+//				SerialAUX->print("Data to handle from GPS: " + String(dataReady) + "...");
+				//SerialAUX->println("GPS Bytes to analyze=" + String(dataReady));	
 				printOnes=true;
 			}
 			_newChar=SerialGPS->read(); // read char from input buffer
@@ -669,9 +670,9 @@ void GPSL80Lite::update()
 					if(CRC_RESULT == CRC) // check if CRC is ok.
 					{
 //						Serial.print("CRC is ok!");
-						SerialAUX->print(" CRC OK, Updating GPS data->");
+						SerialAUX->println(" CRC OK, Updating GPS data");
 						updateData();	
-						SerialAUX->println("UTC:"+ String(dataOut->UTCTime) + "#sat=" + String(dataOut->NumberOfSatellites) + " Fix:" + String(dataOut->Fix));												
+//						SerialAUX->println("UTC:"+ String(dataOut->UTCTime) + "#sat=" + String(dataOut->NumberOfSatellites) + " Fix:" + String(dataOut->Fix));												
 					}
 					else
 					{

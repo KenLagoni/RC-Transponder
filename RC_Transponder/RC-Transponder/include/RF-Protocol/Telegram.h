@@ -50,6 +50,8 @@ class Telegram
 	std::string GetUniqueID();
 	int8_t GetRSSI();
 	int8_t GetSNR();
+	static std::string base64_encode(uint8_t bytes_to_encode[], int in_len);
+	static std::string base64_decode(std::string const& encoded_string);
 				
 	// General helper functions and varibels only used by inherited MSG classes.
 	protected:
@@ -61,13 +63,10 @@ class Telegram
 	ProtocolMSG_t MSG_ID;						// Message ID
 	uint32_t Unique_ID_1, Unique_ID_2, Unique_ID_3, Unique_ID_4;
 	RadioData_t TelegramData;
-	const static uint32_t test = 0;
-
+	
 	// Parameters only used on Telegram mother class.
 	private:
-	static std::string	base64_encode(uint8_t bytes_to_encode[], int in_len);
-	static std::string base64_decode(std::string const& encoded_string);
-	const static std::string base64_chars; 
+	const static std::string base64_chars;
 };
 
 
