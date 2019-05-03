@@ -366,7 +366,7 @@ void GPSL80Lite::update()
 		{
 			if(printOnes==false){
 //				SerialAUX->print("Data to handle from GPS: " + String(dataReady) + "...");
-				SerialAUX->println("GPS Bytes to analyze=" + String(dataReady));	
+				//SerialAUX->println("GPS Bytes to analyze=" + String(dataReady));	
 				printOnes=true;
 			}
 			_newChar=SerialGPS->read(); // read char from input buffer

@@ -146,7 +146,9 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
  																		(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
  																		GPSData->NumberOfSatellites, GPSData->FixDecimal, ((SystemInformation->state==RUNNING_ON_BATTERY_GPS_ON) || (SystemInformation->state==GET_READY_TO_RUN_ON_BATTERY) || (SystemInformation->state==RUNNING_ON_BATTERY_GPS_OFF)),
  																		0, 0,
-																		RFProtocolStatus.SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
+																		RFProtocolStatus.SecondCounterSinceLasteGroundStationContact
+																		// 100 // Debug
+																		,SystemInformation->BatteryVoltage,
 																		SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);
 								Radio->SendRadioData(msgReply.GetRadioData());
 								returnState=TX_WITHOUT_REPLY;

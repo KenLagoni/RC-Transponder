@@ -426,9 +426,8 @@ void One_second_Update(void){
 		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
 		FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
 		SerialAUX->print("FRsky Data update...");					
-		
-//		SerialAUX->Print(F("Free RAM = ")); //F function does the same and is now a built in library, in IDE > 1.0.0
-//		SerialAUX->Println(freeMemory(), DEC);  // print how much RAM is available.
+		SerialAUX->print("Free RAM = "); //F function does the same and is now a built in library, in IDE > 1.0.0
+		SerialAUX->println(freeMemory(), DEC);  // print how much RAM is available.
 //		SerialAUX->Println("Battery voltage is " + String(SystemInformation.BatteryVoltage) + "V.");
 //		SerialAUX->Println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
 //		SerialAUX->Println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
@@ -480,7 +479,6 @@ void One_second_Update(void){
 			}
 		}
 		SerialAUX->println("Done!");
-		delay(100);
 	}
 }
 	
