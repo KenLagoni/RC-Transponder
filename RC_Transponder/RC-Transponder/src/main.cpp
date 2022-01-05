@@ -46,6 +46,7 @@ Generic Clock Generator 4-8 - Disabled
 
 // for SPORT
 #include "FrSkySportSensor.h"
+
 #include "FrSkySportSensorGps.h"
 #include "FrSkySportSingleWireSerial.h"
 #include "FrSkySportTelemetry.h"
@@ -148,26 +149,12 @@ void setup() {
 		}
 	}
 	*/
-	// Disable input buffer on pins used for output.
-	PORT->Group[g_APinDescription[0].ulPort].PINCFG[g_APinDescription[0].ulPin].bit.INEN = 0;
-	PORT->Group[g_APinDescription[1].ulPort].PINCFG[g_APinDescription[1].ulPin].bit.INEN = 0;
-	PORT->Group[g_APinDescription[5].ulPort].PINCFG[g_APinDescription[5].ulPin].bit.INEN = 0;
-	PORT->Group[g_APinDescription[17].ulPort].PINCFG[g_APinDescription[17].ulPin].bit.INEN = 0;
-	PORT->Group[g_APinDescription[18].ulPort].PINCFG[g_APinDescription[18].ulPin].bit.INEN = 0;
-	PORT->Group[g_APinDescription[20].ulPort].PINCFG[g_APinDescription[20].ulPin].bit.INEN = 0;	
-	PORT->Group[g_APinDescription[21].ulPort].PINCFG[g_APinDescription[21].ulPin].bit.INEN = 0;	
-	PORT->Group[g_APinDescription[32].ulPort].PINCFG[g_APinDescription[32].ulPin].bit.INEN = 0;	
 
-				
 	// GPS INIT;
 	PowerONGPS();// Turn on GPS. price 31uA
 	GPS = new GPSL80Lite();
 	GPSData = new GpsDataLite();
 	GPS->init(SerialGPS, GPSData, 57600, GPSRxPin, GPSTxPin);
-		
-	// FrskySPORT
-	//x8r.begin(); // using SBUSSerial
-	//pinPeripheral(sBUSRXPin, PIO_SERCOM_ALT); //Assign RX function to pin SBUS pin.
 	
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data rtained, it costs ~70uA.
 	Radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin, led2Pin);
@@ -209,7 +196,7 @@ void loop() {
 		RadioService->Service();
 	
 		if(SystemInformation.SaftySwitchPushed == true){
-			SerialAUX->println("System - Button pushed! - go to POWER_OFF");
+//			SerialAUX->println("System - Button pushed! - go to POWER_OFF");
 			SystemInformation.state=POWER_OFF;
 		}
 
@@ -224,7 +211,7 @@ void loop() {
 //					SerialAUX->println("Main State: NORMAL -> GET_READY_TO_RUN_ON_BATTERY");
 				}else{
 				    // normal fast loop.
-					SerialProtocol->Service(); // Comunincation to PC.
+//					SerialProtocol->Service(); // Comunincation to PC.
 					FrskySport.send(); // Service the Serial for SPORT.
 				}			
 			}
@@ -245,7 +232,7 @@ void loop() {
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
 //						SerialAUX->println("Main State: GET_READY_TO_RUN_ON_BATTERY -> RUNNING_ON_BATTERY_GPS_ON");
 					}else{
-						SerialProtocol->Service(); // Comunincation to PC;
+//						SerialProtocol->Service(); // Comunincation to PC;
 						FrskySport.send(); // Service the Serial for SPORT.
 					}
 				}
@@ -257,10 +244,10 @@ void loop() {
 //				SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
-					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					SystemInformation.state=POWER_OFF;
-					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
+//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
 				}else{
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 					if(++SystemInformation.GPSActiveCounter > GPS_ON_TIME){ // power off GPS after 1 min.
@@ -303,10 +290,10 @@ void loop() {
 				PowerOFF(); 
 				do{
 					// CPU should have died here, but if we are still powered the flash fast led.
-					digitalWrite(led2Pin, HIGH);
+					LEDON();
 					LEDSaftySwitchON();
 					delay(50);
-					digitalWrite(led2Pin, LOW);
+					LEDOFF();
 					LEDSaftySwitchOFF();
 					delay(50);
 				}while(1);
@@ -334,7 +321,7 @@ void loop() {
 }
 
 void GoToSleep(void){
-	SerialAUX->println("Going to sleep!");
+//	SerialAUX->println("Going to sleep!");
 	delay(100);
 
 	RadioService->PowerDown();
@@ -347,11 +334,11 @@ void GoToSleep(void){
 	__DSB();
 	__WFI();
 	USBDevice.attach();
-	SerialAUX->print("Wake-up...");
+//	SerialAUX->print("Wake-up...");
 
 	RadioService->WakeUp();
 
-	SerialAUX->println("Done!");
+//	SerialAUX->println("Done!");
 }
 
 void LowPowerTest(void){
@@ -360,11 +347,11 @@ void LowPowerTest(void){
 	PowerOFFGPSBackup(); // Ensure backup power is enabled for GPS.
 	
 	//
-	digitalWrite(SaftyLEDPin, HIGH); // Off!
+	LEDSaftySwitchOFF();
 	
-	SerialAUX->println("Battery analog reading is " + String(analogRead(analogVbatPin)));
-	SerialAUX->println("Battery voltage is " + String(getBatteryVoltage()) + "V");
-	digitalWrite(led2Pin, LOW);
+//	SerialAUX->println("Battery analog reading is " + String(analogRead(analogVbatPin)));
+//	SerialAUX->println("Battery voltage is " + String(getBatteryVoltage()) + "V");
+	LEDOFF();
 	do
 	{
 	//	SerialAUX->Println("Sleep!");	
@@ -376,16 +363,16 @@ void LowPowerTest(void){
 
 // Ensure a beacon is transmitted every N second.
 void BeaconService(void){
-	if(SystemInformation.BeaconSecondCounter >= 5){
-		SerialAUX->print("Time to make beacon message...");
+	if(SystemInformation.BeaconSecondCounter >= 5){ // SystemInformation.BeaconSecondCounter is counted up en Timer3 (1Hz) ISR.
+//		SerialAUX->print("Time to make beacon message...");
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
 		if(SystemInformation.IsGroundStation==false){
 			RadioService->SendBeacon();
 		}else{
-			SerialAUX->println("Im groundstation, NoPing!");
+//			SerialAUX->println("Im groundstation, NoPing!");
 		}
-		SerialAUX->println("Done!");	
+//		SerialAUX->println("Done!");	
 	}	
 }
 
@@ -412,29 +399,29 @@ int freeMemory() {
 void One_second_Update(void){
 	//// only every second (check status)
 	while(SystemInformation.SecondCounter){
-		SerialAUX->print("One_Second_Updated...");
+//		SerialAUX->print("One_Second_Updated...");
 		//				digitalWrite(led2Pin, HIGH);
 		SystemInformation.SecondCounter--;
 		
 		SystemInformation.BatteryVoltage = getBatteryVoltage();
-		SerialAUX->print("Battery Voltage...");
+//		SerialAUX->print("Battery Voltage (" + String(SystemInformation.BatteryVoltage) + "V) ");
 		SystemInformation.InputVoltage = getInputVoltage();
-		SerialAUX->print("Input Voltage...");
+//		SerialAUX->print("Input Voltage (" + String(SystemInformation.InputVoltage) + "V) ");
 		SystemInformation.USBVoltage = getInput5VVoltage();				
-		SerialAUX->print("USB Voltage...");
+//		SerialAUX->print("USB Voltage (" + String(SystemInformation.USBVoltage) + "V) ");
 		
 		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
 		FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
-		SerialAUX->print("FRsky Data update...");					
-		SerialAUX->print("Free RAM = "); //F function does the same and is now a built in library, in IDE > 1.0.0
-		SerialAUX->println(freeMemory(), DEC);  // print how much RAM is available.
-//		SerialAUX->Println("Battery voltage is " + String(SystemInformation.BatteryVoltage) + "V.");
-//		SerialAUX->Println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
-//		SerialAUX->Println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
+//		SerialAUX->print("FRsky Data update...");					
+//		SerialAUX->print("Free RAM = "); //F function does the same and is now a built in library, in IDE > 1.0.0
+//		SerialAUX->println(freeMemory(), DEC);  // print how much RAM is available.
+//		SerialAUX->println("Battery voltage is " + String(SystemInformation.BatteryVoltage) + "V.");
+//		SerialAUX->println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
+//		SerialAUX->println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
 //		SerialAUX->println("");
 //		SerialAUX->println("Beacon Counter: " + String(SystemInformation.BeaconSecondCounter));
 
-		if(SystemInformation.InputVoltage <= 4.3 || (SystemInformation.SimulateRunningOnBattery)){
+		if( ((SystemInformation.InputVoltage <= 4.3) && (SystemInformation.USBVoltage <=2 ))|| (SystemInformation.SimulateRunningOnBattery)){
 			if(SystemInformation.SecondsBatteryLowCounter < 255){
 				SystemInformation.SecondsBatteryLowCounter++;
 			}
@@ -444,22 +431,15 @@ void One_second_Update(void){
 
 //		Serial.println("Switch:" + String(digitalRead(SaftySwitchPin)));
 		
-		if(digitalRead(SaftySwitchPin) == HIGH)
-		{
-			int count=0;
-			for(int b=0;b<10;b++){
-				count += digitalRead(SaftySwitchPin);
-				delay(2);
-			}
-			if(count== 10){
-				SystemInformation.SafteSwitchPushedTimer++;
-				if(SystemInformation.SafteSwitchPushedTimer == 2){
-					LEDSaftySwitchON();
-					SystemInformation.SaftySwitchFirstTimePushed=true;
-				}else if(SystemInformation.SafteSwitchPushedTimer >= 4){
-					LEDSaftySwitchOFF();
-					SystemInformation.SaftySwitchFirstTimePushed=false;
-				}
+		if(SaftySwitchPushed())
+		{			
+			SystemInformation.SafteSwitchPushedTimer++;
+			if(SystemInformation.SafteSwitchPushedTimer == 2){
+				LEDSaftySwitchON();
+				SystemInformation.SaftySwitchFirstTimePushed=true;
+			}else if(SystemInformation.SafteSwitchPushedTimer >= 4){
+				LEDSaftySwitchOFF();
+				SystemInformation.SaftySwitchFirstTimePushed=false;
 			}
 		}else{
 			if(SystemInformation.SaftySwitchFirstTimePushed==true)
@@ -478,7 +458,7 @@ void One_second_Update(void){
 				SystemInformation.SafteSwitchPushedTimer=0;
 			}
 		}
-		SerialAUX->println("Done!");
+//		SerialAUX->println("Done!");
 	}
 }
 	
