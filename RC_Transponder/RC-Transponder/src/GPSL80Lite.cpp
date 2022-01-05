@@ -81,6 +81,13 @@ GPSL80Lite::GPSL80Lite()
 			SerialGPS->begin(57600);  // GPS module uses 57600 as standard speed.*/
 		 break;
  
+		  case 115200:
+			  SerialGPS->println("$PMTK251,115200*1F");     //Setup GPS serial speed for 57600. (This gives us less idle time thus saving power). This looks like i is too fast for the software serial on 8MMz.
+			  delay(1000);
+			  SerialGPS->end();
+			  SerialGPS->begin(115200);  
+		  break;
+ 
 		 default:
 		 break;
 	 }
@@ -670,7 +677,7 @@ void GPSL80Lite::update()
 					if(CRC_RESULT == CRC) // check if CRC is ok.
 					{
 //						Serial.print("CRC is ok!");
-						SerialAUX->println(" CRC OK, Updating GPS data");
+//						SerialAUX->println(" CRC OK, Updating GPS data");
 						updateData();	
 //						SerialAUX->println("UTC:"+ String(dataOut->UTCTime) + "#sat=" + String(dataOut->NumberOfSatellites) + " Fix:" + String(dataOut->Fix));												
 					}
