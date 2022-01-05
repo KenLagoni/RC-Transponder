@@ -27,7 +27,7 @@ void RFService::SendBeacon()
 											 SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);
 
 	if(this->txFIFO.isFull()){
-		SerialAUX->println("Error! - Tx FIFO Full, Unable to send Beacon message");
+//		SerialAUX->println("Error! - Tx FIFO Full, Unable to send Beacon message");
 		//		this->ServiceStateMachine();
 	}else{
 		if(msg!=NULL){
@@ -102,9 +102,42 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 		switch(msg->GetRadioMSG_ID())
 		{
 			case MSG_Beacon_Broadcast:
-
+			{
+				// Print it to Serial (USB)
+				Telegram_MSG_1 *msgBeacon =  (Telegram_MSG_1 *)msg;
+				// UNIQUE_ID,UTC,LATTITUDE,LONGITUDE,NUMBEROFSAT,FIX,RUNNING_ON_BATTERY,
+				Serial.print("$BEACON,");
+				Serial.print(msgBeacon->GetUniqueID().c_str() );
+				Serial.print("," + String(msgBeacon->GetUTCTime()) );
+				Serial.print("," + String(msgBeacon->GetLatitudeAsDecimalDegrees(),6) );
+				Serial.print("," + String(msgBeacon->GetLongitudeAsDecimalDegrees(),6) );
+				Serial.print("," + String(msgBeacon->GetNumberOfSat()) );
+				Serial.print("," + String(msgBeacon->GetFix()) );
+				Serial.print("," + String(msgBeacon->GetRunningOnBattery()) );
+				Serial.print("," + String(msgBeacon->GetGroundSpeed()) );
+				Serial.print("," + String(msgBeacon->GetBatteryVoltage()) );	
+				Serial.print("," + String(msgBeacon->GetFirmwareVersion()) );	
+				Serial.print("," + String(msgBeacon->GetPCBVersion()) );	
+				Serial.println(",*FF");	
+				
+				/*
+				this->UTCTime = _UTCTime;
+				this->Latitude = _Lattitude;
+				this->Longitude = _Longitude;
+				this->NumberOfSat = _NumberOfSat;
+				this->Fix = _Fix;
+				this->RunningOnBattery = _RunningOnBattery;
+				this->Pressure = _Pressure;
+				this->GroundSpeed = _GroundSpeed;
+				this->SecondsSinceLastGSContact = _SecondsSinceLastGSContact;
+				this->BatteryVoltage = _BatteryVoltage;
+				this->FirmwareVersion = _FirmwareVersion;
+				this->PCBVersion = _PCBVersion;
+				this->NumberOfBeaconsToRelay = _NumberOfBeaconsToRelay;
+				*/
+				
 //				SerialAUX->print("\n\r************ MSG - 1(MSG_Beacon_Broadcast) Received!....");
-				SaveTelegram = SaveTransponderBeacon((Telegram_MSG_1 *)msg);
+//				SaveTelegram = SaveTransponderBeacon((Telegram_MSG_1 *)msg);
 				
 				//Telegram_MSG_1 *msg1 = ((Telegram_MSG_1 *)msg).GetNumberOfBeaconsToRelay();				
 //				SerialAUX->println("msg has number of beacons to relay:" + String(((Telegram_MSG_1 *)msg)->GetNumberOfBeaconsToRelay()));
@@ -115,6 +148,7 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 					SerialAUX->println("Deleted");					
 				}
 */
+			}
 			break;
 
 			case MSG_Beacon_Relay:
