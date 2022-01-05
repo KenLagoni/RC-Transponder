@@ -178,9 +178,40 @@ int32_t Telegram_MSG_1::GetLatitude( void )
 	return Latitude;
 }
 
+float Telegram_MSG_1::GetLatitudeAsDecimalDegrees( void )
+{
+	/*
+	Int32 Latitude = (Int32)((Payload[20] << 24) + (Payload[21] << 16) + (Payload[22] << 8) + Payload[23]);
+	double LatitudeHH_DMS = (double)decimal.Round(Latitude / 1000000);
+	double LatitudeMM_DMS = (double)(Latitude - (LatitudeHH_DMS * 1000000)) / 10000;
+	double LatitudeSEC_DMS = 0;
+	this.latitudeDD = (double)decimal.Round((decimal)((LatitudeHH_DMS + LatitudeMM_DMS / 60 + LatitudeSEC_DMS / 3600)), 6);*/
+	
+	float LatitudeDD=0;
+	int32_t temp=(this->Latitude / 1000000);
+	float LatitudeHH_DMS=(float)temp;
+	float LatitudeMM_DMS=(float)((Latitude-(LatitudeHH_DMS * 1000000)) / 10000);
+	LatitudeDD=LatitudeHH_DMS+LatitudeMM_DMS/60;
+	
+	return LatitudeDD;
+}
+
+
 int32_t Telegram_MSG_1::GetLongitude( void )
 {
 	return Longitude;
+}
+
+
+float Telegram_MSG_1::GetLongitudeAsDecimalDegrees( void )
+{
+	float LongitudeDD=0;
+	int32_t temp=(this->Longitude / 1000000);
+	float LongitudeHH_DMS=(float)temp;
+	float LongitudeMM_DMS=(float)((Longitude-(LongitudeHH_DMS * 1000000)) / 10000);
+	LongitudeDD=LongitudeHH_DMS+LongitudeMM_DMS/60;
+	
+	return LongitudeDD;
 }
 
 uint8_t Telegram_MSG_1::GetNumberOfSat( void )

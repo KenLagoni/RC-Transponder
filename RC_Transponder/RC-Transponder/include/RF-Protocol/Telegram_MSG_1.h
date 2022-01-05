@@ -35,7 +35,9 @@ class Telegram_MSG_1 : public Telegram
 	uint8_t GetNumberOfSecondsSinceLastGroundStationCom(); // function which returns Number Of Seconds Since Last Ground Station Communication.
 	uint32_t GetUTCTime();
 	int32_t GetLatitude();
+	float GetLatitudeAsDecimalDegrees();
 	int32_t GetLongitude();
+	float GetLongitudeAsDecimalDegrees();
 	uint8_t GetNumberOfSat();
 	uint8_t GetFix();
 	bool GetRunningOnBattery();
