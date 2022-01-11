@@ -71,6 +71,9 @@ void hwInit() {
 
 		setPin(powerOnClk,OUTPUT,LOW);	// new power pins (for external flip-flop.		
 		setPin(chargeState,INPUT,LOW);  // Charge state input.
+		digitalWrite(chargeState, OUTPUT);  //  when OUT=1 in INPUT mode, pull resistor is pull-up, else pull-down. ( This will set pull-up when in input mode).
+		//PORT->Group[g_APinDescription[chargeState].ulPort].PINCFG[g_APinDescription[chargeState].ulPin].bit.PULLEN = 1; //Enable pull up.
+		
 		setPin(GPSResetPin,OUTPUT,HIGH);
 				
 		// unused pins set to input low:
@@ -85,13 +88,14 @@ void hwInit() {
 	
 	// Make SerialAUX Uart:
 	SerialAUX = new Uart(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the AUX serial port
+	auxSerialPowerUp();
 }
 
 void setPin(int pin, int mode, int initOutput){
 	if(mode == OUTPUT){
 		digitalWrite(pin, initOutput);  
 		pinMode(pin, OUTPUT);
-		PORT->Group[g_APinDescription[pin].ulPort].PINCFG[g_APinDescription[pin].ulPin].bit.INEN = 0; // Create the new UART instance for the GPS module
+		PORT->Group[g_APinDescription[pin].ulPort].PINCFG[g_APinDescription[pin].ulPin].bit.INEN = 0; // Disable input buffer for Pins used at output to save power.
 
 	}else{ // INPUT
 		pinMode(pin, INPUT);		
@@ -155,7 +159,10 @@ void PowerON(void){
 		delay(5);
 		digitalWrite(powerOnClk, HIGH);
 		delay(5);
-		digitalWrite(powerOnClk, LOW); 
+		digitalWrite(powerOnClk, LOW);
+		
+		delay(5); 
+		digitalWrite(powerOnPin, LOW);
 	#endif
 }
 
@@ -174,19 +181,10 @@ void PowerOFF(void){
 
 void PowerONGPS(void){
 	digitalWrite(GPSPowerOnPin, LOW);  // High=Off, Low= On
-	
-	#if PCB_VERSION == 12 // drive GPS Reset pin
-		delay(5);
-		digitalWrite(GPSResetPin, HIGH); // active low
-	#endif
 }
 	
 void PowerOFFGPS(void){
 	digitalWrite(GPSPowerOnPin, HIGH);  // High=Off, Low= On
-
-	#if PCB_VERSION == 12 // drive GPS Reset pin
-		digitalWrite(GPSResetPin, LOW); // active low
-	#endif
 }
 
 void PowerONGPSBackup(void){
@@ -196,6 +194,16 @@ void PowerONGPSBackup(void){
 void PowerOFFGPSBackup(void){
 	digitalWrite(GPSBackupPowerPin, LOW);  // High=On, Low= Off
 }
+
+void ResetGPS(void){
+	// pull reset for 15ms.	
+	#if PCB_VERSION == 12 // drive GPS Reset pin
+		digitalWrite(GPSResetPin, LOW); // active low
+		delay(15);
+		digitalWrite(GPSResetPin, HIGH); // active low
+	#endif
+}
+
 
 void LEDSaftySwitchON(void){
 	digitalWrite(SaftyLEDPin, LOW);
@@ -228,4 +236,29 @@ void LEDON(void){
 
 void LEDOFF(void){
 	digitalWrite(led2Pin, LOW);
+}
+
+int GetChargeState(void){
+	#if PCB_VERSION == 11
+		return 1;
+	#elif PCB_VERSION == 12
+		return digitalRead(chargeState);
+	#endif
+}
+
+void auxSerialPowerDown(void){
+	pinMode(auxRXPin, INPUT_PULLDOWN);		
+}
+
+void auxSerialPowerUp(void){
+	pinMode(auxRXPin, INPUT_PULLUP);
+}
+
+
+void SerialPrintHEX(int data){
+	Serial.print("0x");
+	if(data < 16){
+		Serial.print("0");
+	}
+	Serial.print(data,HEX);
 }

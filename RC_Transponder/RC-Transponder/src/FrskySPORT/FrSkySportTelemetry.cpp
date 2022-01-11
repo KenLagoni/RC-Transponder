@@ -85,6 +85,19 @@ void FrSkySportTelemetry::send()
       if(serial.port->available())
       {
         uint8_t data = serial.port->read();
+		
+		/*
+		// My Debug:
+		Serial.print(String(millis()) + ": Frsky SPort RX: 0x");
+		if(data < 16){
+			Serial.print("0");
+		}
+		Serial.println(data,HEX);	
+		if(data == 0x1b){
+			Serial.println("");
+		}	
+		*/
+		
         if(prevData == FRSKY_TELEMETRY_START_FRAME) polledId = data;
         prevData = data;
       }

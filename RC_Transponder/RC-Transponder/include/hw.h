@@ -122,6 +122,7 @@ void PowerONGPS(void);
 void PowerOFFGPS(void);
 void PowerONGPSBackup(void);
 void PowerOFFGPSBackup(void);
+void ResetGPS(void);
 
 void hwInit();
 void hwInit_debug_lowpower(void);
@@ -132,6 +133,11 @@ bool SaftySwitchPushed(void);
 
 void LEDON(void);
 void LEDOFF(void);
+
+int GetChargeState(void);
+
+void auxSerialPowerUp(void);
+void auxSerialPowerDown(void);
 
 // Unique 128bit serial number from chip flash
 // Chip unique serial number part 1: 800256040
@@ -146,6 +152,7 @@ void LEDOFF(void);
 // Chip unique serial number part 4:4278394144
 // Chip unique serial number: "294656298813473114378083336424278394144" (Prototype 2 - ground test and low power mod)
 
+void SerialPrintHEX(int);
 
 
 #endif /* HW_H_ */

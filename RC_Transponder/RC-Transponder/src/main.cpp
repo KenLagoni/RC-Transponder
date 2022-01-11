@@ -48,8 +48,13 @@ Generic Clock Generator 4-8 - Disabled
 #include "FrSkySportSensor.h"
 
 #include "FrSkySportSensorGps.h"
+#include "FrSkySportSensorPassthrough.h"
 #include "FrSkySportSingleWireSerial.h"
 #include "FrSkySportTelemetry.h"
+
+// for Mavlink
+#include "common/mavlink.h"
+#include "ardupilotmega/mavlink.h"
 
 //void HandelSerial(void);
 void LowPowerTest(void);
@@ -58,11 +63,19 @@ String base64_encode(byte[], int);
 void BeaconService(void);
 void One_second_Update(void);
 
+void ADSB_test(void);
+void MavlinkService(void);
+uint32_t Get_Volt_Average1(uint16_t); 	
+uint32_t Get_Current_Average1(uint16_t); 
+void Accum_Volts1(uint32_t);
+void Accum_mAh1(uint32_t);
+
 // System information
 SystemInformation_t SystemInformation;
 
 // FRSKY SPORT GPS
 FrSkySportSensorGps FrskyGPS;             // Create GPS sensor with default ID
+FrSkySportSensorPassthrough FrskyPASS;    // Create DIY sensor with default ID for Passthrough 
 FrSkySportTelemetry FrskySport;           // Create telemetry object without polling
 
 // a SBUS object, which is on hardware  serial port 4 (SERCOM4):
@@ -94,7 +107,11 @@ void Radio_isr(void){
 #define GPS_ON_TIME   60 //  60 seconds
 #define GPS_OFF_TIME 600 // 600 seconds (10min)
 
-
+/* Debug
+#define POWER_DOWN_DELAY 5 // Wait 60 seconds after power is lost before go to low power mode.
+#define GPS_ON_TIME  60 //  60 seconds
+#define GPS_OFF_TIME 5 // 600 seconds (10min)
+*/
 void setup() {	
 	hwInit(); // Setup all pins according to hardware.
 	
@@ -104,6 +121,7 @@ void setup() {
 	
 	// Init Auxiliary serial port:
 	SerialAUX->begin(115200);
+//	SerialAUX->begin(57600);
 	
 	// Init USB serial debug /setup:
 	Serial.begin(115200);
@@ -152,6 +170,8 @@ void setup() {
 
 	// GPS INIT;
 	PowerONGPS();// Turn on GPS. price 31uA
+	ResetGPS();
+	
 	GPS = new GPSL80Lite();
 	GPSData = new GpsDataLite();
 	GPS->init(SerialGPS, GPSData, 57600, GPSRxPin, GPSTxPin);
@@ -168,7 +188,7 @@ void setup() {
 	SerialfrskySPort->begin(57600);  //Baudrate for frskys SPORT protocol.
 	pinPeripheral(fryskySmartPortRXPin, PIO_SERCOM_ALT); //Assign RX function to pin.
 	pinPeripheral(fryskySmartPortTXPin, PIO_SERCOM_ALT); //Assign TX function to pin.
-	FrskySport.begin(SerialfrskySPort, &FrskyGPS);
+	FrskySport.begin(SerialfrskySPort, &FrskyGPS, &FrskyPASS);
 			
 
 	// Set Timer 3 as 1 sec interrupt.
@@ -194,6 +214,7 @@ void loop() {
 		GPS->update();  // Function empty serial buffer and analyzes string.
 		BeaconService();
 		RadioService->Service();
+		MavlinkService();
 	
 		if(SystemInformation.SaftySwitchPushed == true){
 //			SerialAUX->println("System - Button pushed! - go to POWER_OFF");
@@ -266,7 +287,7 @@ void loop() {
 			case RUNNING_ON_BATTERY_GPS_OFF:
 			{
 //			    SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
-				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
+				if( ((SystemInformation.InputVoltage > 4.3) || (SystemInformation.USBVoltage > 2.0 )) && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
 //					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> STARTING_UP");		
 					}else if(SystemInformation.BatteryVoltage <= 3.0){
@@ -322,10 +343,10 @@ void loop() {
 
 void GoToSleep(void){
 //	SerialAUX->println("Going to sleep!");
-	delay(100);
+//	delay(100);
 
 	RadioService->PowerDown();
-	
+	auxSerialPowerDown();
 	//delay(10); // time to TX Serial.
 
 	//delay(1000);	
@@ -335,19 +356,22 @@ void GoToSleep(void){
 	__WFI();
 	USBDevice.attach();
 //	SerialAUX->print("Wake-up...");
-
+	auxSerialPowerUp();
 	RadioService->WakeUp();
-
+	
 //	SerialAUX->println("Done!");
 }
 
 void LowPowerTest(void){
 
 	PowerOFFGPS(); // Turn off  GPS to save battery.
-	PowerOFFGPSBackup(); // Ensure backup power is enabled for GPS.
-	
-	//
+	PowerOFFGPSBackup(); // Ensure backup power is enabled for GPS.	
 	LEDSaftySwitchOFF();
+
+	
+	digitalWrite(fryskyInvertPin, LOW);
+	pinMode(fryskySmartPortRXPin, INPUT_PULLDOWN);
+	
 	
 //	SerialAUX->println("Battery analog reading is " + String(analogRead(analogVbatPin)));
 //	SerialAUX->println("Battery voltage is " + String(getBatteryVoltage()) + "V");
@@ -395,23 +419,48 @@ int freeMemory() {
 	#endif  // __arm__
 }
 
+int debugCounter=0;
+uint8_t serCount = 0;
+//int attitudeMsgHZ;
 
 void One_second_Update(void){
 	//// only every second (check status)
 	while(SystemInformation.SecondCounter){
+		
+		//ADSB test:
+		//ADSB_test();
+		
 //		SerialAUX->print("One_Second_Updated...");
 		//				digitalWrite(led2Pin, HIGH);
 		SystemInformation.SecondCounter--;
-		
+
+		Serial.print(String(GPSData->UTC_hour+1) + ":" + String(GPSData->UTC_min) + ":" +  String(GPSData->UTC_sec) + " ");
 		SystemInformation.BatteryVoltage = getBatteryVoltage();
-//		SerialAUX->print("Battery Voltage (" + String(SystemInformation.BatteryVoltage) + "V) ");
+		Serial.print("Battery Voltage (" + String(SystemInformation.BatteryVoltage) + "V) ChargeState(" + String(GetChargeState()) + ") ");
 		SystemInformation.InputVoltage = getInputVoltage();
-//		SerialAUX->print("Input Voltage (" + String(SystemInformation.InputVoltage) + "V) ");
+		Serial.print("Input Voltage (" + String(SystemInformation.InputVoltage) + "V) ");
 		SystemInformation.USBVoltage = getInput5VVoltage();				
-//		SerialAUX->print("USB Voltage (" + String(SystemInformation.USBVoltage) + "V) ");
-		
+		Serial.print("USB Voltage (" + String(SystemInformation.USBVoltage) + "V) ");
+		Serial.print("\n\r");
+
 		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
-		FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
+		//FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
+		
+	//	Serial.println("Attitude " + String(attitudeMsgHZ) + "Hz");
+		//attitudeMsgHZ=0;
+		
+		if(debugCounter >= 10)
+		{
+			debugCounter=0;
+			if(serCount++ >= 8){
+				serCount=0;
+			}
+			char *text   = "0123456789";
+//			FrskyPASS.setDataTextMSG(text, 4);
+		}else{
+			debugCounter++;
+		}
+				
 //		SerialAUX->print("FRsky Data update...");					
 //		SerialAUX->print("Free RAM = "); //F function does the same and is now a built in library, in IDE > 1.0.0
 //		SerialAUX->println(freeMemory(), DEC);  // print how much RAM is available.
@@ -421,7 +470,7 @@ void One_second_Update(void){
 //		SerialAUX->println("");
 //		SerialAUX->println("Beacon Counter: " + String(SystemInformation.BeaconSecondCounter));
 
-		if( ((SystemInformation.InputVoltage <= 4.3) && (SystemInformation.USBVoltage <=2 ))|| (SystemInformation.SimulateRunningOnBattery)){
+		if( ((SystemInformation.InputVoltage <= 4.3) && (SystemInformation.USBVoltage <=2 )) || (SystemInformation.SimulateRunningOnBattery)){
 			if(SystemInformation.SecondsBatteryLowCounter < 255){
 				SystemInformation.SecondsBatteryLowCounter++;
 			}
@@ -462,3 +511,319 @@ void One_second_Update(void){
 	}
 }
 	
+	
+void ADSB_test(void){
+	
+	uint8_t txBuffer[512]; 
+	
+	//lets make an ADSB msg and sent it to pixhawk on Serial2:
+	mavlink_adsb_vehicle_t msgADSB;
+	mavlink_message_t msg;
+  
+	msgADSB.ICAO_address = 0xCAFF;
+	msgADSB.lat = 558450604;
+	msgADSB.lon = 124708557;
+	msgADSB.altitude = 35000;
+	msgADSB.heading = 90;
+	msgADSB.hor_velocity = 10;
+	msgADSB.ver_velocity = 0;
+	msgADSB.flags = 319;
+	msgADSB.squawk = 777;
+	msgADSB.altitude_type = 0; // BARO
+	msgADSB.callsign[0] = 'L';
+	msgADSB.callsign[1] = 'a';
+	msgADSB.callsign[2] = 'g';
+	msgADSB.callsign[3] = 'o';
+	msgADSB.callsign[4] = 'n';
+	msgADSB.callsign[5] = 'i';
+	msgADSB.callsign[6] = 0;
+	msgADSB.callsign[7] = 0;
+	msgADSB.callsign[8] = 0;
+	msgADSB.emitter_type = 14; // UAV
+	msgADSB.tslc = 0;
+  
+	mavlink_msg_adsb_vehicle_encode(0, 0, &msg, &msgADSB);
+	int chan = MAVLINK_COMM_0;
+	static const uint8_t mavlink_message_crcs[256] = {  50, 124, 137,   0, 237, 217, 104, 119,   0,   0, //  0-9
+		0,  89,   0,   0,   0,   0,   0,   0,   0,   0, // 10-19
+		214, 159, 220, 168,  24,  23, 170, 144,  67, 115, // 20-29
+		39, 246, 185, 104, 237, 244, 222, 212,   9, 254, // 30-39
+		230,  28,  28, 132, 221, 232,  11, 153,  41,  39, // 40-49
+		78, 196,   0,   0,  15,   3,   0,   0,   0,   0, // 50-59
+		0, 153, 183,  51,  59, 118, 148,  21,   0, 243, // 60-69
+		124,   0,  20,  38,  20, 158, 152, 143,   0,   0, // 70-79
+		0, 106,  49,  22, 143, 140,   5, 150,   0, 231, // 80-89
+		183,  63,  54,   0,   0,   0,   0,   0,   0,   0, // 90-99
+		175, 102, 158, 208,  56,  93, 138, 108,  32, 185, //100-109
+		84,  34, 174, 124, 237,   4,  76, 128,  56, 116, //110-119
+		134, 237, 203, 250,  87, 203, 220,  25, 226,  46, //120-129
+		29, 223,  85,   6, 229, 203,   1, 195, 109, 168, //130-139
+		181,  47,  72, 131, 127,   0, 103, 154, 178, 200, //140-149
+		134,   0, 208,   0,   0,   0,   0,   0,   0,   0, //150-159
+		0,   0,   0, 127,   0,  21,   0,   0,   1,   0, //160-169
+		0,   0,   0,   0,   0,   0,   0,   0,  47,   0, //170-179
+		0,   0, 229,   0,   0,   0,   0,   0,   0,   0, //180-189
+		0,   0,   0,  71,   0,   0,   0,   0,   0,   0, //190-199
+		0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //200-209
+		0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //210-219
+		34,  71,  15,   0,   0,   0,   0,   0,   0,   0, //220-229
+		163, 105,   0,  35,   0,   0,   0,   0,   0,   0, //230-239
+		0,  90, 104,  85,  95, 130, 184,   0,   8, 204, //240-249
+	49, 170,  44,  83,  46,   0};          //250-256
+	mavlink_finalize_message_chan(&msg, 0, 0, chan, msg.len, msg.len, mavlink_message_crcs[msg.msgid]);
+	uint16_t totalLength=0;
+	bzero(txBuffer, 512);
+	totalLength = mavlink_msg_to_send_buffer(txBuffer, &msg);
+
+	for(int a=0;a<totalLength;a++){
+		SerialAUX->write(txBuffer[a]);
+	}		
+	
+	
+	
+	
+	mavlink_statustext_t hello;
+	hello.severity=MAV_SEVERITY_INFO;
+	std::string s = "Hello to Lagonis Mavlink Server Program";
+	strcpy(hello.text, s.c_str());
+	
+}
+
+
+
+mavlink_status_t msgStatus;
+mavlink_message_t msgInput;
+//uint32_t lastTime;
+
+struct Battery {
+	float    mAh;
+	float    tot_mAh;
+	float    avg_cA;
+	float    avg_mV;
+	uint32_t prv_millis;
+	uint32_t tot_volts;      // sum of all samples
+	uint32_t tot_mW;
+	uint32_t samples;
+	bool ft;
+};
+
+struct Battery bat1 = {
+0, 0, 0, 0, 0, 0, 0, true};
+
+int32_t home_latitude, home_longitude;
+bool frameTypeSent=false;
+float cog;
+uint16_t currentWP;
+
+void MavlinkService(void){
+	
+	 if(SerialAUX->available()){ // service serial data from FC.
+		 uint8_t rbyte= SerialAUX->read();
+		 if (mavlink_parse_char(MAVLINK_COMM_1, rbyte, &msgInput, &msgStatus))
+		 {
+//			Serial.println("New Mavlink messages #" + String(msgInput.msgid));
+			// New Mavlink message received:		
+			 switch(msgInput.msgid)
+			 {
+				 
+				 case MAVLINK_MSG_ID_ATTITUDE: // #30
+				 {
+					 FrskyPASS.setDataAttitude( mavlink_msg_attitude_get_roll(&msgInput), mavlink_msg_attitude_get_pitch(&msgInput) );
+					 // attitudeMsgHZ++;
+					 // Serial.println("Attitude time: " + String(millis()-lastTime));
+					 // lastTime=millis();
+				 }
+				 break;
+				 
+				 
+				 case MAVLINK_MSG_ID_HEARTBEAT: // #0
+				 {
+					 uint8_t ap_type = mavlink_msg_heartbeat_get_type(&msgInput);
+					 if (ap_type == 5 || ap_type == 6 || ap_type == 18 || ap_type == 26 || ap_type == 27) break;
+					 // Ignore heartbeats from GCS (6) or Ant Trackers(5) or Onboard_Controllers(18) or Gremsy Gimbal(26) or ADSB (27))
+
+					 uint32_t ap_custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msgInput);
+					 uint8_t ap_base_mode = mavlink_msg_heartbeat_get_base_mode(&msgInput);
+					 uint8_t armed = ap_base_mode >> 7;
+					 FrskyPASS.setDataAPStatus((uint8_t)(ap_custom_mode + 1), 0, armed, armed);
+
+					 if(!frameTypeSent){
+						frameTypeSent=true;
+						FrskyPASS.setDataParameterFrameType(ap_type);						 
+					 }
+
+				 }
+				 break;
+
+
+				 case MAVLINK_MSG_ID_SYS_STATUS: // #1
+				 {
+					 float voltage_battery1 = (float)Get_Volt_Average1(mavlink_msg_sys_status_get_voltage_battery(&msgInput));        // V  from Get_Volt_Average1()
+					 voltage_battery1=voltage_battery1/1000; // now in [V]
+					 float current_battery1 = (float)Get_Current_Average1(mavlink_msg_sys_status_get_current_battery(&msgInput));     // dA,  100 = 1A
+					 current_battery1 = current_battery1 / 100; // now in [A]
+					 FrskyPASS.setDataBattery1Status(voltage_battery1,current_battery1,bat1.tot_mAh);
+				 }
+				 break;
+				 
+				 case MAVLINK_MSG_ID_PARAM_VALUE: // #22 (I think we need to request this!
+				 {
+					 uint16_t param_index = mavlink_msg_param_value_get_param_index(&msgInput);
+					
+					 if(param_index == 356){ // Battery 1 capacity parameter
+						FrskyPASS.setDataParameterBatteryPack1Capacity(mavlink_msg_param_value_get_param_value(&msgInput));
+					 }
+					 
+					 if(param_index == 364){ // Battery 2 capacity parameter
+						FrskyPASS.setDataParameterBatteryPack2Capacity(mavlink_msg_param_value_get_param_value(&msgInput));
+					 }
+				 }
+				 break;			 
+				 
+				 case MAVLINK_MSG_ID_STATUSTEXT: //#253
+				 {
+					 mavlink_statustext_t msg;
+					 mavlink_msg_statustext_decode(&msgInput, &msg);
+					 FrskyPASS.setDataTextMSG(msg.text, msg.severity);
+				 }
+				 break;
+
+
+				 case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: // #33
+				 {
+				    int32_t current_lat = mavlink_msg_global_position_int_get_lat(&msgInput);             // Latitude, expressed as degrees * 1E7
+				    int32_t current_lon = mavlink_msg_global_position_int_get_lon(&msgInput);             // Longitude, expressed as degrees * 1E7
+					int32_t alt_ag = mavlink_msg_global_position_int_get_relative_alt(&msgInput);         // Altitude above ground (millimeters)
+										
+					FrskyPASS.setDataHomeStatus_FromMavlink(home_latitude,home_longitude,current_lat,current_lon, alt_ag); // Home lat/long from MSG #242.
+				 }
+				 break;
+				 				 
+				    
+			 	 case MAVLINK_MSG_ID_HOME_POSITION: // #242
+			 	 {
+				 	 home_latitude = mavlink_msg_home_position_get_latitude(&msgInput);
+				 	 home_longitude = mavlink_msg_home_position_get_longitude(&msgInput);
+			 	 }
+			 	 break;
+				  
+				 case MAVLINK_MSG_ID_VFR_HUD:      //  #74
+			 	 {
+					 FrskyPASS.setDataVYAWStatus((float)mavlink_msg_vfr_hud_get_climb(&msgInput), (float)mavlink_msg_vfr_hud_get_groundspeed(&msgInput), (float)mavlink_msg_vfr_hud_get_heading(&msgInput));
+					 FrskyPASS.setDataVFRHUD(mavlink_msg_vfr_hud_get_airspeed(&msgInput), mavlink_msg_vfr_hud_get_throttle(&msgInput), mavlink_msg_vfr_hud_get_alt(&msgInput));
+			 	 }
+			 	 break;				 
+				  
+		
+		
+				 case MAVLINK_MSG_ID_BATTERY_STATUS: // #147 
+				 {
+
+					  uint8_t battery_id = mavlink_msg_battery_status_get_id(&msgInput);
+					  if (battery_id == 0) {  // Battery 1
+						  bat1.tot_mAh = (float)mavlink_msg_battery_status_get_current_consumed(&msgInput);    // mAh
+					  }/* 
+					  else if (battery_id == 1) {  // Battery 2
+						  pt_bat2_mAh = ap_current_consumed;
+					  }*/					 
+				 }
+				 break;
+				 
+				 
+			 	 case MAVLINK_MSG_ID_GPS_RAW_INT: // #24
+				 {
+					uint8_t fixtype = mavlink_msg_gps_raw_int_get_fix_type(&msgInput);  // 0 = No GPS, 1 =No Fix, 2 = 2D Fix, 3 = 3D Fix
+					uint8_t sat_visible =  mavlink_msg_gps_raw_int_get_satellites_visible(&msgInput);    // number of visible satellites
+					int32_t lat = mavlink_msg_gps_raw_int_get_lat(&msgInput);
+					int32_t lon = mavlink_msg_gps_raw_int_get_lon(&msgInput);
+					int32_t amsl = mavlink_msg_gps_raw_int_get_alt(&msgInput);     // 1m =1000
+					uint16_t hdop = mavlink_msg_gps_raw_int_get_eph(&msgInput);     // GPS HDOP 
+					
+					// for Mission Waypoint
+					cog=(float)mavlink_msg_gps_raw_int_get_cog(&msgInput); // in [cdeg]
+					cog=cog/100; // now in [deg]
+					
+					FrskyPASS.setDataGPSStatus(sat_visible, (fixtype & 0x03),lat,lon, hdop, ((fixtype>>2) & 0x03), amsl);
+					FrskyGPS.setData((float)(lat/1E7),(float)(lon/1E7),0,0,0,0,0,0,0,0,0); // only lat/lon data.	
+				 }
+				 break;
+
+			 	 case MAVLINK_MSG_ID_MISSION_COUNT: // #44   received back after #43 Mission_Request_List sent
+				 {
+					FrskyPASS.setDataParameterNumberOfWaypointInMission(mavlink_msg_mission_count_get_count(&msgInput));
+				 }
+				 break;	
+
+			 	 case MAVLINK_MSG_ID_MISSION_CURRENT: // #42 
+			 	 {
+					currentWP =  mavlink_msg_mission_current_get_seq(&msgInput);  
+				  }
+			 	 break;
+				  
+			 	 case MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT: // #62
+			 	 {
+					int16_t target_bearing = mavlink_msg_nav_controller_output_get_target_bearing(&msgInput);   // Bearing to current waypoint/target [degrees]
+					uint16_t wp_dist = mavlink_msg_nav_controller_output_get_wp_dist(&msgInput);                // Distance to active waypoint [meters]
+					float xtrack_error = mavlink_msg_nav_controller_output_get_xtrack_error(&msgInput);         // Current crosstrack error on x-y plane [meters]
+	
+					FrskyPASS.setDataMissionWaypoints(currentWP,wp_dist,xtrack_error,cog,target_bearing);								
+			 	 }
+			 	 break;
+
+				 default:
+				 break;
+			 }
+		 }
+	 }
+	
+}
+
+//=================================================================================================
+
+uint32_t Get_Current_Average1(uint16_t cA)  {   // in 100*milliamperes (1 = 100 milliampere)
+	
+	Accum_mAh1(cA);
+	
+	if (bat1.avg_cA < 1){
+		bat1.avg_cA = cA;  // Initialise first time
+	}
+
+	bat1.avg_cA = (bat1.avg_cA * 0.6666F) + (cA * 0.333F);  // moving average
+
+	return bat1.avg_cA;
+}
+
+uint32_t Get_Volt_Average1(uint16_t mV)  {
+
+	if (bat1.avg_mV < 1) bat1.avg_mV = mV;  // Initialise first time
+
+	// bat1.avg_mV = (bat1.avg_mV * 0.9) + (mV * 0.1);  // moving average
+	bat1.avg_mV = (bat1.avg_mV * 0.6666) + (mV * 0.3333);  // moving average
+	Accum_Volts1(mV);
+	return bat1.avg_mV;
+}
+
+void Accum_Volts1(uint32_t mVlt) {    //  mV   milli-Volts
+	bat1.tot_volts += (mVlt / 1000);    // Volts
+	bat1.samples++;
+}
+
+
+void Accum_mAh1(uint32_t cAs) {        //  cA    100 = 1A
+	if (bat1.ft) {
+		bat1.prv_millis = millis() -1;   // prevent divide zero
+		bat1.ft = false;
+	}
+	uint32_t period = millis() - bat1.prv_millis;
+	bat1.prv_millis = millis();
+	
+	double hrs = (float)(period / 3600000.0f);  // ms to hours
+
+	bat1.mAh = cAs * hrs;     //  Tiny cAh consumed this tiny period di/dt
+	// bat1.mAh *= 100;        //  dA to mA
+	bat1.mAh *= 10;           //  cA to mA
+	bat1.mAh *= 1.0625;       // Emirical adjustment Markus Greinwald 2019/05/21
+	bat1.tot_mAh += bat1.mAh;   //   Add them all in
+}
+
+//=================================================================================================
