@@ -9,7 +9,6 @@
 
 #include "FrSkySportSensor.h"
 #include "RingBuf.h" //FIFO
-#include "hw.h" // For SerialPrintHEX debug only.
 #include <math.h> // For roundf
 
 

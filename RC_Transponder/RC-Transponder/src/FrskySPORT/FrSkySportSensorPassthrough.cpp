@@ -457,7 +457,7 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 							serial.sendData(PASSTHROUGH_BAT1_STATUS_ID, bat1StatusPayload);
 							dataReplied=true; // indicate we used the slot.
 							Serial.print("Frsky PassThrough sending BAT1 status data: ");
-							SerialPrintHEX(bat1StatusPayload);
+//							SerialPrintHEX(bat1StatusPayload);
 							Serial.println("");
 						}/*else{
 							if( (now > bat1StatusTime) && !bat1StatusDataReady ){

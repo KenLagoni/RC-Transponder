@@ -7,9 +7,8 @@
 
 #include "RFService.h"
 
-RFService::RFService(E28_2G4M20S *Radio, GpsDataLite *GPS, SystemInformation_t *status) : RFProtocol(Radio)
+RFService::RFService(E28_2G4M20S *Radio, SystemInformation_t *status) : RFProtocol(Radio)
 {
-	this->GPSData = GPS;
 	this->SystemInformation = status;
 }
 
@@ -18,13 +17,14 @@ void RFService::SendBeacon()
 	// Make beacon msg
 	float pressure=0;
 	float groundspeed=0;
-	
+	Telegram_MSG_1 *msg = NULL;
+	/*
 	Telegram_MSG_1 *msg = new Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
 											 (uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
 											 GPSData->NumberOfSatellites, GPSData->FixDecimal, ((SystemInformation->state==RUNNING_ON_BATTERY_GPS_ON) || (SystemInformation->state==GET_READY_TO_RUN_ON_BATTERY) || (SystemInformation->state==RUNNING_ON_BATTERY_GPS_OFF)),
 											 pressure, groundspeed,
 										  	 RFProtocolStatus.SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
-											 SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);
+											 SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);*/
 
 	if(this->txFIFO.isFull()){
 //		SerialAUX->println("Error! - Tx FIFO Full, Unable to send Beacon message");
@@ -84,11 +84,12 @@ bool RFService::SaveTransponderBeacon(Telegram_MSG_1 *msg){
 	return false;
 }
 
+/*
 void RFService::SeccondCounter(){
 	if(RFProtocolStatus.SecondCounterSinceLasteGroundStationContact < 254){
 		RFProtocolStatus.SecondCounterSinceLasteGroundStationContact++;
 	}
-}
+}*/
 
 RFProtocol::RFProtocolStates_t RFService::RXHandler()
 {
@@ -175,6 +176,8 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 								 returnState=RX_IDLE;							
 							 }else{
 //								 SerialAUX->println("Yes!");
+								Telegram_MSG_1 msgReply = NULL;
+								/*
 								Telegram_MSG_1 msgReply = Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2,
  																		SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
  																		(uint32_t)GPSData->UTCTime, GPSData->Latitude, GPSData->Longitude,
@@ -183,7 +186,7 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 																		RFProtocolStatus.SecondCounterSinceLasteGroundStationContact
 																		// 100 // Debug
 																		,SystemInformation->BatteryVoltage,
-																		SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);
+																		SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);*/
 								Radio->SendRadioData(msgReply.GetRadioData());
 								returnState=TX_WITHOUT_REPLY;
 							 }
@@ -216,9 +219,9 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 						case CMD_Do_Power_Off:
 						{
 //							SerialAUX->println("Power off");
-							digitalWrite(led2Pin, HIGH);	
+/*							digitalWrite(led2Pin, HIGH);	
 							delay(2000);
-							digitalWrite(led2Pin, LOW);	
+							digitalWrite(led2Pin, LOW);	*/
 							SystemInformation->SaftySwitchPushed=true; // ensure next state is POWER_OFF
 						}
 						break;		

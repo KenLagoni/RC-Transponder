@@ -13,9 +13,6 @@
 #include "Telegram_MSG_1.h"
 #include "Telegram_MSG_2.h"
 
-// GPS
-#include "GPSL80Lite.h"
-
 // SystemInformation
 #include "main.h"
 
@@ -25,12 +22,12 @@ class RFService : public RFProtocol
 {
 	// Public functions to be used on all Messages
 	public:
-	RFService(E28_2G4M20S *RadioModule, GpsDataLite *GPS, SystemInformation_t *status); //constructor.
+	RFService(E28_2G4M20S *RadioModule, SystemInformation_t *status); //constructor.
 	
 	void SendBeacon(); // Add a beacon message to TX FIFO.
 	void PowerDown();
 	void WakeUp();
-	void SeccondCounter();
+	//void SeccondCounter();
 	
 	// General helper functions and varibels only used by inherited MSG classes.
 	protected:
@@ -51,7 +48,6 @@ class RFService : public RFProtocol
 
 	RFProtocolStatus_t RFProtocolStatus;
 	
-	GpsDataLite *GPSData = nullptr;
 	SystemInformation_t *SystemInformation = nullptr;	
 	Telegram_MSG_2 SavedBeacons[SAVED_BEACONS_FIFO_SIZE];
 	

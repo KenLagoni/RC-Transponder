@@ -5,7 +5,6 @@
 	Not for commercial use
  */ 
 #include "timer.h"
-#include "hw.h"
 #include "main.h"
 #include "Arduino.h"
 #include "RFService.h"
@@ -80,8 +79,6 @@ void TC3_Handler() {
 	if (TC->INTFLAG.bit.MC0 == 1) {
 		TC->INTFLAG.bit.MC0 = 1;
 		// Write callback here!!!
-		
-		RadioService->SeccondCounter(); // Count up the Seconds since laste ground contact.
 		
 		if(SystemInformation.SecondCounter < 254){
 			SystemInformation.SecondCounter++;

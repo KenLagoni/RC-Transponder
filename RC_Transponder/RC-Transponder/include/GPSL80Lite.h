@@ -20,9 +20,25 @@
 #define MAX_LAT_SIZE 9	
 #define MAX_LONG_SIZE 10	
 
+class GPSL80Lite
+{
+  public:
+    GPSL80Lite();
 
-struct GpsDataLite
-{	
+	#if defined (__AVR__) || (__avr__)	
+//		void init(SoftwareSerial *ptr1, GpsDataLite *ptr3);
+		void init(SoftwareSerial *ptr1, unsigned long baudrate);
+	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
+//		void init(Uart *ptr1, GpsDataLite *ptr3);
+		void init(Uart *ptr1, unsigned long baudrate);
+	#endif
+	
+	void update();
+	void loopback();
+//	void printGPSData();
+
+  private:
+  struct GpsDataLite {	
 	float UTCTime;  					    	// UTC time Zulu in seconds 130032.000 -> 130032
 	uint8_t UTC_sec;
 	uint8_t UTC_min;
@@ -47,27 +63,8 @@ struct GpsDataLite
 	uint8_t CRCErrors;			// Numbers of CRC errors detected. (will stop at 255).
 	uint8_t ReadErrors;			// Number of read errors (will stop at 255).
 	*/
-};
+  };
 
-
-class GPSL80Lite
-{
-  public:
-    GPSL80Lite();
-
-	#if defined (__AVR__) || (__avr__)	
-//		void init(SoftwareSerial *ptr1, GpsDataLite *ptr3);
-		void init(SoftwareSerial *ptr1, GpsDataLite *ptr2, unsigned long baudrate, int rxPin , int txPin);
-	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
-//		void init(Uart *ptr1, GpsDataLite *ptr3);
-		void init(Uart *ptr1, GpsDataLite *ptr2, unsigned long baudrate, int rxPin , int txPin);
-	#endif
-	
-	void update();
-	void loopback();
-	void printGPSData();
-
-  private:
 
 	enum StateMachine{
 		LOOKING_FOR_START,
@@ -108,8 +105,8 @@ class GPSL80Lite
 	uint8_t i = 0;							// counter for loop used in update();
 
 
-	GpsDataLite *dataOut = NULL;               // Pointer to the users GpsDataLite struct (where validated data will be saved).	
-	GpsDataLite tempData;					// struct where data is saved before it is verified.
+	GpsDataLite dataOut;               // GpsDataLite struct (where validated data will be saved).	
+	GpsDataLite tempData;			   // struct where data is saved before it is verified.
 	
 	uint8_t byteNumber = 0;
 	
@@ -118,7 +115,6 @@ class GPSL80Lite
 	uint8_t CRC = 0;			// Varible for calculated CRC.
 	uint8_t CRC_RESULT = 0;		// Varible for calculated CRC result.
 	uint8_t decimal = 0;
-	
 };
 
 #endif

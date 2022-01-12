@@ -12,7 +12,7 @@
 	#include "wiring_private.h" // need for pinPeripheral when running on SAMD ARM (Arduino MKRZero)
 #endif
 #include <stdlib.h>
-#include "hw.h"
+
 /*
 Uart::Uart(SERCOM *_s, uint8_t _pinRX, uint8_t _pinTX, SercomRXPad _padRX, SercomUartTXPad _padTX) :
 Uart(_s, _pinRX, _pinTX, _padRX, _padTX, NO_RTS_PIN, NO_CTS_PIN)
@@ -27,27 +27,22 @@ GPSL80Lite::GPSL80Lite()
 {
 }
 	#if defined (__AVR__) || (__avr__)
-		void GPSL80Lite::init(SoftwareSerial *ptr1, GpsDataLite *ptr2, unsigned long baudrate, int rxPin , int txPin)
+		void GPSL80Lite::init(SoftwareSerial *ptr1, unsigned long baudrate, int rxPin , int txPin)
 	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
-		void GPSL80Lite::init(Uart *ptr1, GpsDataLite *ptr2, unsigned long baudrate, int rxPin , int txPin)
+		//void GPSL80Lite::init(Uart *ptr1, unsigned long baudrate, int rxPin , int txPin)
+		void GPSL80Lite::init(Uart *ptr1, unsigned long baudrate)
 	#endif
 {
 	SerialGPS = ptr1;
-	dataOut =  ptr2;
 	
 	// Reset data:
 	uint8_t i=0;
 
-	dataOut->DataIsValid = false;
+	dataOut.DataIsValid = false;
 	
 	// Setup and configure GPS
 	SerialGPS->begin(9600); // 9600 is default baud after power cycle.. which we don't do here but assumes had been done.
 	
-	#if defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
-		pinPeripheral(txPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
-		pinPeripheral(rxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
-	#endif
-		
 	delay(1000);
 	SerialGPS->println("$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29"); //Setup the GPS for only GPGGA output at 1Hz.
 	delay(1000);
@@ -92,11 +87,6 @@ GPSL80Lite::GPSL80Lite()
 		 break;
 	 }
 
-	#if defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
-		pinPeripheral(txPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
-		pinPeripheral(rxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
-	#endif	
-	
 	resetTempData();
 	updateData();	
 }
@@ -170,7 +160,7 @@ void GPSL80Lite::updateData()
 {
 	//	130532
 	uint8_t a = 0;
-	dataOut->UTCTime=tempData.UTCTime;
+	dataOut.UTCTime=tempData.UTCTime;
 	uint32_t secconds;
 	uint32_t minutes;
 	uint32_t hours;
@@ -178,15 +168,15 @@ void GPSL80Lite::updateData()
 	hours = tempData.UTCTime / 10000;
 	minutes = tempData.UTCTime / 100 - hours*100;
 	secconds = tempData.UTCTime - hours*10000 - minutes*100;
-	dataOut->UTC_sec = (uint8_t)secconds;
-	dataOut->UTC_min = (uint8_t)minutes;
-	dataOut->UTC_hour = (uint8_t)hours;
+	dataOut.UTC_sec = (uint8_t)secconds;
+	dataOut.UTC_min = (uint8_t)minutes;
+	dataOut.UTC_hour = (uint8_t)hours;
 		
 	for(a=0;a<MAX_LAT_SIZE;a++){
-		dataOut->LatitudeDEG[a]=tempData.LatitudeDEG[a];
+		dataOut.LatitudeDEG[a]=tempData.LatitudeDEG[a];
 	}
 	for(a=0;a<MAX_LONG_SIZE;a++){
-		dataOut->LongitudeDEG[a]=tempData.LongitudeDEG[a];
+		dataOut.LongitudeDEG[a]=tempData.LongitudeDEG[a];
 	}
 
 	/*
@@ -208,25 +198,25 @@ void GPSL80Lite::updateData()
 	int32_t factor = 10000000;
 	if(tempData.LatitudeDEG[0] != 0)
 	{
-		dataOut->Latitude = 0;
+		dataOut.Latitude = 0;
 		// Convert the Latitude*1000 to int32 (no decimal).
 		for(a=0;a<MAX_LAT_SIZE;a++){
 			if(tempData.LatitudeDEG[a] != '.'){ // Don't convert the dot!
 				//			Serial.println("Input for a=" + String(a) + " :" + String(tempData.LatitudeDEG[a])+":");
 				//		    Serial.println("Factor=" + String(factor) );
-				dataOut->Latitude += charToInt(tempData.LatitudeDEG[a]) * factor;
+				dataOut.Latitude += charToInt(tempData.LatitudeDEG[a]) * factor;
 				//			Serial.println("Output for a=" + String(a) + " :" + String(dataOut->Latitude)+":");
 				factor /= 10;
 			}
 		}
 		if(tempData.LatitudeDIR == 'S'){
-			dataOut->Latitude *= -1;
+			dataOut.Latitude *= -1;
 		}
 
 	}
-	float Degrees = (float)(dataOut->Latitude / 1000000);
-	float Minutes = ((float)(dataOut->Latitude) / 10000) - (Degrees * 100);
-	dataOut->LatitudeDecimal = Degrees + Minutes/60;
+	float Degrees = (float)(dataOut.Latitude / 1000000);
+	float Minutes = ((float)(dataOut.Latitude) / 10000) - (Degrees * 100);
+	dataOut.LatitudeDecimal = Degrees + Minutes/60;
 	/*
 	tempData.LongitudeDEG[0] = '1';
 	tempData.LongitudeDEG[1] = '8';
@@ -243,19 +233,19 @@ void GPSL80Lite::updateData()
 	if(tempData.LongitudeDEG[0] != 0)
 	{
 		factor = 100000000;
-		dataOut->Longitude = 0;
+		dataOut.Longitude = 0;
 		// Convert the Latitude*1000 to int32 (no decimal).
 		for(a=0;a<MAX_LONG_SIZE;a++){
 			if(tempData.LongitudeDEG[a] != '.'){ // Don't convert the dot!
 //							   Serial.println("Input for a=" + String(a) + " :" + String(tempData.LongitudeDEG[a])+":");
 //							   Serial.println("Factor=" + String(factor) );
-				dataOut->Longitude += charToInt(tempData.LongitudeDEG[a]) * factor;
+				dataOut.Longitude += charToInt(tempData.LongitudeDEG[a]) * factor;
 				 			//Serial.println("Output for a=" + String(a) + " :" + String(dataOut->Longitude)+":");
 				factor /= 10;
 			}
 		}
 		if(tempData.LongitudeDIR == 'W'){
-			dataOut->Longitude *= -1;
+			dataOut.Longitude *= -1;
 		}
 	}
 	
@@ -276,16 +266,16 @@ void GPSL80Lite::updateData()
 	*/
 	// 01224.0718E -> 12240718 || 01224.0718W -> -12240718
 //	Serial.println("Longitude uint: " + String(dataOut->Longitude));	
-	Degrees = (float)(dataOut->Longitude / 1000000);
+	Degrees = (float)(dataOut.Longitude / 1000000);
 //	Serial.println("");
 //	Serial.println("Degrees: " + String(Degrees,4));	
-	Minutes = ((float)(dataOut->Longitude) / 10000) - (Degrees * 100);
+	Minutes = ((float)(dataOut.Longitude) / 10000) - (Degrees * 100);
 //	Serial.println("Minutes: " + String(Minutes,4));
 //	
 //				   -12
 //					   -1224.0718 + 1200 = 1200 - 1224.0718 = -24,0718 	
 	
-	dataOut->LongitudeDecimal = Degrees + Minutes/60;
+	dataOut.LongitudeDecimal = Degrees + Minutes/60;
 //	Serial.println("Longitude Decimal: " + String(dataOut->LongitudeDecimal,6));	
 //	do{}while(1);
 	
@@ -298,17 +288,17 @@ void GPSL80Lite::updateData()
 	Serial.println(":" + String(dataOut->Longitude) + ":");
 	Serial.println("");*/
 
-	dataOut->LatitudeDIR=tempData.LatitudeDIR;
-	dataOut->LongitudeDIR=tempData.LongitudeDIR;
-	dataOut->Fix=tempData.Fix;
-	dataOut->FixDecimal=tempData.FixDecimal;
-	dataOut->NumberOfSatellites=tempData.NumberOfSatellites;
-	dataOut->HDOP=tempData.HDOP;
-	dataOut->Altitude=tempData.Altitude;
-	dataOut->AltitudeUnit=tempData.AltitudeUnit;
-	dataOut->DataIsValid=true;
+	dataOut.LatitudeDIR=tempData.LatitudeDIR;
+	dataOut.LongitudeDIR=tempData.LongitudeDIR;
+	dataOut.Fix=tempData.Fix;
+	dataOut.FixDecimal=tempData.FixDecimal;
+	dataOut.NumberOfSatellites=tempData.NumberOfSatellites;
+	dataOut.HDOP=tempData.HDOP;
+	dataOut.Altitude=tempData.Altitude;
+	dataOut.AltitudeUnit=tempData.AltitudeUnit;
+	dataOut.DataIsValid=true;
 }
-
+/*
 void GPSL80Lite::printGPSData(void)
 {
 	Serial.print("Time         :");
@@ -347,7 +337,7 @@ void GPSL80Lite::printGPSData(void)
 	Serial.print(String(String(dataOut->Altitude)+dataOut->AltitudeUnit));
 	Serial.println(":");
 }
-
+*/
 bool GPSL80Lite::inputValid(char input)
 {
 	if((input == '\r') || (input == '$')) 
@@ -699,30 +689,3 @@ void GPSL80Lite::update()
 	}while(dataReady); // loop until buffer is empty	
 	
 }
-
-
-
-/*
-
-					if((dataLength > MAX_HEADER_SIZE) || (_newChar == '\r') || (_newChar == '$')) 
-									// If header is to long, we assume that we missed a ',' thus restart. 
-									// If a '\r' is detected at this point we must restart.
-									// If a '$' is detected at this point we must restart.
-					{
-						if(ReadErrors < 255)
-							ReadErrors++;
-						//Serial.println("Error in state READ_HEADER!");
-						state=LOOKING_FOR_START; // Go back to start					
-					}
-					else if(_newChar == ',') // end of header read
-					{			
-						dataLength=0;    // reset coutner for next state.				
-						
-						state=READ_DATA; // go to next state.			
-					}
-					else
-					{
-//						results[0]+=_newChar; // Add input char to result
-//						_incommingData +=_newChar; // _incommingData is later used for CRC check.
-					}
-*/

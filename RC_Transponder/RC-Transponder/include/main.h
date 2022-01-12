@@ -8,10 +8,8 @@
 
 #ifndef MAIN_H_
 #define MAIN_H_
-#include "hw.h"
 
-
-extern class RFService *RadioService;
+//extern class RFService *RadioService;
 
 enum TRANSPONDER_STATES {
 	STARTING_UP,
@@ -26,7 +24,8 @@ extern struct SystemInformation_t
 {	
 	// Hardware and Software version defines
 	const float FIRMWARE_VERSION = 1.01;
-	const uint8_t pcbVersion = PCB_VERSION;
+	//const uint8_t pcbVersion = PCB_VERSION;
+	const uint8_t pcbVersion = 12;
 	
 	// Counters
 	uint8_t SecondCounter = 0;
@@ -42,13 +41,10 @@ extern struct SystemInformation_t
 	//Serial number:
 	volatile uint32_t *AddrSerialNumber1 = (volatile uint32_t *)0x0080A00C;
 	uint32_t SerialNumber1= *AddrSerialNumber1;
-
 	volatile uint32_t *AddrSerialNumber2 = (volatile uint32_t *)0x0080A040;
 	uint32_t SerialNumber2= *AddrSerialNumber2;
-
 	volatile uint32_t *AddrSerialNumber3 = (volatile uint32_t *)0x0080A044;
 	uint32_t SerialNumber3= *AddrSerialNumber3;
-
 	volatile uint32_t *AddrSerialNumber4 = (volatile uint32_t *)0x0080A048;
 	uint32_t SerialNumber4= *AddrSerialNumber4;	
 
