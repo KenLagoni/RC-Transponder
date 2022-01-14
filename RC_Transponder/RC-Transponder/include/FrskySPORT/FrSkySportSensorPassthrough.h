@@ -184,5 +184,7 @@ class FrSkySportSensorPassthrough : public FrSkySportSensor
 	uint16_t prep_number(int32_t number, uint8_t digits, uint8_t power); // From Arducopter 3.5.5 code
 	int16_t Add360(int16_t arg1, int16_t arg2);
 	float wrap_360(int16_t angle);
+	
+	void SerialPrintHEX(int data);
 };
 #endif // _FRSKY_SPORT_SENSOR_PASSTHROUGH_H_
