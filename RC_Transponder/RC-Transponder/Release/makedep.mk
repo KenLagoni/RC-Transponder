@@ -12,15 +12,19 @@ src\FrskySPORT\FrSkySportSensor.cpp
 
 src\FrskySPORT\FrSkySportSensorGps.cpp
 
+src\FrskySPORT\FrSkySportSensorPassthrough.cpp
+
 src\FrskySPORT\FrSkySportSingleWireSerial.cpp
 
 src\FrskySPORT\FrSkySportTelemetry.cpp
 
 src\GPSL80Lite.cpp
 
-src\hw.cpp
-
 src\main.cpp
+
+src\Transponder_hal.cpp
+
+src\MavlinkHandler.cpp
 
 src\RF-Protocol\RFProtocol.cpp
 
