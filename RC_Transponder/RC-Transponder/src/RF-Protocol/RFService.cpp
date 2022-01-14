@@ -22,8 +22,6 @@ RFService::RFService(E28_2G4M20S *Radio, SystemInformation_t *status) : RFProtoc
 
 void RFService::SendBeacon()
 {	
-//	Telegram_MSG_1 *msg = NULL;
-	
 	Telegram_MSG_1 *msg = new Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
 											 SystemInformation->UTCTime, SystemInformation->Latitude, SystemInformation->Longitude,
 											 SystemInformation->NumberOfSat, SystemInformation->Fix, ((SystemInformation->state==RUNNING_ON_BATTERY_GPS_ON) || (SystemInformation->state==GET_READY_TO_RUN_ON_BATTERY) || (SystemInformation->state==RUNNING_ON_BATTERY_GPS_OFF)),

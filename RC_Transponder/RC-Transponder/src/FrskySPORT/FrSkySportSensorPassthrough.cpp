@@ -8,26 +8,13 @@
 
 FrSkySportSensorPassthrough::FrSkySportSensorPassthrough(SensorId id) : FrSkySportSensor(id) { }
 
-	
-	void FrSkySportSensorPassthrough::SerialPrintHEX(int data){
-		Serial.print("0x");
-		if(data < 16){
-			Serial.print("0");
-		}
-		Serial.print(data,HEX);
-	}
-
-
 void FrSkySportSensorPassthrough::setDataTextMSG(char* text, uint8_t severity) // Severity 0-4 (buzzer sound) 5-7 (ping sound). 0-3=Text Red, 4=Warning text yellow, 5-7=text white.
 {
   	temp_payload=0;
   	char chr=0;
-	Serial.println("Frsky PassThrough setData adding text \"" + String(text) + "\" with data: ");
 	do{
   		for(int a=0;a<4;a++){
 	  		chr = *text;
-			SerialPrintHEX(chr);
-			Serial.print(" ");	
 	  		temp_payload |= (uint32_t)chr;
 	  		if(a<3){
 		  		temp_payload = temp_payload << 8;
@@ -39,32 +26,23 @@ void FrSkySportSensorPassthrough::setDataTextMSG(char* text, uint8_t severity) /
   		}
 		
 		if(chr != 0){
-	//		Serial.print(" Pushing payload: ");
-	//		SerialPrintHEX(payload);
-	//		Serial.println("");
 			if(!this->textFIFO.isFull()){
 				this->textFIFO.push(temp_payload);
 			}else{
-				Serial.println("Frsky PassThrough STATTUS TEXT buffer full!");
+				// Unhandled 
 			}
 			temp_payload=0;
 		}
 	}while(chr != 0);
 
-//	Serial.print(" last payload: ");
-//	SerialPrintHEX(payload);
-//	Serial.print(" Severity(" + String(severity) + ") pushing modified payload: ");
-
 	temp_payload |= (severity & 0x4)<<21;
 	temp_payload |= (severity & 0x2)<<14;
 	temp_payload |= (severity & 0x1)<<7;
-//	SerialPrintHEX(payload);
-//	Serial.println("");
 
 	if(!this->textFIFO.isFull()){
 		this->textFIFO.push(temp_payload);
 	}else{
-		Serial.println("Frsky PassThrough STATTUS TEXT buffer full!");
+		// Unhandled 
 	}
 }
 
@@ -77,13 +55,6 @@ void FrSkySportSensorPassthrough::setDataAPStatus(uint8_t flightMode, uint8_t si
 	apStatusPayload |= (uint32_t)((armed & 0x01) << 8); // land complete on next bit.
 	apStatusDataReady = true;
 }
-/*
-void FrSkySportSensorPassthrough::setDataAPStatus_Part2(uint8_t imu_temp){
-
-	apStatusPayload |= (uint32_t)((imu_temp & 0x3F) << 26); // land complete on next bit.
-	apStatusDataReady = true;
-}
-*/
 
 void FrSkySportSensorPassthrough::setDataGPSStatus(uint8_t numberOfSat, uint8_t fix, int32_t lattidue, int32_t longitude, uint16_t hdop, uint8_t advanced, int32_t altitudeMSL){
 	gpsStatusPayload = 0;
@@ -174,7 +145,6 @@ void FrSkySportSensorPassthrough::setDataHomeStatus_FromMavlink(int32_t homeLati
 // distanceToHome	  [meters]
 // altitudeDiffToHome [meters]
 // angleToHome		  [degrees]
-
 void FrSkySportSensorPassthrough::setDataHomeStatus(float distanceToHome, float altitudeDiffToHome, float angleToHome){
 	
 	homeStatusPayload = 0;
@@ -197,7 +167,6 @@ void FrSkySportSensorPassthrough::setDataHomeStatus(float distanceToHome, float 
 // Vertical climb	   [m/s]
 // ground speed        [m/s]
 // heading 		       [degrees] 0-360
-
 void FrSkySportSensorPassthrough::setDataVYAWStatus(float vclimb, float groundSpeed, float heading){
 	
 	 vyawStatusPayload = 0;
@@ -291,7 +260,6 @@ uint32_t FrSkySportSensorPassthrough::packBatteryPayload(float voltage, float cu
 // xTrack error				     [meters]
 // Course over ground			[degrees]
 // Next Waypoint offest bearing [degrees]
-
 void FrSkySportSensorPassthrough::setDataMissionWaypoints(uint16_t wpNumber, uint16_t distanceToNextWaypoint, float xTrackError, float cog, int16_t nextWPbearing){
 	missionStatusPayload = 0;
   
@@ -354,8 +322,6 @@ void FrSkySportSensorPassthrough::setDataVFRHUD(float airspeed, uint16_t throttl
 }
 
 
-
-
 void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8_t id, uint32_t now)
 {
   if(sensorId == id)
@@ -373,7 +339,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 			case HIGH: // High priority sensors 
 			{
 				do{
-//					Serial.print("H");	
 					switch(sensorDataIdx)
 					{
 						case 0:
@@ -384,16 +349,10 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 									this->textFIFO.pop(textPayload);			
 									msgRetransmit=0;				
 								}
-//								Serial.println("Frsky text payload size:"+String(this->textFIFO.size()));
 								textTime = now + PASSTHROUGH_TEXT_DATA_PERIOD;
 								serial.sendData(PASSTHROUGH_TEXT_MSG_ID, textPayload);									
 								dataReplied=true; // indicate we used the slot. 	
-	//							Serial.print("A(" + String(this->textFIFO.size()) + ")-");	
-		//						Serial.println("Frsky PassThrough sending Status Text data.");		
-			/*					Serial.print("Frsky PassThrough sending payload: ");
-								SerialPrintHEX(payload);
-								Serial.println("");
-			*/				}
+							}
 						}
 						break;
 
@@ -405,8 +364,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								attitudeDataReady = false;
 								serial.sendData(PASSTHROUGH_ATTITUDE_ID, attitudePayload);		
 								dataReplied=true; // indicate we used the slot.	
-		//						Serial.print("B-");	
-					//			Serial.println("Frsky PassThrough sending Attitude data.");
 							}
 						}
 						break;
@@ -422,7 +379,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								paramsTime = now + PASSTHROUGH_PARAMS_PERIOD;
 								serial.sendData(PASSTHROUGH_PARAMS_ID, paramsPayload);									
 								dataReplied=true; // indicate we used the slot. 
-			//					Serial.print("C-");		
 							}
 						}
 						break;					
@@ -442,7 +398,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 			case LOW: // High priority sensors 
 			{
 				do{
-					//Serial.print("L");	
 					switch(LowPrioritySensorDataIdx)
 					{
 						case 0:
@@ -453,8 +408,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								apStatusDataReady=false;
 								serial.sendData(PASSTHROUGH_AP_STATUS_ID, apStatusPayload);
 								dataReplied=true; // indicate we used the slot.
-						//		Serial.print("0-");		
-					//			Serial.println("Frsky PassThrough sending AP Status data.");
 							}
 						}
 						break;		
@@ -467,8 +420,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								gpsStatusDataReady=false;
 								serial.sendData(PASSTHROUGH_GPS_STATUS_ID, gpsStatusPayload);
 								dataReplied=true; // indicate we used the slot.
-							//	Serial.print("1-");		
-								//			Serial.println("Frsky PassThrough sending GPS status data.");
 							}
 						}
 						break;	
@@ -481,15 +432,7 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								bat1StatusDataReady=false;
 								serial.sendData(PASSTHROUGH_BAT1_STATUS_ID, bat1StatusPayload);
 								dataReplied=true; // indicate we used the slot.
-//								Serial.print("2-");										
-	//							Serial.print("Frsky PassThrough sending BAT1 status data: ");
-	//							SerialPrintHEX(bat1StatusPayload);
-	//							Serial.println("");
-							}/*else{
-								if( (now > bat1StatusTime) && !bat1StatusDataReady ){
-									Serial.println("it is time to send bat1Status, but no new data! nextTime:" + String(bat1StatusTime) + " Now:" + String(now));
-								}
-							}*/
+							}
 						}
 						break;		
 					
@@ -501,8 +444,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								homeStatusDataReady=false;
 								serial.sendData(PASSTHROUGH_HOME_STATUS_ID, homeStatusPayload);
 								dataReplied=true; // indicate we used the slot.
-	//							Serial.print("3-");		
-					//			Serial.println("Frsky PassThrough sending HOME status data.");
 							}
 						}
 						break;
@@ -515,8 +456,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								vyawStatusDataReady=false;
 								serial.sendData(PASSTHROUGH_VYAW_STATUS_ID, vyawStatusPayload);
 								dataReplied=true; // indicate we used the slot.
-		//						Serial.print("4-");		
-								//			Serial.println("Frsky PassThrough sending VELANDYAW status data.");
 							}
 						}
 						break;
@@ -529,7 +468,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								bat2StatusDataReady=false;
 								serial.sendData(PASSTHROUGH_BAT2_STATUS_ID, bat2StatusPayload);
 								dataReplied=true; // indicate we used the slot.
-			//					Serial.print("5-");								
 							}
 						}
 						break;	
@@ -542,7 +480,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								vfrHudDataReady=false;
 								serial.sendData(PASSTHROUGH_VFR_HUD_ID, vfrHudPayload);
 								dataReplied=true; // indicate we used the slot.
-				//				Serial.print("6-");
 							}
 						}
 						break;
@@ -555,7 +492,6 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 								missionStatusDataReady=false;
 								serial.sendData(PASSTHROUGH_MISSION_STATUS_ID,  missionStatusPayload);
 								dataReplied=true; // indicate we used the slot.
-				//				Serial.print("7-");
 							}
 						}
 						break;
@@ -574,18 +510,15 @@ void FrSkySportSensorPassthrough::send(FrSkySportSingleWireSerial& serial, uint8
 			break;
 		} // switch(nextSensorType)	
 	}while(!dataReplied && (lowPriorityDataReady || highPriorityDataReady) );
-	//Serial.println("Reply(" + String(dataReplied) + ") High(" + String(highPriorityDataReady) + ") Low(" + String(lowPriorityDataReady) + ")");
   } // if(sensorId == id)
 }
 
 
-
 uint16_t FrSkySportSensorPassthrough::decodeData(uint8_t id, uint16_t appId, uint32_t data)
 {
- 
+  // Not implemented.
   return 0;
 }
-
 
 uint32_t FrSkySportSensorPassthrough::createMask(uint8_t lo, uint8_t hi) {
 	uint32_t r = 0;

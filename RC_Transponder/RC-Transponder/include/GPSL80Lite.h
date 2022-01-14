@@ -36,6 +36,7 @@ class GPSL80Lite
 	void update();
 	void loopback();
 	
+	bool dataIsValid(void);
 	uint32_t getUTCTime(void);
 	int32_t getLatitude(void);
 	int32_t getLongitude(void);

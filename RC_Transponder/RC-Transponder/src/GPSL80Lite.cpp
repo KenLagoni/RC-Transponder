@@ -5,29 +5,19 @@
 	Not for commercial use
  */ 
 #include "GPSL80Lite.h"
-#include "Arduino.h" // Needed for Serial.print
+//#include "Arduino.h" // Needed for Serial.print
 #if defined (__AVR__) || (__avr__)
 	#include <SoftwareSerial.h>
 #elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
-	#include "wiring_private.h" // need for pinPeripheral when running on SAMD ARM (Arduino MKRZero)
+//	#include "wiring_private.h" // need for pinPeripheral when running on SAMD ARM (Arduino MKRZero)
 #endif
 #include <stdlib.h>
-
-/*
-Uart::Uart(SERCOM *_s, uint8_t _pinRX, uint8_t _pinTX, SercomRXPad _padRX, SercomUartTXPad _padTX) :
-Uart(_s, _pinRX, _pinTX, _padRX, _padTX, NO_RTS_PIN, NO_CTS_PIN)
-{
-}
-
-Uart::Uart(SERCOM *_s, uint8_t _pinRX, uint8_t _pinTX, SercomRXPad _padRX, SercomUartTXPad _padTX, uint8_t _pinRTS, uint8_t _pinCTS)
-{
-*/
 
 GPSL80Lite::GPSL80Lite()
 {
 }
 	#if defined (__AVR__) || (__avr__)
-		void GPSL80Lite::init(SoftwareSerial *ptr1, unsigned long baudrate, int rxPin , int txPin)
+		void GPSL80Lite::init(SoftwareSerial *ptr1, unsigned long baudrate)
 	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
 		//void GPSL80Lite::init(Uart *ptr1, unsigned long baudrate, int rxPin , int txPin)
 		void GPSL80Lite::init(Uart *ptr1, unsigned long baudrate)
@@ -43,11 +33,14 @@ GPSL80Lite::GPSL80Lite()
 	// Setup and configure GPS
 	SerialGPS->begin(9600); // 9600 is default baud after power cycle.. which we don't do here but assumes had been done.
 	
+	// pinPeripheral Not needed since changed in variant.cpp:
+	//  { PORTA,  8, PIO_SERCOM_ALT,  (PIN_ATTR_DIGITAL                                ), ADC_Channel16,  NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NMI  }, // UART:  SERCOM2/PAD[0] for TransponderRC
+	//  { PORTA,  9, PIO_SERCOM_ALT,  (PIN_ATTR_DIGITAL                                ), ADC_Channel17,  NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_NONE }, // UART:  SERCOM2/PAD[1] for TransponderRC
 	// pinPeriphael must be done after begin, because it resets them for some reason.
-	const int GPSTxPin = 11;           // Chip pin is 13 or PA08 (SERCOM2 PAD0 TX)
-	const int GPSRxPin = 12;           // Chip pin is 14 or PA09 (SERCOM2 PAD1 RX)
-	pinPeripheral(GPSTxPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
-	pinPeripheral(GPSRxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
+	// const int GPSTxPin = 11;           // Chip pin is 13 or PA08 (SERCOM2 PAD0 TX)
+	// const int GPSRxPin = 12;           // Chip pin is 14 or PA09 (SERCOM2 PAD1 RX)
+	// pinPeripheral(GPSTxPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
+	// pinPeripheral(GPSRxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
 		
 	delay(1000);
 	SerialGPS->println("$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29"); //Setup the GPS for only GPGGA output at 1Hz.
@@ -92,9 +85,10 @@ GPSL80Lite::GPSL80Lite()
 		 default:
 		 break;
 	 }
-
-	pinPeripheral(GPSTxPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
-	pinPeripheral(GPSRxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
+	 
+//  Not needed due to set to default PIO_SERCOM_ALT in variant.cpp
+//	pinPeripheral(GPSTxPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
+//	pinPeripheral(GPSRxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
 	
 	resetTempData();
 	updateData();	
@@ -695,6 +689,11 @@ void GPSL80Lite::update()
 		}			
 	}while(dataReady); // loop until buffer is empty	
 	
+}
+
+
+bool GPSL80Lite::dataIsValid(void){
+	return this->dataOut.DataIsValid;
 }
 
 

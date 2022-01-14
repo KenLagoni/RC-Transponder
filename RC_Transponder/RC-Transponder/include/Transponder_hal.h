@@ -14,8 +14,13 @@
 #include "E28-2G4M20S.h"    // Radio
 #include "GPSL80Lite.h"     // Module for GPS Class
 
+#define AUX_SERIAL_BAUDRATE   115200 // Fast as possible to minimize attitude lag for Frsky.
+#define GPS_SERIAL_BAUDRATE    57600 // 
+#define FRSKY_SERIAL_BAUDRATE  57600 // Fixed by FrSky
+
 
 #define PCB_VERSION 12
+
 #if PCB_VERSION == 10
 #error PCB version 10 is no longer supported.
 #elif  PCB_VERSION == 11
@@ -41,7 +46,7 @@ class Transponder_hal
 	
 	float getBatteryVoltage(void);
 	float getInputVoltage(void);
-	float getInput5VVoltage(void);
+	float getInputUSBVoltage(void);
 	
 	void PowerON(void);
 	void PowerOFF(void);
@@ -98,7 +103,7 @@ class Transponder_hal
 	const int fryskySmartPortTXPin = 6;     // Chip pin is 29 or PA20 (SERCOM3 PAD2 TX)
 	const int fryskySmartPortRXPin = 7;     // Chip pin is 30 or PA21 (SERCOM3 PAD3 RX)
 
-	// Auxillary serial port pins:
+	// Auxiliary serial port pins:
 	const int auxTXPin = 14;     // Chip pin is 29 or PB22 (SERCOM5 PAD2 TX)
 	const int auxRXPin = 13;     // Chip pin is 30 or PB23 (SERCOM5 PAD3 RX)
 

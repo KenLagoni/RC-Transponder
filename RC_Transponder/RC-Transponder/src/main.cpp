@@ -35,6 +35,7 @@ Generic Clock Generator 4-8 - Disabled
 #include "timer.h"
 #include "RFService.h"
 //#include "PCProtocol.h"
+#include "FlashStorage.h"
 
 // for SPORT
 #include "FrSkySportSensor.h"
@@ -53,7 +54,9 @@ void BeaconService(void);
 void One_second_Update(void);
 void mavlinkSendADSB(float latitude, float longitude, uint8_t serverity, char *callsign);
 
-// Transponder Hardware apstraction layer
+FlashStorage(storedConfiguration, Configuration_t);
+
+// Transponder Hardware abstraction layer
 Transponder_hal systemHardware;
 
 // System information
@@ -69,35 +72,46 @@ MavlinkHandler MavlinkData;				  // Create Mavlink class to handle Mavlink from 
 RFService *RadioService = NULL;
 
 // Object for PC/User communication
-//PCProtocol *SerialProtocol = NULL;
+// PCProtocol *SerialProtocol = NULL;
 
-#define POWER_DOWN_DELAY 60 // Wait 60 seconds after power is lost before go to low power mode.
-#define GPS_ON_TIME   60 //  60 seconds
-#define GPS_OFF_TIME 600 // 600 seconds (10min)
+
+#define POWER_DOWN_DELAY  60 // Wait 60 seconds after power is lost before go to low power mode.
+#define GPS_ON_TIME       60 //  60 seconds
+#define GPS_OFF_TIME     600 // 600 seconds (10min)
 
 void setup() {	
-	
 	// Init USB serial debug /setup:
 	Serial.begin(115200);
 	delay(100);
-	
+	SystemInformation.savedSettings = storedConfiguration.read();
+	if(SystemInformation.savedSettings.valid == false){ // use default settings
+		SystemInformation.savedSettings.callsign[0] = 'A'; 
+		SystemInformation.savedSettings.callsign[1] = 'B'; 
+		SystemInformation.savedSettings.callsign[2] = 'C'; 
+		SystemInformation.savedSettings.callsign[3] = 'D'; 
+		SystemInformation.savedSettings.callsign[4] = 'E'; 
+		SystemInformation.savedSettings.callsign[5] = 'F'; 
+		SystemInformation.savedSettings.callsign[6] = 'G'; 
+		SystemInformation.savedSettings.callsign[7] = 'H';
+		SystemInformation.savedSettings.callsign[8] = 0;
+	}	
+	String callsign = String("ADSB using callsign:" + String(SystemInformation.savedSettings.callsign));
 	systemHardware.begin(); // Setup all pins according to hardware.
+	systemHardware.LEDSaftySwitchON();
 	
-	#ifndef DEBUG
-		delay(5000); // Time to get USB bootloader ready, but only if debugger is not connected.
-	#endif
-	
+    // ADSB Initializing (ver. 2.00) 
+	String startMSG = String("ADSB Initializing (ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)) + ") ");	
+
 	// Init Auxiliary serial port:
-	systemHardware.getSerialAUX()->begin(115200);
-	
-	Serial.println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
-	
+	systemHardware.getSerialAUX()->begin(AUX_SERIAL_BAUDRATE);
+	String auxSettings = String("ADSB Mavlink Baud@" + String(AUX_SERIAL_BAUDRATE));
+
 	// Read the 128 bit serial number.
-	Serial.println("Chip unique serial number part 1:" + String(SystemInformation.SerialNumber1));
-	Serial.println("Chip unique serial number part 2:" + String(SystemInformation.SerialNumber2));
-	Serial.println("Chip unique serial number part 3:" + String(SystemInformation.SerialNumber3));
-	Serial.println("Chip unique serial number part 4:" + String(SystemInformation.SerialNumber4));
-	Serial.println("Chip unique serial number: \"" + String(SystemInformation.SerialNumber1) + String(SystemInformation.SerialNumber2) + String(SystemInformation.SerialNumber3) + String(SystemInformation.SerialNumber4)+"\"");
+	//Serial.println("Chip unique serial number part 1:" + String(SystemInformation.SerialNumber1));
+	//Serial.println("Chip unique serial number part 2:" + String(SystemInformation.SerialNumber2));
+	//Serial.println("Chip unique serial number part 3:" + String(SystemInformation.SerialNumber3));
+	//Serial.println("Chip unique serial number part 4:" + String(SystemInformation.SerialNumber4));
+	//Serial.println("Chip unique serial number: \"" + String(SystemInformation.SerialNumber1) + String(SystemInformation.SerialNumber2) + String(SystemInformation.SerialNumber3) + String(SystemInformation.SerialNumber4)+"\"");
 	#define SERIALNUMBER_SIZE 16
 	uint8_t data[SERIALNUMBER_SIZE];
 	data[0] = (byte)((SystemInformation.SerialNumber1 >> 24) & 0xFF);
@@ -116,27 +130,17 @@ void setup() {
 	data[13] = (byte)((SystemInformation.SerialNumber4 >> 16) & 0xFF);
 	data[14] = (byte)((SystemInformation.SerialNumber4 >> 8) & 0xFF);
 	data[15] = (byte)(SystemInformation.SerialNumber4 & 0xFF);
-	Serial.print("Chip unique serial number in Base64 encode:\"");
-	Serial.print(Telegram::base64_encode(data,SERIALNUMBER_SIZE).c_str());
-	Serial.println("\"");
-
-	/*
-	for(int a = 0;a<35;a++){
-		if(!((a == 22) || (a == 23))){
-			//			Serial.println("PIN " + String(a) + " PULLEN = " + String(PORT->Group[g_APinDescription[a].ulPort].WRCONFIG.bit.PULLEN, HEX));
-			Serial.println("PIN " + String(a) + " INEN = " + String(PORT->Group[g_APinDescription[a].ulPort].PINCFG[g_APinDescription[a].ulPin].bit.INEN, HEX));
-			
-		}
-	}
-	*/
-
+	
+	// ADSB ID: "[BASE64CODE]"
+	String base64MSG = String("ADSB ID:\"" + String(Telegram::base64_encode(data,SERIALNUMBER_SIZE).c_str()) + "\"");
+	
 	// Init the Radio protocol
 	RadioService = new RFService(systemHardware.getRadio(), &SystemInformation);
 //	SerialProtocol = new PCProtocol(RadioService, Radio);
 	
-	// Start the FrSky SPort libary with Serial port and the two sensors (GPS and Passthrought):	
+	// Start the FrSky SPort library with Serial port and the two sensors (GPS and Passthrought):	
 	FrskySport.begin(systemHardware.getSerialFrSkySPort(), &FrskyGPS, &FrskyPASS);
-	
+		
 	// Start the Mavlink decoder and link it to FrSky GSP and Passthrough sensors for data update:
 	MavlinkData.begin(systemHardware.getSerialAUX(), &FrskyGPS, &FrskyPASS);		
 
@@ -148,16 +152,23 @@ void setup() {
 	systemHardware.PowerONGPSBackup(); // Enable backup power for GPS.
 	SystemInformation.BatteryVoltage = systemHardware.getBatteryVoltage();
 	SystemInformation.InputVoltage = systemHardware.getInputVoltage();
-	SystemInformation.USBVoltage = systemHardware.getInput5VVoltage();
-	systemHardware.LEDSaftySwitchOFF();
+	SystemInformation.USBVoltage = systemHardware.getInputUSBVoltage();
+
+
+	Serial.println(startMSG);
+	Serial.println(base64MSG);
+	Serial.println(callsign);
+	Serial.println(auxSettings);
+	FrskyPASS.setDataTextMSG((char*)startMSG.c_str(), 7);  // ADSB Initializing (ver. 2.00)
+	FrskyPASS.setDataTextMSG((char*)base64MSG.c_str(), 7); // ADSB ID: "[BASE64CODE]"
+	FrskyPASS.setDataTextMSG((char*)callsign.c_str(), 7);  // ADSB using callsign [callsign]
+	FrskyPASS.setDataTextMSG((char*)auxSettings.c_str(), 7); // ADSB Mavlink Baud@115200
 }
 
 void loop() {
   
      //LowPowerTest();
 	  
-//	SerialAUX->println("Receiver ID,Transmitter ID,UTC Time,GPS Latitude,GPS Longitude,GPS Fix,Number Of Satellites,Altitude,RSSI,SNR");	  
-
 	do{
 		One_second_Update();
 		systemHardware.getGPS()->update();  // Function empty serial buffer and analyzes string.
@@ -166,7 +177,6 @@ void loop() {
 		BeaconService();				    // Time to make beacon for radio tx?
 	
 		if(SystemInformation.SaftySwitchPushed == true){
-//			SerialAUX->println("System - Button pushed! - go to POWER_OFF");
 			SystemInformation.state=POWER_OFF;
 		}
 
@@ -178,7 +188,6 @@ void loop() {
 
 				if(SystemInformation.SecondsBatteryLowCounter > 2){ // filter.
 					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;
-//					SerialAUX->println("Main State: NORMAL -> GET_READY_TO_RUN_ON_BATTERY");
 				}else{
 				    // normal fast loop.
 //					SerialProtocol->Service(); // Comunincation to PC.
@@ -192,7 +201,6 @@ void loop() {
 				if(SystemInformation.SecondsBatteryLowCounter == 0){
 					// Power is back!
 					SystemInformation.state=NORMAL;
-//					SerialAUX->println("Main State: NORMAL");
 				}
 				else{
 					// check if it is time to go to battery 
@@ -200,7 +208,6 @@ void loop() {
 						systemHardware.PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
 						SystemInformation.GPSActiveCounter=0; // ensure GPS active counter is reset.
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
-//						SerialAUX->println("Main State: GET_READY_TO_RUN_ON_BATTERY -> RUNNING_ON_BATTERY_GPS_ON");
 					}else{
 //						SerialProtocol->Service(); // Comunincation to PC;
 						FrskySport.send(); // Service the Serial for SPORT.
@@ -211,23 +218,18 @@ void loop() {
 			
 			case RUNNING_ON_BATTERY_GPS_ON:
 			{
-//				SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
-//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> STARTING_UP");
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					SystemInformation.state=POWER_OFF;
-//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> POWER_OFF");
 				}else{
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 					if(++SystemInformation.GPSActiveCounter > GPS_ON_TIME){ // power off GPS after 1 min.
 						SystemInformation.GPSActiveCounter=0;
 						delay(2000); // busy wait while GPS serial gets time to receive data from GPS (Unable in sleep mode).
-//						SerialAUX->println("Serial data for GPS available: " + String(SerialGPS->available())); 
 						systemHardware.getGPS()->update();  // Service the GPS.
 						systemHardware.PowerOFFGPS();// Turn OFF GPS main power.
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_OFF;
-//						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_ON -> RUNNING_ON_BATTERY_GPS_OFF");
 					}
 				}
 			}
@@ -235,20 +237,16 @@ void loop() {
 
 			case RUNNING_ON_BATTERY_GPS_OFF:
 			{
-//			    SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF. GPSActiveCounter: " + String(SystemInformation.GPSActiveCounter));		
 				if( ((SystemInformation.InputVoltage > 4.3) || (SystemInformation.USBVoltage > 2.0 )) && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
-//					SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> STARTING_UP");		
 					}else if(SystemInformation.BatteryVoltage <= 3.0){
 						SystemInformation.state=POWER_OFF;
-//						SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> POWER_OFF");					
 					}else{
 						GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 						if(++SystemInformation.GPSActiveCounter > GPS_OFF_TIME){ // Turn on GPS every 10 mins.
 							SystemInformation.GPSActiveCounter=0;
 							systemHardware.PowerONGPS();// Turn OFF GPS main power.
 							SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
-//							SerialAUX->println("Main State: RUNNING_ON_BATTERY_GPS_OFF -> RUNNING_ON_BATTERY_GPS_ON");
 						}
 				}
 			}
@@ -278,12 +276,10 @@ void loop() {
 				SystemInformation.SecondCounter=0; // reset second counter.
 				SystemInformation.SecondsBatteryLowCounter = 0;
 				SystemInformation.state=NORMAL;		
-//				SerialAUX->println("Main State: STARTING_UP -> NORMAL");								
 			}
 			break;
 			 
 			default:
-//				SerialAUX->println("Main State: ERROR(default) -> STARTING_UP");		
 				SystemInformation.state = STARTING_UP;
 			break;
 		}
@@ -295,13 +291,15 @@ void GoToSleep(void){
 	systemHardware.auxSerialPowerDown();
 	systemHardware.PowerOFFFrSkySmartPort();
 
-	USBDevice.detach();
-	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-	__DSB();
-	__WFI();
+	if(SystemInformation.SecondsSinceStart > 10){ // Don't sleep the first 10 seconds af power on.
+		USBDevice.detach();
+		SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+		__DSB();
+		__WFI();
 	
-	// Wake up:
-	USBDevice.attach();
+		// Wake up:
+		USBDevice.attach();
+	}
 
 	systemHardware.PowerONFrSkySmartPort();
 	systemHardware.auxSerialPowerUp();
@@ -313,17 +311,11 @@ void LowPowerTest(void){
 	systemHardware.PowerOFFGPSBackup(); // Ensure backup power is enabled for GPS.	
 	systemHardware.LEDSaftySwitchOFF();
 	systemHardware.PowerOFFFrSkySmartPort();
-	
-//	SerialAUX->println("Battery analog reading is " + String(analogRead(analogVbatPin)));
-//	SerialAUX->println("Battery voltage is " + String(getBatteryVoltage()) + "V");
 	systemHardware.LEDOFF();
 	do
 	{
-	//	SerialAUX->Println("Sleep!");	
 		GoToSleep();
-	//	SerialAUX->Println("Wake!");
 	}while(1);
-
 }
 
 // Ensure a beacon is transmitted every N second.
@@ -353,84 +345,20 @@ void BeaconService(void){
 			FrskyPASS.setDataTextMSG(temp->data, temp->servirity);
 
 			// Make Mavlink ADSB msg:
-			mavlinkSendADSB(temp->latitude,temp->longitude,temp->servirity, "Lagoni-1");
-			
+			mavlinkSendADSB(temp->latitude,temp->longitude,temp->servirity, SystemInformation.savedSettings.callsign);
 			temp->dataReady=false;
 		}
 	}	
 }
 
-
-#ifdef __arm__
-// should use uinstd.h to define sbrk but Due causes a conflict
-extern "C" char* sbrk(int incr);
-#else  // __ARM__
-extern char *__brkval;
-#endif  // __arm__
-
-int freeMemory() {
-	char top;
-	#ifdef __arm__
-	return &top - reinterpret_cast<char*>(sbrk(0));
-	#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-	return &top - __brkval;
-	#else  // __arm__
-	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-	#endif  // __arm__
-}
-
-int debugCounter=0;
-uint8_t serCount = 0;
-//int attitudeMsgHZ;
-
 void One_second_Update(void){
 	//// only every second (check status)
 	while(SystemInformation.SecondCounter){
-		
-		//ADSB test:
-		//ADSB_test();
-		
-//		SerialAUX->print("One_Second_Updated...");
-		//				digitalWrite(led2Pin, HIGH);
 		SystemInformation.SecondCounter--;
-
-
-//		Serial.print(String(GPSData->UTC_hour+1) + ":" + String(GPSData->UTC_min) + ":" +  String(GPSData->UTC_sec) + " ");
 		SystemInformation.BatteryVoltage = systemHardware.getBatteryVoltage();
-		//Serial.print("Battery Voltage (" + String(SystemInformation.BatteryVoltage) + "V) ChargeState(" + String(systemHardware.GetChargeState()) + ") ");
 		SystemInformation.InputVoltage = systemHardware.getInputVoltage();
-		//Serial.print("Input Voltage (" + String(SystemInformation.InputVoltage) + "V) ");
-		SystemInformation.USBVoltage = systemHardware.getInput5VVoltage();				
-		//Serial.print("USB Voltage (" + String(SystemInformation.USBVoltage) + "V) ");
-		//Serial.print("\n\r");
-
-		// Update the FrSky GPS emulator with the latest values from the GPS. (GPS Lite needs to be updated to read $GPRMC in order to get speed, cog and date information:
-		//FrskyGPS.setData(GPSData->LatitudeDecimal, GPSData->LongitudeDecimal,GPSData->Altitude,0,0,0,0,0,GPSData->UTC_hour,GPSData->UTC_min,GPSData->UTC_sec);	
+		SystemInformation.USBVoltage = systemHardware.getInputUSBVoltage();				
 		
-	//	Serial.println("Attitude " + String(attitudeMsgHZ) + "Hz");
-		//attitudeMsgHZ=0;
-		
-		if(debugCounter >= 10)
-		{
-			debugCounter=0;
-			if(serCount++ >= 8){
-				serCount=0;
-			}
-			char *text   = "0123456789";
-//			FrskyPASS.setDataTextMSG(text, 4);
-		}else{
-			debugCounter++;
-		}
-				
-//		SerialAUX->print("FRsky Data update...");					
-//		SerialAUX->print("Free RAM = "); //F function does the same and is now a built in library, in IDE > 1.0.0
-//		SerialAUX->println(freeMemory(), DEC);  // print how much RAM is available.
-//		SerialAUX->println("Battery voltage is " + String(SystemInformation.BatteryVoltage) + "V.");
-//		SerialAUX->println("Input voltage is " + String(SystemInformation.InputVoltage) + "V.");
-//		SerialAUX->println("Input 5V voltage is " + String(SystemInformation.USBVoltage) + "V.");
-//		SerialAUX->println("");
-//		SerialAUX->println("Beacon Counter: " + String(SystemInformation.BeaconSecondCounter));
-
 		if( ((SystemInformation.InputVoltage <= 4.3) && (SystemInformation.USBVoltage <=2 )) || (SystemInformation.SimulateRunningOnBattery)){
 			if(SystemInformation.SecondsBatteryLowCounter < 255){
 				SystemInformation.SecondsBatteryLowCounter++;
@@ -438,9 +366,7 @@ void One_second_Update(void){
 		}else{
 			SystemInformation.SecondsBatteryLowCounter=0;
 		}			
-
-//		Serial.println("Switch:" + String(digitalRead(SaftySwitchPin)));
-		
+	
 		if(systemHardware.SaftySwitchPushed())
 		{			
 			SystemInformation.SafteSwitchPushedTimer++;
@@ -468,7 +394,19 @@ void One_second_Update(void){
 				SystemInformation.SafteSwitchPushedTimer=0;
 			}
 		}
-//		SerialAUX->println("Done!");
+		
+		if(SystemInformation.SecondsSinceStart > 5){
+			systemHardware.LEDSaftySwitchOFF();
+		}
+		
+		if(systemHardware.getGPS()->dataIsValid()){
+			if(SystemInformation.gpsValidSentOnlyOnce == false){
+				String text = String("ADSB local GPS sensor detected");
+				FrskyPASS.setDataTextMSG((char*)text.c_str(), 7);		
+				Serial.println(text);		
+				SystemInformation.gpsValidSentOnlyOnce=true;
+			}
+		}
 	}
 }
 
@@ -484,32 +422,19 @@ void mavlinkSendADSB(float latitude, float longitude, uint8_t serverity, char *c
 	msgADSB.ICAO_address = 0xCAFF;
 	msgADSB.lat = (int32_t)(latitude*1E7);
 	msgADSB.lon = (int32_t)(longitude*1E7);
-//	msgADSB.lat = 558450604;
-//	msgADSB.lon = 124708557;
-	msgADSB.altitude = 1000;
-	msgADSB.heading = 4500;
-	msgADSB.hor_velocity = 10;
+	msgADSB.altitude = 0;
+	msgADSB.heading = 0;
+	msgADSB.hor_velocity = 0;
 	msgADSB.ver_velocity = 0;
-	msgADSB.flags = 319;
+	msgADSB.flags = 49; // Valid Coords, Callsign and Squawk.  319; 
 	
 	if(serverity <= 4){
 		msgADSB.squawk = 7700;		
 	}else{
 		msgADSB.squawk = 1800;		
-	}
-		
+	}	
 	msgADSB.altitude_type = 0; // BARO
-	/*
-	msgADSB.callsign[0] = 'L';
-	msgADSB.callsign[1] = 'A';
-	msgADSB.callsign[2] = 'G';
-	msgADSB.callsign[3] = 'O';
-	msgADSB.callsign[4] = 'N';
-	msgADSB.callsign[5] = 0;
-	msgADSB.callsign[6] = 0;
-	msgADSB.callsign[7] = 0;
-	msgADSB.callsign[8] = 0;
-	*/
+	
 	for(int a=0;a<9;a++){
 		msgADSB.callsign[a] = *callsign;
 		callsign++;	
@@ -557,86 +482,6 @@ void mavlinkSendADSB(float latitude, float longitude, uint8_t serverity, char *c
 		systemHardware.getSerialAUX()->write(txBuffer[a]);
 	}		
 }
-
-	
-	/*
-void ADSB_test(void){
-	
-	uint8_t txBuffer[512]; 
-	
-	//lets make an ADSB msg and sent it to pixhawk on Serial2:
-	mavlink_adsb_vehicle_t msgADSB;
-	mavlink_message_t msg;
-  
-	msgADSB.ICAO_address = 0xCAFF;
-	msgADSB.lat = 558450604;
-	msgADSB.lon = 124708557;
-	msgADSB.altitude = 35000;
-	msgADSB.heading = 90;
-	msgADSB.hor_velocity = 10;
-	msgADSB.ver_velocity = 0;
-	msgADSB.flags = 319;
-	msgADSB.squawk = 777;
-	msgADSB.altitude_type = 0; // BARO
-	msgADSB.callsign[0] = 'L';
-	msgADSB.callsign[1] = 'a';
-	msgADSB.callsign[2] = 'g';
-	msgADSB.callsign[3] = 'o';
-	msgADSB.callsign[4] = 'n';
-	msgADSB.callsign[5] = 'i';
-	msgADSB.callsign[6] = 0;
-	msgADSB.callsign[7] = 0;
-	msgADSB.callsign[8] = 0;
-	msgADSB.emitter_type = 14; // UAV
-	msgADSB.tslc = 0;
-  
-	mavlink_msg_adsb_vehicle_encode(0, 0, &msg, &msgADSB);
-	int chan = MAVLINK_COMM_0;
-	static const uint8_t mavlink_message_crcs[256] = {  50, 124, 137,   0, 237, 217, 104, 119,   0,   0, //  0-9
-		0,  89,   0,   0,   0,   0,   0,   0,   0,   0, // 10-19
-		214, 159, 220, 168,  24,  23, 170, 144,  67, 115, // 20-29
-		39, 246, 185, 104, 237, 244, 222, 212,   9, 254, // 30-39
-		230,  28,  28, 132, 221, 232,  11, 153,  41,  39, // 40-49
-		78, 196,   0,   0,  15,   3,   0,   0,   0,   0, // 50-59
-		0, 153, 183,  51,  59, 118, 148,  21,   0, 243, // 60-69
-		124,   0,  20,  38,  20, 158, 152, 143,   0,   0, // 70-79
-		0, 106,  49,  22, 143, 140,   5, 150,   0, 231, // 80-89
-		183,  63,  54,   0,   0,   0,   0,   0,   0,   0, // 90-99
-		175, 102, 158, 208,  56,  93, 138, 108,  32, 185, //100-109
-		84,  34, 174, 124, 237,   4,  76, 128,  56, 116, //110-119
-		134, 237, 203, 250,  87, 203, 220,  25, 226,  46, //120-129
-		29, 223,  85,   6, 229, 203,   1, 195, 109, 168, //130-139
-		181,  47,  72, 131, 127,   0, 103, 154, 178, 200, //140-149
-		134,   0, 208,   0,   0,   0,   0,   0,   0,   0, //150-159
-		0,   0,   0, 127,   0,  21,   0,   0,   1,   0, //160-169
-		0,   0,   0,   0,   0,   0,   0,   0,  47,   0, //170-179
-		0,   0, 229,   0,   0,   0,   0,   0,   0,   0, //180-189
-		0,   0,   0,  71,   0,   0,   0,   0,   0,   0, //190-199
-		0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //200-209
-		0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //210-219
-		34,  71,  15,   0,   0,   0,   0,   0,   0,   0, //220-229
-		163, 105,   0,  35,   0,   0,   0,   0,   0,   0, //230-239
-		0,  90, 104,  85,  95, 130, 184,   0,   8, 204, //240-249
-	49, 170,  44,  83,  46,   0};          //250-256
-	mavlink_finalize_message_chan(&msg, 0, 0, chan, msg.len, msg.len, mavlink_message_crcs[msg.msgid]);
-	uint16_t totalLength=0;
-	bzero(txBuffer, 512);
-	totalLength = mavlink_msg_to_send_buffer(txBuffer, &msg);
-
-	for(int a=0;a<totalLength;a++){
-		SerialAUX->write(txBuffer[a]);
-	}		
-	
-	
-	
-	
-	mavlink_statustext_t hello;
-	hello.severity=MAV_SEVERITY_INFO;
-	std::string s = "Hello to Lagonis Mavlink Server Program";
-	strcpy(hello.text, s.c_str());
-	
-}
-*/
 	
 	
 void SerialPrintHEX(int data){
@@ -648,7 +493,8 @@ void SerialPrintHEX(int data){
 }
 
 
-// Not part of Class but needed to overwride Ardunio functions:
+
+// Not part of Class but needed to override Ardunio functions:
 
 // Attach the interrupt handler to the SERCOM
 void SERCOM2_Handler(){
@@ -665,4 +511,23 @@ void SERCOM4_Handler(){
 
 void SERCOM5_Handler(){
 	systemHardware.getSerialAUX()->IrqHandler();
+}
+
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+	char top;
+	#ifdef __arm__
+	return &top - reinterpret_cast<char*>(sbrk(0));
+	#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+	return &top - __brkval;
+	#else  // __arm__
+	return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+	#endif  // __arm__
 }

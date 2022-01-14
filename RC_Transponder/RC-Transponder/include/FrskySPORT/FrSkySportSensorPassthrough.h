@@ -35,8 +35,6 @@
 #define PASSTHROUGH_WIND_ESTIMATE_ID	0x50F3 // Not yet implemented
 
 
-
-
 #define PASSTHROUGH_TEXT_DATA_PERIOD	      10  // Fast as possible.
 #define PASSTHROUGH_AP_STATUS_PERIOD		 500
 #define PASSTHROUGH_GPS_STATUS_PERIOD		1000
@@ -78,10 +76,8 @@ class FrSkySportSensorPassthrough : public FrSkySportSensor
 	void setDataVFRHUD(float airspeed, uint16_t throttle, float baroAltitude);                     // 0x50F2 -  VFR_HUD
 	
 	
-	
-	
     virtual void send(FrSkySportSingleWireSerial& serial, uint8_t id, uint32_t now);
-    virtual uint16_t decodeData(uint8_t id, uint16_t appId, uint32_t data);
+    virtual uint16_t decodeData(uint8_t id, uint16_t appId, uint32_t data); // Not implemented.
     
   private:
 	bool nextSensorType = HIGH; // Start with High priority sensors first.
@@ -93,8 +89,7 @@ class FrSkySportSensorPassthrough : public FrSkySportSensor
 	RingBuf<uint32_t, PASSTHROUGH_TEXT_FIFO_SIZE> textFIFO;
 	uint32_t textPayload=0;
 	int8_t msgRetransmit=0;
-  
-  
+    
 	// #0x5001 - AP STATUS
 	uint32_t apStatusTime;
 	bool apStatusDataReady;
@@ -184,7 +179,5 @@ class FrSkySportSensorPassthrough : public FrSkySportSensor
 	uint16_t prep_number(int32_t number, uint8_t digits, uint8_t power); // From Arducopter 3.5.5 code
 	int16_t Add360(int16_t arg1, int16_t arg2);
 	float wrap_360(int16_t angle);
-	
-	void SerialPrintHEX(int data);
 };
 #endif // _FRSKY_SPORT_SENSOR_PASSTHROUGH_H_

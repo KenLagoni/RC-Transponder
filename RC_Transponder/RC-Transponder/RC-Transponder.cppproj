@@ -410,6 +410,9 @@
     <Compile Include="src\E28-2G4M20S\sx1280.cpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\FlashStorage.cpp">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\FrskySPORT\FrSkySportSensor.cpp">
       <SubType>compile</SubType>
     </Compile>

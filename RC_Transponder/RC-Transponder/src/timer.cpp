@@ -87,5 +87,9 @@ void TC3_Handler() {
 		if(SystemInformation.BeaconSecondCounter < 20){
 			SystemInformation.BeaconSecondCounter++;
 		}
+		
+		if(SystemInformation.SecondsSinceStart < 0xFFFFFFFF){
+			SystemInformation.SecondsSinceStart++;
+		}
 	}
 }

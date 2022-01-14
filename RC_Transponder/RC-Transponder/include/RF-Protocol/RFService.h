@@ -67,6 +67,8 @@ class RFService : public RFProtocol
 	Telegram_MSG_2 SavedBeacons[SAVED_BEACONS_FIFO_SIZE];
 	
 	bool SaveTransponderBeacon(Telegram_MSG_1 *msg); // Return true if message is saved
+	
+	
 };
 
 

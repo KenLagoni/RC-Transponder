@@ -9,7 +9,7 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
-//extern class RFService *RadioService;
+#include "Transponder_hal.h"
 
 enum TRANSPONDER_STATES {
 	STARTING_UP,
@@ -20,16 +20,22 @@ enum TRANSPONDER_STATES {
 	POWER_OFF
 };
 
+typedef struct {
+	boolean valid;
+	char callsign[9];
+}Configuration_t;
+
 extern struct SystemInformation_t
 {	
 	// Hardware and Software version defines
-	const float FIRMWARE_VERSION = 1.01;
+	const float FIRMWARE_VERSION = 2.00;
 	//const uint8_t pcbVersion = PCB_VERSION;
-	const uint8_t pcbVersion = 12;
+	const uint8_t pcbVersion = PCB_VERSION;
 	
 	// Counters
 	uint8_t SecondCounter = 0;
 	uint8_t BeaconSecondCounter = 0;
+	uint32_t SecondsSinceStart = 0;
 
 	// system overall statemachine
 	enum TRANSPONDER_STATES state=STARTING_UP;
@@ -64,7 +70,10 @@ extern struct SystemInformation_t
 	uint8_t  Fix=0;
 	float hdop=0;
 	float groundspeed=0; // not used yet (not extracted from GPS)
-
+	
+	bool gpsValidSentOnlyOnce=false;
+	
+	Configuration_t savedSettings;
 }SystemInformation;
 
 
