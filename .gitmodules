@@ -1,0 +1,6 @@
+[submodule "RC_Transponder/RC-Transponder/libraries/Mavlink"]
+	path = RC_Transponder/RC-Transponder/libraries/Mavlink
+	url = https://github.com/KenLagoni/c_library_v1
+[submodule "RC_Transponder/RC-Transponder/libraries/FlashStorage"]
+	path = RC_Transponder/RC-Transponder/libraries/FlashStorage
+	url = https://github.com/KenLagoni/FlashStorage
