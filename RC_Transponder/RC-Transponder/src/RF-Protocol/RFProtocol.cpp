@@ -5,7 +5,6 @@
 	Not for commercial use
  */ 
  #include "RFProtocol.h"
- //#include "hw.h" // only for SerialAUX debug
 
  RFProtocol::RFProtocol(E28_2G4M20S *Radio){
 	this->Radio = Radio;
@@ -19,7 +18,6 @@
  {
 	 // fail fast:
 	if(this->txFIFO.isFull()){
-//		SerialAUX->println("Error! - Tx FIFO Full!");
 		return;
 	}
 
@@ -95,9 +93,7 @@ RadioData_t * RFProtocol::GetDataIncludingRSSI()
 
 Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete newdata to avoid memory leaks.
 { 
-//	 SerialAUX->print("New message is...");
 	 if(newdata == NULL){
-//		SerialAUX->println("NULL!");
 		return NULL;
 	 }
 	 
@@ -110,26 +106,22 @@ Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete ne
 		 case MSG_Beacon_Broadcast: // Create Beacon Telegram.
 		 {
 			 msg = new Telegram_MSG_1(newdata);
-//			 SerialAUX->println("MSG 1");
 		 }
 		 break;
 		 
 		 case MSG_Beacon_Relay: //Create Beacon Relay Telegram.
 		 {
 			 msg = new Telegram_MSG_2(newdata);
-//			 SerialAUX->println("MSG 2");
 		 }
 		 break;
 		 
 		 case MSG_Command: // Create command Telegram.
 		 {
 			 msg = new Telegram_MSG_3(newdata);
-//			 SerialAUX->println("MSG 3");
 		 }
 		 break;
 		 
 		 default:
-//			SerialAUX->println("Unknown/Null!");
 			return NULL;
 		 break;
 	 }
@@ -155,7 +147,6 @@ void RFProtocol::_WakeUp(){
 void RFProtocol::Service(){
 
 	if(Radio->GetDioPinStatus() == HIGH){
-//		SerialAUX->println("IRQ from Radio");	
 		this->Radio->IRQHandler();
 	}
 
@@ -163,9 +154,6 @@ void RFProtocol::Service(){
 	Radio->ClearRadioStatus();
 
 	RFProtocolStates_t nextState = RX_IDLE;
-
-//	SerialAUX->println("Service RF Statemachine state:" + String(RX_IDLE) + " and nextState:" + String(nextState));
-
 
 	switch(this->RFstate)
 	{
@@ -177,7 +165,6 @@ void RFProtocol::Service(){
 			if((status.txDone == true) || (status.txTimeout == true) || (status.rxTimeout == true))
 			{
 				// This must be a mistake?
-//				SerialAUX->println("RF Protocol Error: txDone||txTimeout||rxTimeout in RX_IDLE State - Nextstate set to RX_IDLE");
 				Radio->SetRXMode(false); // Set RX without timout.
 				nextState=RX_IDLE;
 			}else
@@ -192,7 +179,6 @@ void RFProtocol::Service(){
  					nextState=TXHandler(); // Returns TX_WITHOUT_REPLY || TX_WITH_REPLY || RX_IDLE
 				}
 			}
-//			SerialAUX->println("RX_IDLE: next state:" + String(nextState));
 		}
 		break;
 		
@@ -204,7 +190,6 @@ void RFProtocol::Service(){
 			if((status.txDone == true) || (status.txTimeout == true))
 			{
 				// This must be a mistake?
-//				SerialAUX->println("RF Protocol Error: txDone||txTimeout in WAITTING_FOR_REPLY State - Nextstate set to RX_IDLE");
 				Radio->SetRXMode(false); // Set RX without timout.
 				nextState=RX_IDLE;
 			}else
@@ -223,14 +208,12 @@ void RFProtocol::Service(){
 						// Nothing........
 						// Software timeout here?
 						if(milliSeconds() > this->timeoutStart+TIMEOUT_MS){
-//							SerialAUX->println("Software timeout on WAITING_FOR_REPLY");
 							nextState=RX_IDLE;
 							Radio->SetRXMode(false); // Set RX without timout.
 						}
 					}
 				}
 			}
-	//		SerialAUX->println("WAITING_FOR_REPLY: nextState:" + String(nextState));
 		}
 		break;
 		
@@ -241,7 +224,6 @@ void RFProtocol::Service(){
 			if((status.rxDone == true) || (status.rxTimeout == true) || (status.txTimeout == true)) 
 			{
 				// This must be a mistake?
-//				SerialAUX->println("RF Protocol Error: rxDone||rxTimeout||txTimeout in TX_WITHOUT_REPLY State");
 				nextState=RX_IDLE;
 				Radio->SetRXMode(false); // Set RX without timout.
 			}else
@@ -253,13 +235,11 @@ void RFProtocol::Service(){
 				}else{
 					// nothing... perhaps software timeout here?
 					if(milliSeconds() > this->timeoutStart+TIMEOUT_MS){
-//						SerialAUX->println("Software timeout on TX_WITHOUT_REPLY");
 						nextState=RX_IDLE;
 						Radio->SetRXMode(false); // Set RX without timout.
 					}
 				}
 			}		
-	//		SerialAUX->println("TX_WITHOUT_REPLY: nextState:" + String(nextState));
 		}
 		break;
 
@@ -269,7 +249,6 @@ void RFProtocol::Service(){
 			if((status.rxDone == true) || (status.rxTimeout == true) || (status.txTimeout == true))
 			{
 				// This must be a mistake?
-//				SerialAUX->println("RF Protocol Error: rxDone||rxTimeout||txTimeout in TX_WITHOUT_REPLY State");
 				nextState=RX_IDLE;
 				Radio->SetRXMode(false); // Set RX without timout.
 			}else
@@ -281,26 +260,22 @@ void RFProtocol::Service(){
 				}else{
 					// nothing... perhaps software timeout here?
 					if(milliSeconds() > this->timeoutStart+TIMEOUT_MS){
-//						SerialAUX->println("Software timeout on TX_WITHOUT_REPLY");
 						nextState=RX_IDLE;
 						Radio->SetRXMode(false); // Set RX without timout.
 					}
 				}
 			}
-			//SerialAUX->println("TX_WITHOUT_REPLY: nextState:" + String(nextState));
 		}
 		break;
 		
 		default:
 			nextState=RX_IDLE;
-//			SerialAUX->println("Error! - Default!");
 			Radio->SetRXMode(false); // Set RX without.
 		break;
 	}
 	
 	if(this->RFstate != nextState){
 		this->timeoutStart = milliSeconds(); // for software timeout.
-//		SerialAUX->println("New state! - RFSate:" +String(RFstate) + " NextState:" + String(nextState));
 		this->RFstate=nextState;
 	}
 }
