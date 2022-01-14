@@ -47,28 +47,28 @@ void Transponder_hal::begin(){
 	setPin(pa11Pin,OUTPUT,LOW);
 
 	#if PCB_VERSION == 11
-	_serialSBUS = new Uart(&sercom4, sBUSRXPin, sBUSRXPin, SERCOM_RX_PAD_1, UART_TX_PAD_0);   // Create the new UART instance for the GPS module
-	setPin(sBUSInvertPin,OUTPUT,LOW);
-	setPin(Baro_chipSelectPin,OUTPUT,HIGH); // Never implemented.
+		_serialSBUS = new Uart(&sercom4, sBUSRXPin, sBUSRXPin, SERCOM_RX_PAD_1, UART_TX_PAD_0);   // Create the new UART instance for the GPS module
+		setPin(sBUSInvertPin,OUTPUT,LOW);
+		setPin(Baro_chipSelectPin,OUTPUT,HIGH); // Never implemented.
 
-	// unused pins set to input low:
-	setPin(pa13Pin,OUTPUT,LOW);
+		// unused pins set to input low:
+		setPin(pa13Pin,OUTPUT,LOW);
 
 	#elif PCB_VERSION == 12
-	// PCB-12 no longer has RCin or SBUS. (never implemented).
+		// PCB-12 no longer has RCin or SBUS. (never implemented).
 
-	//this->_serialPC = SerialUSB;
+		//this->_serialPC = SerialUSB;
 
-	setPin(powerOnClk,OUTPUT,LOW);	// new power pins (for external flip-flop.
-	setPin(chargeState,INPUT,LOW);  // Charge state input.
-	digitalWrite(chargeState, OUTPUT);  //  when OUT=1 in INPUT mode, pull resistor is pull-up, else pull-down. ( This will set pull-up when in input mode).
-	//PORT->Group[g_APinDescription[chargeState].ulPort].PINCFG[g_APinDescription[chargeState].ulPin].bit.PULLEN = 1; //Enable pull up.
+		setPin(powerOnClk,OUTPUT,LOW);	// new power pins (for external flip-flop.
+		setPin(chargeState,INPUT,LOW);  // Charge state input.
+		digitalWrite(chargeState, OUTPUT);  //  when OUT=1 in INPUT mode, pull resistor is pull-up, else pull-down. ( This will set pull-up when in input mode).
+		//PORT->Group[g_APinDescription[chargeState].ulPort].PINCFG[g_APinDescription[chargeState].ulPin].bit.PULLEN = 1; //Enable pull up.
 
-	setPin(GPSResetPin,OUTPUT,HIGH);
+		setPin(GPSResetPin,OUTPUT,HIGH);
 
-	// unused pins set to input low:
-	setPin(pa04Pin,OUTPUT,LOW);
-	setPin(pa18Pin,OUTPUT,LOW);
+		// unused pins set to input low:
+		setPin(pa04Pin,OUTPUT,LOW);
+		setPin(pa18Pin,OUTPUT,LOW);
 	#endif
 
 	delay(2000);
@@ -80,6 +80,8 @@ void Transponder_hal::begin(){
 
 	// GPS INIT;
 	this->_GPS = new GPSL80Lite();
+	PowerOFFGPS();
+	delay(100);
 	PowerONGPS(); // Turn on GPS. price 31uA
 	ResetGPS();
 	this->_GPS->init(this->_serialGPS, 57600);
