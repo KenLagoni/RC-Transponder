@@ -43,6 +43,12 @@ GPSL80Lite::GPSL80Lite()
 	// Setup and configure GPS
 	SerialGPS->begin(9600); // 9600 is default baud after power cycle.. which we don't do here but assumes had been done.
 	
+	// pinPeriphael must be done after begin, because it resets them for some reason.
+	const int GPSTxPin = 11;           // Chip pin is 13 or PA08 (SERCOM2 PAD0 TX)
+	const int GPSRxPin = 12;           // Chip pin is 14 or PA09 (SERCOM2 PAD1 RX)
+	pinPeripheral(GPSTxPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
+	pinPeripheral(GPSRxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
+		
 	delay(1000);
 	SerialGPS->println("$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29"); //Setup the GPS for only GPGGA output at 1Hz.
 	delay(1000);
@@ -87,6 +93,9 @@ GPSL80Lite::GPSL80Lite()
 		 break;
 	 }
 
+	pinPeripheral(GPSTxPin, PIO_SERCOM_ALT); //Assign TX function to GPS TX pin.
+	pinPeripheral(GPSRxPin, PIO_SERCOM_ALT); //Assign RX function to GPS RX pin.
+	
 	resetTempData();
 	updateData();	
 }
@@ -178,7 +187,7 @@ void GPSL80Lite::updateData()
 	for(a=0;a<MAX_LONG_SIZE;a++){
 		dataOut.LongitudeDEG[a]=tempData.LongitudeDEG[a];
 	}
-
+	
 	/*
 	tempData.LatitudeDEG[0] = '6';
 	tempData.LatitudeDEG[1] = '5';
@@ -213,6 +222,8 @@ void GPSL80Lite::updateData()
 			dataOut.Latitude *= -1;
 		}
 
+	}else{
+		dataOut.Latitude=0;
 	}
 	float Degrees = (float)(dataOut.Latitude / 1000000);
 	float Minutes = ((float)(dataOut.Latitude) / 10000) - (Degrees * 100);
@@ -247,6 +258,8 @@ void GPSL80Lite::updateData()
 		if(tempData.LongitudeDIR == 'W'){
 			dataOut.Longitude *= -1;
 		}
+	}else{
+		dataOut.Longitude=0;
 	}
 	
 	
@@ -354,21 +367,15 @@ bool GPSL80Lite::inputValid(char input)
 
 void GPSL80Lite::update()
 {
-	bool printOnes = false;
 	do
 	{
 		dataReady=SerialGPS->available();
-	
+		
+		
 		if(dataReady)
 		{
-			if(printOnes==false){
-//				SerialAUX->print("Data to handle from GPS: " + String(dataReady) + "...");
-				//SerialAUX->println("GPS Bytes to analyze=" + String(dataReady));	
-				printOnes=true;
-			}
 			_newChar=SerialGPS->read(); // read char from input buffer
-//			Serial.print(_newChar);
-//			data[byteNumber++] = _newChar; // Save the incomming data to buffer.
+			//Serial.write(_newChar);
 								
 			switch (state)
 			{
@@ -689,3 +696,29 @@ void GPSL80Lite::update()
 	}while(dataReady); // loop until buffer is empty	
 	
 }
+
+
+uint32_t GPSL80Lite::getUTCTime(void){
+	return (uint32_t)this->dataOut.UTCTime;
+}
+
+int32_t GPSL80Lite::getLatitude(void){
+	return this->dataOut.Latitude;	
+}
+
+int32_t GPSL80Lite::getLongitude(void){
+	return this->dataOut.Longitude;
+}
+
+uint8_t GPSL80Lite::getFix(void){
+	return this->dataOut.FixDecimal;
+}
+
+uint8_t GPSL80Lite::getNumberOfSat(void){
+	return (uint32_t)this->dataOut.NumberOfSatellites;
+}
+
+float GPSL80Lite::getHDOP(void){
+	return this->dataOut.HDOP;
+}
+

@@ -35,6 +35,14 @@ class GPSL80Lite
 	
 	void update();
 	void loopback();
+	
+	uint32_t getUTCTime(void);
+	int32_t getLatitude(void);
+	int32_t getLongitude(void);
+	uint8_t getFix(void);
+	uint8_t  getNumberOfSat(void);
+	float getHDOP(void);
+	
 //	void printGPSData();
 
   private:
@@ -94,6 +102,7 @@ class GPSL80Lite
 	// Private functions needed for data anlysis:
 	bool dataReady = false;                 // Flag used by update();
 	char _newChar = 0; 		                // Variable used by update();
+	
 	#if defined (__AVR__) || (__avr__)
 		SoftwareSerial *SerialGPS = NULL;       // Pointer to the serial port used
 	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
