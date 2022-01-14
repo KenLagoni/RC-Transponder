@@ -1,0 +1,3 @@
+[submodule "FlashStorage"]
+	path = FlashStorage
+	url = https://github.com/KenLagoni/FlashStorage
