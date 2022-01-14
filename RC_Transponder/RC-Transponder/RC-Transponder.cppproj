@@ -177,6 +177,7 @@
     <ListValues>
       <Value>..\linker_scripts\linker_scripts\gcc</Value>
       <Value>%24(ProjectDir)\Device_Startup</Value>
+      <Value>C:\Users\KLO\Documents\RC-Transponder\RC_Transponder\RC-Transponder\libraries\FlashStorage\src</Value>
     </ListValues>
   </armgcccpp.linker.libraries.LibrarySearchPaths>
   <armgcccpp.linker.optimization.GarbageCollectUnusedSections>True</armgcccpp.linker.optimization.GarbageCollectUnusedSections>
@@ -309,6 +310,7 @@
     <ListValues>
       <Value>..\linker_scripts\linker_scripts\gcc</Value>
       <Value>%24(ProjectDir)\Device_Startup</Value>
+      <Value>C:\Users\KLO\Documents\RC-Transponder\RC_Transponder\RC-Transponder\libraries\FlashStorage\src</Value>
     </ListValues>
   </armgcccpp.linker.libraries.LibrarySearchPaths>
   <armgcccpp.linker.optimization.GarbageCollectUnusedSections>True</armgcccpp.linker.optimization.GarbageCollectUnusedSections>
@@ -410,7 +412,7 @@
     <Compile Include="src\E28-2G4M20S\sx1280.cpp">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="src\FlashStorage.cpp">
+    <Compile Include="libraries\FlashStorage\src\FlashStorage.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\FrskySPORT\FrSkySportSensor.cpp">
