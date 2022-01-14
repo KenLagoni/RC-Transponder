@@ -17,6 +17,17 @@
 #include "main.h"
 
 #define SAVED_BEACONS_FIFO_SIZE 30
+#define MAX_TEXT_SIZE 50
+
+struct transponderData_t
+{
+	char data[MAX_TEXT_SIZE];
+	uint8_t servirity;	
+	bool dataReady;
+	float latitude;
+	float longitude;
+	float hdop;
+};
 
 class RFService : public RFProtocol
 {
@@ -28,6 +39,8 @@ class RFService : public RFProtocol
 	void PowerDown();
 	void WakeUp();
 	//void SeccondCounter();
+	transponderData_t * getRadioText(void);
+	
 	
 	// General helper functions and varibels only used by inherited MSG classes.
 	protected:
@@ -38,6 +51,8 @@ class RFService : public RFProtocol
 	uint32_t milliSeconds();
 	
 	private:
+	
+	transponderData_t rxData;
 	
 	struct RFProtocolStatus_t
 	{

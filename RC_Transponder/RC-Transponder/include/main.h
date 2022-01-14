@@ -55,6 +55,15 @@ extern struct SystemInformation_t
 	uint8_t SafteSwitchPushedTimer=0;
 	bool SaftySwitchFirstTimePushed =0;
 	bool SaftySwitchPushed =0;
+	
+	// Local GPS Data:
+	uint32_t UTCTime=0;
+	int32_t Latitude=0;   // 1E7
+	int32_t Longitude=0;
+	uint8_t  NumberOfSat=0;
+	uint8_t  Fix=0;
+	float hdop=0;
+	float groundspeed=0; // not used yet (not extracted from GPS)
 
 }SystemInformation;
 

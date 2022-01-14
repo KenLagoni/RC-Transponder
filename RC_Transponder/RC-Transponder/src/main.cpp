@@ -51,6 +51,7 @@ void GoToSleep(void);
 String base64_encode(byte[], int);
 void BeaconService(void);
 void One_second_Update(void);
+void mavlinkSendADSB(float latitude, float longitude, uint8_t serverity, char *callsign);
 
 // Transponder Hardware apstraction layer
 Transponder_hal systemHardware;
@@ -76,6 +77,10 @@ RFService *RadioService = NULL;
 
 void setup() {	
 	
+	// Init USB serial debug /setup:
+	Serial.begin(115200);
+	delay(100);
+	
 	systemHardware.begin(); // Setup all pins according to hardware.
 	
 	#ifndef DEBUG
@@ -85,9 +90,6 @@ void setup() {
 	// Init Auxiliary serial port:
 	systemHardware.getSerialAUX()->begin(115200);
 	
-	// Init USB serial debug /setup:
-	Serial.begin(115200);
-	delay(100);
 	Serial.println("Starting RC Transponder ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)));
 	
 	// Read the 128 bit serial number.
@@ -326,16 +328,35 @@ void LowPowerTest(void){
 
 // Ensure a beacon is transmitted every N second.
 void BeaconService(void){
-	if(SystemInformation.BeaconSecondCounter >= 5){ // SystemInformation.BeaconSecondCounter is counted up en Timer3 (1Hz) ISR.
+	if(SystemInformation.BeaconSecondCounter >= 10){ // SystemInformation.BeaconSecondCounter is counted up en Timer3 (1Hz) ISR.
 //		SerialAUX->print("Time to make beacon message...");
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
 		if(SystemInformation.IsGroundStation==false){
+			// update system with latest GPS values;
+//			Serial.println("Sending Beacon: " + String(systemHardware.getGPS()->getLatitude()) + "," + String(systemHardware.getGPS()->getLongitude()));
+			SystemInformation.UTCTime = systemHardware.getGPS()->getUTCTime();
+			SystemInformation.Latitude = systemHardware.getGPS()->getLatitude();
+			SystemInformation.Longitude = systemHardware.getGPS()->getLongitude();
+			SystemInformation.NumberOfSat = systemHardware.getGPS()->getNumberOfSat();
+			SystemInformation.Fix = systemHardware.getGPS()->getFix();
+			SystemInformation.hdop = systemHardware.getGPS()->getHDOP();
 			RadioService->SendBeacon();
 		}else{
 //			SerialAUX->println("Im groundstation, NoPing!");
 		}
 //		SerialAUX->println("Done!");	
+	}else{ // see if there are any messages from radio to Mavlink / FrSky.
+		
+		transponderData_t *temp = RadioService->getRadioText();		
+		if(temp->dataReady){
+			FrskyPASS.setDataTextMSG(temp->data, temp->servirity);
+
+			// Make Mavlink ADSB msg:
+			mavlinkSendADSB(temp->latitude,temp->longitude,temp->servirity, "Lagoni-1");
+			
+			temp->dataReady=false;
+		}
 	}	
 }
 
@@ -450,6 +471,93 @@ void One_second_Update(void){
 //		SerialAUX->println("Done!");
 	}
 }
+
+
+void mavlinkSendADSB(float latitude, float longitude, uint8_t serverity, char *callsign){
+
+	uint8_t txBuffer[512]; 
+	
+	//lets make an ADSB msg and sent it to pixhawk on Serial2:
+	mavlink_adsb_vehicle_t msgADSB;
+	mavlink_message_t msg;
+  
+	msgADSB.ICAO_address = 0xCAFF;
+	msgADSB.lat = (int32_t)(latitude*1E7);
+	msgADSB.lon = (int32_t)(longitude*1E7);
+//	msgADSB.lat = 558450604;
+//	msgADSB.lon = 124708557;
+	msgADSB.altitude = 1000;
+	msgADSB.heading = 4500;
+	msgADSB.hor_velocity = 10;
+	msgADSB.ver_velocity = 0;
+	msgADSB.flags = 319;
+	
+	if(serverity <= 4){
+		msgADSB.squawk = 7700;		
+	}else{
+		msgADSB.squawk = 1800;		
+	}
+		
+	msgADSB.altitude_type = 0; // BARO
+	/*
+	msgADSB.callsign[0] = 'L';
+	msgADSB.callsign[1] = 'A';
+	msgADSB.callsign[2] = 'G';
+	msgADSB.callsign[3] = 'O';
+	msgADSB.callsign[4] = 'N';
+	msgADSB.callsign[5] = 0;
+	msgADSB.callsign[6] = 0;
+	msgADSB.callsign[7] = 0;
+	msgADSB.callsign[8] = 0;
+	*/
+	for(int a=0;a<9;a++){
+		msgADSB.callsign[a] = *callsign;
+		callsign++;	
+	}
+	msgADSB.callsign[8] = 0;
+	
+	msgADSB.emitter_type = 14; // UAV
+	msgADSB.tslc = 0;
+  
+	mavlink_msg_adsb_vehicle_encode(0, 0, &msg, &msgADSB);
+	int chan = MAVLINK_COMM_0;
+	
+	static const uint8_t mavlink_message_crcs[256] = {  50, 124, 137,   0, 237, 217, 104, 119,   0,   0, //  0-9
+		0,  89,   0,   0,   0,   0,   0,   0,   0,   0, // 10-19
+		214, 159, 220, 168,  24,  23, 170, 144,  67, 115, // 20-29
+		39, 246, 185, 104, 237, 244, 222, 212,   9, 254, // 30-39
+		230,  28,  28, 132, 221, 232,  11, 153,  41,  39, // 40-49
+		78, 196,   0,   0,  15,   3,   0,   0,   0,   0, // 50-59
+		0, 153, 183,  51,  59, 118, 148,  21,   0, 243, // 60-69
+		124,   0,  20,  38,  20, 158, 152, 143,   0,   0, // 70-79
+		0, 106,  49,  22, 143, 140,   5, 150,   0, 231, // 80-89
+		183,  63,  54,   0,   0,   0,   0,   0,   0,   0, // 90-99
+		175, 102, 158, 208,  56,  93, 138, 108,  32, 185, //100-109
+		84,  34, 174, 124, 237,   4,  76, 128,  56, 116, //110-119
+		134, 237, 203, 250,  87, 203, 220,  25, 226,  46, //120-129
+		29, 223,  85,   6, 229, 203,   1, 195, 109, 168, //130-139
+		181,  47,  72, 131, 127,   0, 103, 154, 178, 200, //140-149
+		134,   0, 208,   0,   0,   0,   0,   0,   0,   0, //150-159
+		0,   0,   0, 127,   0,  21,   0,   0,   1,   0, //160-169
+		0,   0,   0,   0,   0,   0,   0,   0,  47,   0, //170-179
+		0,   0, 229,   0,   0,   0,   0,   0,   0,   0, //180-189
+		0,   0,   0,  71,   0,   0,   0,   0,   0,   0, //190-199
+		0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //200-209
+		0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //210-219
+		34,  71,  15,   0,   0,   0,   0,   0,   0,   0, //220-229
+		163, 105,   0,  35,   0,   0,   0,   0,   0,   0, //230-239
+		0,  90, 104,  85,  95, 130, 184,   0,   8, 204, //240-249
+	    49, 170,  44,  83,  46,   0};          //250-256 
+	mavlink_finalize_message_chan(&msg, 0, 0, chan, msg.len, msg.len, mavlink_message_crcs[msg.msgid]);
+	uint16_t totalLength=0;
+	bzero(txBuffer, 512);
+	totalLength = mavlink_msg_to_send_buffer(txBuffer, &msg);
+
+	for(int a=0;a<totalLength;a++){
+		systemHardware.getSerialAUX()->write(txBuffer[a]);
+	}		
+}
+
 	
 	/*
 void ADSB_test(void){
