@@ -23,7 +23,7 @@ class Telegram_MSG_2 : public Telegram
 	Telegram_MSG_2(){};
 				
 	// Constructor to create message from variables. (Here Unique ID is From)
-	Telegram_MSG_2(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, uint32_t _UTCTime,  uint32_t _Lattitude, uint32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix, bool _RunningOnBattery,float _Pressure, float _GroundSpeed ,uint8_t _SecondsSinceLastGSContact, float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, int8_t _RSSI_relay, int8_t _SNR_relay);
+	Telegram_MSG_2(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, uint32_t _UTCTime,  uint32_t _Lattitude, uint32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix, bool _RunningOnBattery,float _Hdop, float _GroundSpeed ,uint8_t _SecondsSinceLastGSContact, float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, int8_t _RSSI_relay, int8_t _SNR_relay);
 	
 	// Constructor to create messages from Radio data struct.
 	Telegram_MSG_2(RadioData_t *radioData);
@@ -45,7 +45,7 @@ class Telegram_MSG_2 : public Telegram
 	uint8_t NumberOfSat;
 	uint8_t Fix;
 	bool RunningOnBattery;
-	float Pressure;
+	float Hdop;
 	float GroundSpeed;
 	uint8_t SecondsSinceLastGSContact;
 	float BatteryVoltage;

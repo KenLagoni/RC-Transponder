@@ -8,8 +8,8 @@
   
 // constructor 
 Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, 
-							   uint32_t _UTCTime,  uint32_t _Lattitude, uint32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix,
-							   bool _RunningOnBattery, float _Pressure, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
+							   uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix,
+							   bool _RunningOnBattery, float _HDOP, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
 							   float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay)
 							   : Telegram(MSG_Beacon_Broadcast, _Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4)
 {	
@@ -20,7 +20,7 @@ Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uin
 	this->NumberOfSat = _NumberOfSat;
 	this->Fix = _Fix;
 	this->RunningOnBattery = _RunningOnBattery;
-	this->Pressure = _Pressure;
+	this->HDOP = _HDOP;
 	this->GroundSpeed = _GroundSpeed;
 	this->SecondsSinceLastGSContact = _SecondsSinceLastGSContact;
 	this->BatteryVoltage = _BatteryVoltage;
@@ -64,7 +64,7 @@ Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uin
 	TelegramData.payload[HEADER_SIZE+11] = temp_8;
 		
 	// Pressure
-	temp_16=(uint16_t)(Pressure);
+	temp_16=(uint16_t)(HDOP*100);
 	TelegramData.payload[HEADER_SIZE+12]  = (uint8_t)((temp_16 >>  8) & 0xFF);
 	TelegramData.payload[HEADER_SIZE+13] = (uint8_t)(temp_16 & 0xFF);
 		
@@ -110,7 +110,8 @@ Telegram_MSG_1::Telegram_MSG_1(RadioData_t *radioData) : Telegram(radioData)
 			RunningOnBattery = true;
 		}
 			
-		Pressure = 	(float)((TelegramData.payload[HEADER_SIZE+12] << 8) + TelegramData.payload[HEADER_SIZE+13]);
+		HDOP = 	(float)((TelegramData.payload[HEADER_SIZE+12] << 8) + TelegramData.payload[HEADER_SIZE+13]);
+		HDOP /= 100;
 		GroundSpeed = (float)((TelegramData.payload[HEADER_SIZE+14] << 8) + TelegramData.payload[HEADER_SIZE+15]);
 		GroundSpeed = GroundSpeed / 10;
 			
@@ -146,7 +147,7 @@ void Telegram_MSG_1::FixedPayload( void ) // debug!
 	Fix			= 2;
 	RunningOnBattery = false;
 	
-	Pressure = 	0;
+	HDOP = 	0;
 	GroundSpeed = 123;
 	GroundSpeed = GroundSpeed / 10;
 	
@@ -228,11 +229,18 @@ bool Telegram_MSG_1::GetRunningOnBattery( void )
 {
 	return RunningOnBattery;
 }
-
+/*
 float Telegram_MSG_1::GetPressure( void )
 {
 	return Pressure;
 }
+*/
+
+float Telegram_MSG_1::GetHDOP( void )
+{
+	return HDOP;
+}
+
 
 float Telegram_MSG_1::GetGroundSpeed( void )
 {

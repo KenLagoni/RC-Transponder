@@ -9,7 +9,7 @@
 
 Telegram_MSG_2::Telegram_MSG_2(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4,
 							   uint32_t _UTCTime,  uint32_t _Lattitude, uint32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix,
-							   bool _RunningOnBattery, float _Pressure, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
+							   bool _RunningOnBattery, float _Hdop, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
 							   float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, int8_t _RSSI, int8_t _SNR) 
 							   : Telegram(MSG_Beacon_Relay, _Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4)
 {
@@ -20,7 +20,7 @@ Telegram_MSG_2::Telegram_MSG_2(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uin
 	this->NumberOfSat = _NumberOfSat;
 	this->Fix = _Fix;
 	this->RunningOnBattery = _RunningOnBattery;
-	this->Pressure = _Pressure;
+	this->Hdop = _Hdop;
 	this->GroundSpeed = _GroundSpeed;
 	this->SecondsSinceLastGSContact = _SecondsSinceLastGSContact;
 	this->BatteryVoltage = _BatteryVoltage;
@@ -41,7 +41,7 @@ Telegram_MSG_2::Telegram_MSG_2(Telegram_MSG_1 *msg) : Telegram(MSG_Beacon_Relay,
 	this->NumberOfSat = msg->GetNumberOfSat();
 	this->Fix = msg->GetFix();
 	this->RunningOnBattery = msg->GetRunningOnBattery();
-	this->Pressure = msg->GetPressure();
+	this->Hdop = msg->GetHDOP();
 	this->GroundSpeed = msg->GetGroundSpeed();
 	this->SecondsSinceLastGSContact = msg->GetSecondsSinceLastGSContact();
 	this->BatteryVoltage = msg->GetBatteryVoltage();
@@ -69,7 +69,8 @@ Telegram_MSG_2::Telegram_MSG_2(RadioData_t *radioData) : Telegram(radioData)
 			RunningOnBattery = true;
 		}
 		
-		Pressure = 	(float)((TelegramData.payload[HEADER_SIZE+12] << 8) + TelegramData.payload[HEADER_SIZE+13]);
+		Hdop = 	(float)((TelegramData.payload[HEADER_SIZE+12] << 8) + TelegramData.payload[HEADER_SIZE+13]);
+		Hdop /= 100;
 		GroundSpeed = (float)((TelegramData.payload[HEADER_SIZE+14] << 8) + TelegramData.payload[HEADER_SIZE+15]);
 		GroundSpeed = GroundSpeed / 10;
 		
@@ -118,7 +119,7 @@ void Telegram_MSG_2::GeneratePayload()
 	TelegramData.payload[HEADER_SIZE+11] = temp_8;
 
 	// Pressure
-	temp_16=(uint16_t)(Pressure);
+	temp_16=(uint16_t)(Hdop*100);
 	TelegramData.payload[HEADER_SIZE+12]  = (uint8_t)((temp_16 >>  8) & 0xFF);
 	TelegramData.payload[HEADER_SIZE+13] = (uint8_t)(temp_16 & 0xFF);
 
