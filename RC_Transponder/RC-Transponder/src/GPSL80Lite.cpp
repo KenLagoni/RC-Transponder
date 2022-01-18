@@ -17,13 +17,14 @@ GPSL80Lite::GPSL80Lite()
 {
 }
 	#if defined (__AVR__) || (__avr__)
-		void GPSL80Lite::init(SoftwareSerial *ptr1, unsigned long baudrate)
+		void GPSL80Lite::begin(SoftwareSerial *ptr1, unsigned long baudrate, Uart *debug)
 	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
 		//void GPSL80Lite::init(Uart *ptr1, unsigned long baudrate, int rxPin , int txPin)
-		void GPSL80Lite::init(Uart *ptr1, unsigned long baudrate)
+		void GPSL80Lite::begin(Uart *ptr1, unsigned long baudrate, Uart *debug)
 	#endif
 {
 	SerialGPS = ptr1;
+	debugUART = debug;
 	
 	// Reset data:
 	uint8_t i=0;
@@ -364,11 +365,12 @@ void GPSL80Lite::update()
 	do
 	{
 		dataReady=SerialGPS->available();
-		
+//		debugUART->write("DataReady=" + String(dataReady));
 		
 		if(dataReady)
 		{
 			_newChar=SerialGPS->read(); // read char from input buffer
+			debugUART->write(_newChar);
 			//Serial.write(_newChar);
 								
 			switch (state)

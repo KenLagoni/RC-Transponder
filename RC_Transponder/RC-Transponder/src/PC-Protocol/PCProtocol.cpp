@@ -38,7 +38,7 @@ void PCProtocol::clearInputData(){
 	input.snr=0;
 	CRC = 0;	
 }
-  
+  /*
  void PCProtocol::Service(){
 	NumberOfBytesToRead = Serial.available();
 	
@@ -168,7 +168,7 @@ void PCProtocol::clearInputData(){
 		}while(NumberOfBytesToRead > 0); // loop until buffer is empty		 
 	}
 }
-
+*/
 void PCProtocol::ApplicationCMDHandler(){
 		ApplicationCMD_t CMD = (ApplicationCMD_t)data[0];
 
@@ -201,7 +201,7 @@ void PCProtocol::RadioDataHandler(){
 			input.payloadLength=dataLength-3;			 // Payload is length minus CRC (2) minus PayloadID (1), thus 3.	
 			input.rssi=0;
 			input.snr=0;
-			this->_inout->AddData(&input); // Add RadioData to RF protocol.
+//			this->_inout->AddData(&input); // Add RadioData to RF protocol.
 		}
 		break;
 

@@ -7,8 +7,11 @@
 
 #include "E28-2G4M20S.h"
 
+E28_2G4M20S::E28_2G4M20S(){}
+
 E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin, int ledPin)
 {
+	/*
 	_chipSelectPin = chipSelectPin;
 	_resetPin      = resetPin;
 	_busyPin       = busyPin;
@@ -24,25 +27,48 @@ E28_2G4M20S::E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1P
 	RadioStatus.rxDone=false;
 	RadioStatus.txDone=false;
 	RadioStatus.rxTimeout=false;
+	RadioStatus.txTimeout=false;*/
+	this->begin(chipSelectPin, resetPin, busyPin, dio1Pin, dio2Pin, dio3Pin, txEnablePin, rxEnablePin, ledPin);
+}
+
+void E28_2G4M20S::begin(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin, int ledPin){
+	_chipSelectPin = chipSelectPin;
+	_resetPin      = resetPin;
+	_busyPin       = busyPin;
+	_dio1Pin       = dio1Pin;
+	_dio2Pin       = dio2Pin;
+	_dio3Pin       = dio3Pin;
+	_txEnablePin   = txEnablePin;
+	_rxEnablePin   = rxEnablePin;
+	_ledPin		   = ledPin;
+	
+	this->Radio.begin(_chipSelectPin, _busyPin, _dio1Pin, _dio2Pin, _dio3Pin, _resetPin, _txEnablePin, _rxEnablePin, _ledPin);
+	//Radio = new SX1280Hal(_chipSelectPin, _busyPin, _dio1Pin, _dio2Pin, _dio3Pin, _resetPin, _txEnablePin, _rxEnablePin, _ledPin);
+		
+	RadioStatus.rxDone=false;
+	RadioStatus.txDone=false;
+	RadioStatus.rxTimeout=false;
 	RadioStatus.txTimeout=false;
 }
 
+
+
 void E28_2G4M20S::SetTxModeActive( void )
 {
-	Radio->SetRxEnablePin(LOW);
-	Radio->SetTxEnablePin(HIGH);
+	Radio.SetRxEnablePin(LOW);
+	Radio.SetTxEnablePin(HIGH);
 }
 
 void E28_2G4M20S::SetRxModeActive( void )
 {
-	Radio->SetTxEnablePin(LOW);
-	Radio->SetRxEnablePin(HIGH);
+	Radio.SetTxEnablePin(LOW);
+	Radio.SetRxEnablePin(HIGH);
 }
 
 void E28_2G4M20S::Init()
 {
-	 Radio->Init( );	 
-	 Radio->SetRegulatorMode( USE_DCDC ); // Can also be set in LDO mode but consume more power
+	 Radio.Init( );	 
+	 Radio.SetRegulatorMode( USE_DCDC ); // Can also be set in LDO mode but consume more power
 	 memset( &RadioData.payload, 0x00, MAX_PAYLOAD_LENGTH ); // Zero fills the buffer
 	 
 	#if defined( MODE_BLE )
@@ -115,14 +141,14 @@ void E28_2G4M20S::Init()
 	#error "Please select the mode of operation for the RC Transponder"
 	#endif
 
-	Radio->SetStandby( STDBY_RC );
-    Radio->SetPacketType( modulationParams.PacketType );
-    Radio->SetModulationParams( &modulationParams );
-    Radio->SetPacketParams( &PacketParams );
+	Radio.SetStandby( STDBY_RC );
+    Radio.SetPacketType( modulationParams.PacketType );
+    Radio.SetModulationParams( &modulationParams );
+    Radio.SetPacketParams( &PacketParams );
 
-    Radio->SetRfFrequency( rf_frequency );
-    Radio->SetBufferBaseAddresses( 0x00, 0x00 );
-    Radio->SetTxParams( tx_power, RADIO_RAMP_20_US ); 
+    Radio.SetRfFrequency( rf_frequency );
+    Radio.SetBufferBaseAddresses( 0x00, 0x00 );
+    Radio.SetTxParams( tx_power, RADIO_RAMP_20_US ); 
 //	SerialAUX->println( "Frequency set to " + String(rf_frequency/1000000) + "MHz");
 //	SerialAUX->println( "TX Power set to " + String(tx_power) + "dBm");
 }
@@ -133,14 +159,14 @@ void E28_2G4M20S::OnTxDone( void )
 	// switch PA to RX.
 	SetRxModeActive();
 	SetRXMode(false); // Set to RX with no timeout.
-	Radio->SetLed(LOW);
+	Radio.SetLed(LOW);
 }
 
 void E28_2G4M20S::OnRxDone( void )
 {
 	memset(&RadioData.payload, 0x00, MAX_PAYLOAD_LENGTH);
 	RadioData.payloadLength=0;
-	if(Radio->GetPayload(&RadioData.payload[0], &RadioData.payloadLength, MAX_PAYLOAD_LENGTH)){
+	if(Radio.GetPayload(&RadioData.payload[0], &RadioData.payloadLength, MAX_PAYLOAD_LENGTH)){
 		// If return 1, then package size is larger than MAX_PAYLOAD_LENGTH
 //		SerialAUX->println("Oops! - New package is to big. Length="+String(RadioData.payloadLength)+". Max Size="+String(MAX_PAYLOAD_LENGTH-2));
 	}else{
@@ -153,7 +179,7 @@ void E28_2G4M20S::OnRxDone( void )
 		if(CalculateCRC(&RadioData.payload[0],RadioData.payloadLength) == temp_crc){
 //			SerialAUX->println("OK!");			
 			// New data has been copied to buffer.
-			Radio->GetPacketStatus(&PacketStatus);
+			Radio.GetPacketStatus(&PacketStatus);
 			switch( PacketStatus.packetType )
 			{
 				case PACKET_TYPE_GFSK:
@@ -191,43 +217,43 @@ void E28_2G4M20S::OnRxDone( void )
 // Only call this when interrupt has occurred.
 void E28_2G4M20S::IRQHandler( void )
 {
-	Radio->ProcessIrqs();	
+	Radio.ProcessIrqs();	
 	
 	// reset all flags.
 //	RadioStatus.rxDone=Radio->RadioPacketStatus.rxDone;  // Set in RXDone, if CRC is ok.
-	RadioStatus.txDone=Radio->RadioPacketStatus.txDone;
-	RadioStatus.rxTimeout=Radio->RadioPacketStatus.rxTimeout;
-	RadioStatus.txTimeout=Radio->RadioPacketStatus.txTimeout;
+	RadioStatus.txDone=Radio.RadioPacketStatus.txDone;
+	RadioStatus.rxTimeout=Radio.RadioPacketStatus.rxTimeout;
+	RadioStatus.txTimeout=Radio.RadioPacketStatus.txTimeout;
 	//SerialAUX->println("E28 Radio Interrupt!");
 	
-	if(Radio->RadioPacketStatus.txDone == true){
+	if(Radio.RadioPacketStatus.txDone == true){
 //		SerialAUX->println("TX Done!");
 		this->OnTxDone();
 	}    
-	if(Radio->RadioPacketStatus.rxDone == true){
+	if(Radio.RadioPacketStatus.rxDone == true){
 //		SerialAUX->println("RX Done!");
 		this->OnRxDone();
 		// read the message, check CRC if ok, make available.
 	}
-	if(Radio->RadioPacketStatus.rxSyncWordDone == true){
+	if(Radio.RadioPacketStatus.rxSyncWordDone == true){
 //		SerialAUX->println("rxSyncWordDone!");
 	}	
-	if(Radio->RadioPacketStatus.rxHeaderDone == true){
+	if(Radio.RadioPacketStatus.rxHeaderDone == true){
 //		SerialAUX->println("rxHeaderDone!");
 	}
-	if(Radio->RadioPacketStatus.txTimeout == true){
+	if(Radio.RadioPacketStatus.txTimeout == true){
 //		SerialAUX->println("TX Timeout!");
 	}
-	if(Radio->RadioPacketStatus.rxTimeout == true){
+	if(Radio.RadioPacketStatus.rxTimeout == true){
 //		SerialAUX->println("RX Timeout!");
 	}	
-	if(Radio->RadioPacketStatus.rxError > 0x00){
+	if(Radio.RadioPacketStatus.rxError > 0x00){
 //		SerialAUX->println("IRQ Error! " + String(Radio->RadioPacketStatus.rxError));
 	}
-	if(Radio->RadioPacketStatus.rangingDone > 0x00){
+	if(Radio.RadioPacketStatus.rangingDone > 0x00){
 //		SerialAUX->println("IRQ Ranging Code! " + String(Radio->RadioPacketStatus.rangingDone));
 	}
-	if(Radio->RadioPacketStatus.cadDone == true){
+	if(Radio.RadioPacketStatus.cadDone == true){
 //		SerialAUX->println("CAD Done!");
 	}
 	
@@ -245,23 +271,23 @@ void E28_2G4M20S::SendRadioData(RadioData_t *data)
 	RadioData.payload[RadioData.payloadLength++] = (uint8_t)(temp_crc & 0xFF);		    // CRC	
 			
 	this->SetTxModeActive(); // Switch the hardware amplifier to TX mode.
-	Radio->SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on TX complete on DI01.
+	Radio.SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on TX complete on DI01.
 	this->PacketParams.Params.LoRa.PayloadLength = RadioData.payloadLength;
-	Radio->SetPacketParams( &PacketParams );
-	Radio->SendPayload(&RadioData.payload[0], RadioData.payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
+	Radio.SetPacketParams( &PacketParams );
+	Radio.SendPayload(&RadioData.payload[0], RadioData.payloadLength, ( TickTime_t ){ RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE } );
 	
 	//Debug:
-	Radio->SetLed(HIGH);
+	Radio.SetLed(HIGH);
 }
 
 void E28_2G4M20S::SetRXMode(bool useTimeout)
 {
    this->SetRxModeActive(); // Switch the hardware amplifier to RX mode.
-   Radio->SetDioIrqParams( RxIrqMask, RxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on RX complete on DI01 or Timeout.
+   Radio.SetDioIrqParams( RxIrqMask, RxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE ); // Set module to interrupt on RX complete on DI01 or Timeout.
    if(useTimeout){
-		Radio->SetRx( ( TickTime_t ) { RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE } );
+		Radio.SetRx( ( TickTime_t ) { RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE } );
    }else{
-		Radio->SetRx(RX_TX_CONTINUOUS);
+		Radio.SetRx(RX_TX_CONTINUOUS);
    }
 }
 
@@ -275,17 +301,17 @@ void E28_2G4M20S::Sleep(void){
 	
 //	SerialAUX->println("Radio Firmware version: " + String(Radio->GetFirmwareVersion()));
 	
-	Radio->SetTxEnablePin(LOW);
-	Radio->SetRxEnablePin(LOW);
+	Radio.SetTxEnablePin(LOW);
+	Radio.SetRxEnablePin(LOW);
 		
-	Radio->SetSaveContext();
-	Radio->SetSleep(SleepParameters);	
+	Radio.SetSaveContext();
+	Radio.SetSleep(SleepParameters);	
 
 //	digitalWrite(_chipSelectPin, HIGH);
 }
 
 void E28_2G4M20S::WakeUp(void){
-	Radio->SetWakeup();
+	Radio.SetWakeup();
 }
 
 
@@ -325,9 +351,9 @@ uint16_t E28_2G4M20S::CalculateCRC(uint8_t *data, uint8_t length){
 }
 
 uint16_t  E28_2G4M20S::GetFirmwareVersion( void ){
-	return Radio->GetFirmwareVersion();
+	return Radio.GetFirmwareVersion();
 }
 
 uint8_t E28_2G4M20S::GetDioPinStatus(void){
-	return Radio->GetDioPinStatus();
+	return Radio.GetDioPinStatus();
 }

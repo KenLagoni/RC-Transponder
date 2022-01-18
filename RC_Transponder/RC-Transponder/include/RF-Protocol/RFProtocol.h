@@ -29,19 +29,21 @@ class RFProtocol
 {
 	// Public functions to be used on all Messages
 	public:
+	RFProtocol(); // Empty constructor.
 	RFProtocol(E28_2G4M20S *RadioModule); //constructor.
 	
-	void AddData(RadioData_t *msg); // Add to TX FIFO.
-	void AddData(Telegram *msg);
-	RadioData_t * GetData();
-	
-	RadioData_t * GetDataIncludingRSSI();
+//	void AddData(RadioData_t *msg); // Add to TX FIFO.
+//	void AddData(Telegram *msg);
+//	RadioData_t * GetData();	
+//	RadioData_t * GetDataIncludingRSSI();
 
 	int Available(); // returns number of Telegrams in RX FIFO.
 	void Service();
 
 	// General helper functions and varibels only used by inherited MSG classes.
 	protected:
+	
+	void init(E28_2G4M20S *RadioModule); // When using empty constructor
 	
 	enum RFProtocolStates_t {
 		RX_IDLE = 0,
@@ -63,12 +65,13 @@ class RFProtocol
 
 	
 	RFProtocolStates_t RFstate = RX_IDLE;
-	Telegram * ConvertToTelegram(RadioData_t *data); // return pointer to incomming package if CRC is ok, else NULL.
+	ProtocolMSG_t getTelegramMSGType(RadioData_t *newdata);
+//	Telegram * ConvertToTelegram(RadioData_t *data); // return pointer to incomming package if CRC is ok, else NULL.
 			
 	// Parameters only used on Telegram mother class.
 	private:
 	unsigned long timeoutStart = 0;
-	RadioData_t rxbuffer; // When using "GetData()" the Telegram is removed from FIFO and only RadioData is saved. Telegram is den deleted.
+//	RadioData_t rxbuffer; // When using "GetData()" the Telegram is removed from FIFO and only RadioData is saved. Telegram is then deleted.
 	
 	//String base64_encode(byte bytes_to_encode[], int in_len);
 };

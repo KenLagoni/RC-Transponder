@@ -27,10 +27,10 @@ class GPSL80Lite
 
 	#if defined (__AVR__) || (__avr__)	
 //		void init(SoftwareSerial *ptr1, GpsDataLite *ptr3);
-		void init(SoftwareSerial *ptr1, unsigned long baudrate);
+		void begin(SoftwareSerial *ptr1, unsigned long baudrate, Uart *debug);
 	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
 //		void init(Uart *ptr1, GpsDataLite *ptr3);
-		void init(Uart *ptr1, unsigned long baudrate);
+		void begin(Uart *ptr1, unsigned long baudrate, Uart *debug);
 	#endif
 	
 	void update();
@@ -109,6 +109,8 @@ class GPSL80Lite
 	#elif defined(ARDUINO_SAMD_MKRZERO)  // Arduino MKR Zero
 		Uart *SerialGPS = NULL;       // Pointer to the serial port used
 	#endif
+
+	Uart *debugUART = NULL;
 
 	StateMachine state = LOOKING_FOR_START; // ENUM used by state maschine in update();
 	uint8_t dataLength = 0; 				// counter for number of bytes. (checked against MAX_header/data_SIZE)

@@ -20,6 +20,7 @@ typedef enum
 	MSG_Beacon_Broadcast=0x01,
 	MSG_Beacon_Relay,
 	MSG_Command,
+	UNKOWN,
 }ProtocolMSG_t;
 
 // Command for MSG 3
@@ -40,6 +41,7 @@ class Telegram
 	RadioData_t * GetRadioData();
 	Telegram(){};
 	virtual ~Telegram(){};					 	 // Destructor is virtual to ensure correct destructor is used when deleting telegrams.
+	void setup(ProtocolMSG_t _MSG_ID,  uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4);
 	bool TelegramMatchUniqueID(uint32_t _destinationID_1, uint32_t _destinationID_2, uint32_t _destinationID_3, uint32_t _destinationID_4); // Function will compare input destination ID with message, and return true if message it is a match.
 
 	ProtocolMSG_t GetRadioMSG_ID();

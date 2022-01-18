@@ -33,8 +33,10 @@ class RFService : public RFProtocol
 {
 	// Public functions to be used on all Messages
 	public:
+	RFService(); // Empty constructor for pree allocation.
 	RFService(E28_2G4M20S *RadioModule, SystemInformation_t *status); //constructor.
 	
+	void begin(E28_2G4M20S *RadioModule, SystemInformation_t *status); // Use begin when using an empty constructor.
 	void SendBeacon(); // Add a beacon message to TX FIFO.
 	void PowerDown();
 	void WakeUp();
@@ -64,6 +66,9 @@ class RFService : public RFProtocol
 	RFProtocolStatus_t RFProtocolStatus;
 	
 	SystemInformation_t *SystemInformation = nullptr;	
+	Telegram_MSG_1 beaconMSG;
+	bool beaconReady=false;
+	
 	Telegram_MSG_2 SavedBeacons[SAVED_BEACONS_FIFO_SIZE];
 	
 	bool SaveTransponderBeacon(Telegram_MSG_1 *msg); // Return true if message is saved

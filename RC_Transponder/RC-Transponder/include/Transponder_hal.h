@@ -77,8 +77,10 @@ class Transponder_hal
 	Uart *_serialfrskySPort = NULL; // UART for frskySmartPort
 	Uart *_serialAUX = NULL;		// UART for auxiliary serial (Used for Mavlink to FC).
 	Uart *_serialSBUS = NULL;	    // UART for the SBUS (RC inputs) (PCB -11 only)
-	E28_2G4M20S *_radio = NULL;     // Radio module. 
-	GPSL80Lite *_GPS = NULL;        // GPS module.
+	//E28_2G4M20S *_radio = NULL;   // Radio module. 
+	E28_2G4M20S _radio;		        // Radio module, not as pointer but pree-allocated.
+	//GPSL80Lite *_GPS = NULL;      // GPS module.
+	GPSL80Lite _GPS;		        // GPS module, not as pointer but to pree-allocate memory.
 	
 	// Define Pins for Radio
 	const int chipSelectPin = 1;  // Pin D1  on MKRZero Board - Chip pin is 32 or PA23

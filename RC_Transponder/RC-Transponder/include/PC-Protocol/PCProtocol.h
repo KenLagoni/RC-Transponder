@@ -21,7 +21,7 @@ class PCProtocol
 	public:
 	PCProtocol(RFProtocol *inout, E28_2G4M20S *radio);
 
-	void Service();
+	//void Service();
 	
 	// General helper functions and variables only used by inherited MSG classes.
 	protected:

@@ -55,9 +55,14 @@ I downloaded the source code from Semtech website: "https://os.mbed.com/teams/Se
 #define assert_param( ... )
 #endif
 
+
+SX1280Hal::SX1280Hal() :  SX1280( ){}
+
 SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst,  int txEnablePin, int rxEnablePin, int ledPin)
         :   SX1280( )
 {
+	this->begin(nss, busy, dio1, dio2, dio3, rst, txEnablePin, rxEnablePin, ledPin);
+	/*
 	RadioNss = nss;
     RadioReset = rst;
     BUSY = busy;
@@ -79,7 +84,7 @@ SX1280Hal::SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, 
 	pinMode(LEDPIN, OUTPUT);
 	digitalWrite(LEDPIN, LOW);
 
-    SPI.begin();
+    SPI.begin();*/
 }
 
 SX1280Hal::~SX1280Hal( void )
@@ -106,6 +111,34 @@ void SX1280Hal::IoIrqInit( DioIrqHandler irqHandler )
     DioAssignCallback( DIO3, PullNone, irqHandler );
 }
 */
+
+void SX1280Hal::begin(int nss, int busy, int dio1, int dio2, int dio3, int rst, int txEnablePin, int rxEnablePin, int ledPin){
+	RadioNss = nss;
+	RadioReset = rst;
+	BUSY = busy;
+	DIO1 = dio1;
+	TXENPIN = txEnablePin;
+	RXENPIN = rxEnablePin;
+	LEDPIN = ledPin;
+	
+	pinMode(RadioNss, OUTPUT);
+	digitalWrite(RadioNss, HIGH);
+	pinMode(RadioReset, OUTPUT);
+	digitalWrite(RadioReset, HIGH);
+	pinMode(DIO1, INPUT);
+	pinMode(BUSY, INPUT);
+	pinMode(TXENPIN, OUTPUT);
+	digitalWrite(TXENPIN, LOW);
+	pinMode(RXENPIN, OUTPUT);
+	digitalWrite(RXENPIN, HIGH);
+	pinMode(LEDPIN, OUTPUT);
+	digitalWrite(LEDPIN, LOW);
+
+	SPI.begin();	
+}
+
+
+
 void SX1280Hal::Reset( void )
 {
 //    noInterrupts();

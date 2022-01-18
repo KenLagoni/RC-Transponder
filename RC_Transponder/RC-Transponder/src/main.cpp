@@ -69,15 +69,22 @@ FrSkySportTelemetry FrskySport;           // Create telemetry object without pol
 MavlinkHandler MavlinkData;				  // Create Mavlink class to handle Mavlink from FC and pass it to Frsky Passthrough.
 
 // Object for Radio communication
-RFService *RadioService = NULL;
+//RFService *RadioService = NULL;
+RFService RadioService;
 
 // Object for PC/User communication
 // PCProtocol *SerialProtocol = NULL;
 
-
+/*
 #define POWER_DOWN_DELAY  60 // Wait 60 seconds after power is lost before go to low power mode.
 #define GPS_ON_TIME       60 //  60 seconds
 #define GPS_OFF_TIME     600 // 600 seconds (10min)
+*/
+// DEBUG
+#define POWER_DOWN_DELAY  10 // Wait 60 seconds after power is lost before go to low power mode.
+#define GPS_ON_TIME       60 //  60 seconds
+#define GPS_OFF_TIME      10 // 600 seconds (10min)
+
 
 void setup() {	
 	// Init USB serial debug /setup:
@@ -135,7 +142,8 @@ void setup() {
 	String base64MSG = String("ADSB ID:\"" + String(Telegram::base64_encode(data,SERIALNUMBER_SIZE).c_str()) + "\"");
 	
 	// Init the Radio protocol
-	RadioService = new RFService(systemHardware.getRadio(), &SystemInformation);
+//	RadioService = new RFService(systemHardware.getRadio(), &SystemInformation);
+	RadioService.begin(systemHardware.getRadio(), &SystemInformation);
 //	SerialProtocol = new PCProtocol(RadioService, Radio);
 	
 	// Start the FrSky SPort library with Serial port and the two sensors (GPS and Passthrought):	
@@ -170,14 +178,22 @@ void loop() {
      //LowPowerTest();
 	  
 	do{
+		systemHardware.getSerialAUX()->println("");
+		systemHardware.getSerialAUX()->print("1");
 		One_second_Update();
+		systemHardware.getSerialAUX()->print("2");
 		systemHardware.getGPS()->update();  // Function empty serial buffer and analyzes string.
-		RadioService->Service();			// Service the Radio module
+		systemHardware.getSerialAUX()->print("3");
+		RadioService.Service();			    // Service the Radio module
+		systemHardware.getSerialAUX()->print("4");
 		MavlinkData.service();				// Service the Mavlink data.
+		systemHardware.getSerialAUX()->print("5");
 		BeaconService();				    // Time to make beacon for radio tx?
+		systemHardware.getSerialAUX()->print("6");
 	
 		if(SystemInformation.SaftySwitchPushed == true){
 			SystemInformation.state=POWER_OFF;
+			systemHardware.getSerialAUX()->print("A");
 		}
 
 		switch(SystemInformation.state)
@@ -218,17 +234,24 @@ void loop() {
 			
 			case RUNNING_ON_BATTERY_GPS_ON:
 			{
+				systemHardware.getSerialAUX()->print("8");
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					SystemInformation.state=POWER_OFF;
 				}else{
+					systemHardware.getSerialAUX()->print("a");
+					delay(50); // DEBUG
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 					if(++SystemInformation.GPSActiveCounter > GPS_ON_TIME){ // power off GPS after 1 min.
 						SystemInformation.GPSActiveCounter=0;
+						systemHardware.getSerialAUX()->print("b");
 						delay(2000); // busy wait while GPS serial gets time to receive data from GPS (Unable in sleep mode).
+						systemHardware.getSerialAUX()->print("c");
 						systemHardware.getGPS()->update();  // Service the GPS.
+						systemHardware.getSerialAUX()->print("d");		
 						systemHardware.PowerOFFGPS();// Turn OFF GPS main power.
+						systemHardware.getSerialAUX()->println("GPS Power OFF!");
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_OFF;
 					}
 				}
@@ -237,15 +260,20 @@ void loop() {
 
 			case RUNNING_ON_BATTERY_GPS_OFF:
 			{
+				systemHardware.getSerialAUX()->print("9");
 				if( ((SystemInformation.InputVoltage > 4.3) || (SystemInformation.USBVoltage > 2.0 )) && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
 					}else if(SystemInformation.BatteryVoltage <= 3.0){
 						SystemInformation.state=POWER_OFF;
 					}else{
+						systemHardware.getSerialAUX()->print("a");
+						delay(50); // DEBUG
 						GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
 						if(++SystemInformation.GPSActiveCounter > GPS_OFF_TIME){ // Turn on GPS every 10 mins.
 							SystemInformation.GPSActiveCounter=0;
+							systemHardware.getSerialAUX()->print("b");
 							systemHardware.PowerONGPS();// Turn OFF GPS main power.
+							systemHardware.getSerialAUX()->println("GPS Power ON!");
 							SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
 						}
 				}
@@ -256,6 +284,7 @@ void loop() {
 			case POWER_OFF:
 			{
 				systemHardware.PowerOFF(); 
+				Serial.println("ADSB Status: Power OFF - Please remove power.");		
 				do{
 					// CPU should have died here, but if we are still powered the flash fast led.
 					systemHardware.LEDON();
@@ -287,7 +316,7 @@ void loop() {
 }
 
 void GoToSleep(void){
-	RadioService->PowerDown();
+	RadioService.PowerDown();
 	systemHardware.auxSerialPowerDown();
 	systemHardware.PowerOFFFrSkySmartPort();
 
@@ -303,7 +332,7 @@ void GoToSleep(void){
 
 	systemHardware.PowerONFrSkySmartPort();
 	systemHardware.auxSerialPowerUp();
-	RadioService->WakeUp();	
+	RadioService.WakeUp();	
 }
 
 void LowPowerTest(void){
@@ -333,14 +362,14 @@ void BeaconService(void){
 			SystemInformation.NumberOfSat = systemHardware.getGPS()->getNumberOfSat();
 			SystemInformation.Fix = systemHardware.getGPS()->getFix();
 			SystemInformation.hdop = systemHardware.getGPS()->getHDOP();
-			RadioService->SendBeacon();
+			RadioService.SendBeacon();
 		}else{
 //			SerialAUX->println("Im groundstation, NoPing!");
 		}
 //		SerialAUX->println("Done!");	
 	}else{ // see if there are any messages from radio to Mavlink / FrSky.
 		
-		transponderData_t *temp = RadioService->getRadioText();		
+		transponderData_t *temp = RadioService.getRadioText();		
 		if(temp->dataReady){
 			FrskyPASS.setDataTextMSG(temp->data, temp->servirity);
 
@@ -395,7 +424,7 @@ void One_second_Update(void){
 			}
 		}
 		
-		if(SystemInformation.SecondsSinceStart > 5){
+		if(SystemInformation.SecondsSinceStart > 5 && !SystemInformation.SaftySwitchFirstTimePushed){
 			systemHardware.LEDSaftySwitchOFF();
 		}
 		
@@ -407,6 +436,15 @@ void One_second_Update(void){
 				SystemInformation.gpsValidSentOnlyOnce=true;
 			}
 		}
+		/*
+		Serial.print("ADSB Status: Battery=" + String(SystemInformation.BatteryVoltage,2) + "V ");
+		if(systemHardware.GetChargeState() == HIGH){
+			Serial.print("(Complete)");		
+		}else{
+			Serial.print("(Charging)");					
+		}
+		Serial.println(" SaftySwitch:" + String(systemHardware.SaftySwitchPushed()) + "|" + String(SystemInformation.SafteSwitchPushedTimer) + "|" + String(SystemInformation.SaftySwitchFirstTimePushed));
+		*/
 	}
 }
 
@@ -477,10 +515,11 @@ void mavlinkSendADSB(float latitude, float longitude, uint8_t serverity, char *c
 	uint16_t totalLength=0;
 	bzero(txBuffer, 512);
 	totalLength = mavlink_msg_to_send_buffer(txBuffer, &msg);
-
+/*
 	for(int a=0;a<totalLength;a++){
 		systemHardware.getSerialAUX()->write(txBuffer[a]);
 	}		
+	*/
 }
 	
 	

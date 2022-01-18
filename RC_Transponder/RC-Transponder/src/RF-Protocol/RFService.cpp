@@ -7,6 +7,19 @@
 
 #include "RFService.h"
 
+
+RFService::RFService() : RFProtocol()
+{
+	this->SystemInformation = NULL;
+	memset( &this->rxData.data, 0x00, MAX_TEXT_SIZE); // Zero fills the buffer
+	this->rxData.servirity=0;
+	this->rxData.hdop=0;
+	this->rxData.latitude=0;
+	this->rxData.longitude=0;
+	this->rxData.dataReady=false;
+}
+
+
 RFService::RFService(E28_2G4M20S *Radio, SystemInformation_t *status) : RFProtocol(Radio)
 {
 
@@ -20,23 +33,46 @@ RFService::RFService(E28_2G4M20S *Radio, SystemInformation_t *status) : RFProtoc
 }
 
 
+void RFService::begin(E28_2G4M20S *RadioModule, SystemInformation_t *status){
+	this->init(RadioModule);
+	this->SystemInformation = status;
+	memset( &this->rxData.data, 0x00, MAX_TEXT_SIZE); // Zero fills the buffer
+	this->rxData.servirity=0;
+	this->rxData.hdop=0;
+	this->rxData.latitude=0;
+	this->rxData.longitude=0;
+	this->rxData.dataReady=false;	
+}
+
 void RFService::SendBeacon()
 {	
+	/*
 	Telegram_MSG_1 *msg = new Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
 											 SystemInformation->UTCTime, SystemInformation->Latitude, SystemInformation->Longitude,
 											 SystemInformation->NumberOfSat, SystemInformation->Fix, ((SystemInformation->state==RUNNING_ON_BATTERY_GPS_ON) || (SystemInformation->state==GET_READY_TO_RUN_ON_BATTERY) || (SystemInformation->state==RUNNING_ON_BATTERY_GPS_OFF)),
 											 SystemInformation->hdop, SystemInformation->groundspeed,
 										  	 RFProtocolStatus.SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
-											 SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);
+											 SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);*/
+	this->beaconMSG.setData(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
+							SystemInformation->UTCTime, SystemInformation->Latitude, SystemInformation->Longitude,
+							SystemInformation->NumberOfSat, SystemInformation->Fix,
+							((SystemInformation->state==RUNNING_ON_BATTERY_GPS_ON) || (SystemInformation->state==GET_READY_TO_RUN_ON_BATTERY) || (SystemInformation->state==RUNNING_ON_BATTERY_GPS_OFF)),
+							SystemInformation->hdop, SystemInformation->groundspeed,
+							RFProtocolStatus.SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
+							SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);
 
+	this->beaconReady=true;
+/*
 	if(this->txFIFO.isFull()){
-		// we should empty fifo because if buffer is full we woont sent any beacons!.
-		delete msg; //
-	}else{
+		// we should empty fifo because if buffer is full we wont sent any beacons!.
+		//delete msg; //
+	}else{/*
 		if(msg!=NULL){
 			this->txFIFO.push(msg);	//Add to TX FIFO
 		}
-	}
+		*/
+//		this->txFIFO.push(&this->beaconMSG);	//Add to TX FIFO
+//	}
 }
 
 
@@ -97,21 +133,25 @@ transponderData_t * RFService::getRadioText(void){
 	return &this->rxData;
 }
 
+
 RFProtocol::RFProtocolStates_t RFService::RXHandler()
 {
-	Telegram *msg = ConvertToTelegram(Radio->GetRadioData());
+//	Telegram *msg = ConvertToTelegram(Radio->GetRadioData());
+	RadioData_t *newData = Radio->GetRadioData();
 	RFProtocolStates_t returnState =RX_IDLE; 
-
-	if(msg!=NULL)
+	
+	if(newData != NULL)
 	{
-		bool SaveTelegram = false;
-					
-		switch(msg->GetRadioMSG_ID())
+		ProtocolMSG_t msgID = getTelegramMSGType(newData);
+			
+		switch(msgID)
 		{
 			case MSG_Beacon_Broadcast:
 			{
 				// Print it to Serial (USB)
-				Telegram_MSG_1 *msgBeacon =  (Telegram_MSG_1 *)msg;
+				Telegram_MSG_1 msgBeacon =  Telegram_MSG_1(newData);
+				//Serial.println("Battery voltage RX:" + String(msgBeacon.GetBatteryVoltage()));
+								
 				// UNIQUE_ID,UTC,LATTITUDE,LONGITUDE,NUMBEROFSAT,FIX,RUNNING_ON_BATTERY,
 				/*
 				Serial.print("$BEACON,");
@@ -130,9 +170,9 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 				*/
 				
 				String fix;				
-				if(msgBeacon->GetFix() >= 2){
+				if(msgBeacon.GetFix() >= 2){
 					fix=String("3D");
-				}else if(msgBeacon->GetFix() == 1){
+				}else if(msgBeacon.GetFix() == 1){
 					fix=String("2D");
 				}else{
 					fix=String("*");
@@ -142,10 +182,10 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 				// If running on battery then Severity= and Squawk=777
 				// ADSB([CALLSIGN]): [LAT],[LON] [SAT]/[FIX]/[HDOP]
 				// ADSB(ABCDEFGHI): 55.1234567,12.1234567 15/3D/1.00	
-				this->rxData.hdop = msgBeacon->GetHDOP();				
+				this->rxData.hdop = msgBeacon.GetHDOP();				
 				
-				String adsbText = String("ADSB(ABCDEFGHI): " + String(msgBeacon->GetLatitudeAsDecimalDegrees(),6) + "," + String(msgBeacon->GetLongitudeAsDecimalDegrees(),6) + 
-										 " " + String(msgBeacon->GetNumberOfSat()) + "/" + fix + "/" + String(this->rxData.hdop,2) );
+				String adsbText = String("ADSB(ABCDEFGHI): " + String(msgBeacon.GetLatitudeAsDecimalDegrees(),6) + "," + String(msgBeacon.GetLongitudeAsDecimalDegrees(),6) + 
+										 " " + String(msgBeacon.GetNumberOfSat()) + "/" + fix + "/" + String(this->rxData.hdop,2) );
 				
 //				Serial.println("ADSB text length:" + String(adsbText.length()) + " Text:" + adsbText.c_str());
 
@@ -167,25 +207,23 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 				}				
 				Serial.println("");
 				*/
-				if(msgBeacon->GetRunningOnBattery()){
+				if(msgBeacon.GetRunningOnBattery()){
 					this->rxData.servirity=4; // Warning Yellow text with buzzer sound
 				}else{
 					this->rxData.servirity=7; // White text with ping.
 				}
-				this->rxData.latitude = msgBeacon->GetLatitudeAsDecimalDegrees();				
-				this->rxData.longitude = msgBeacon->GetLongitudeAsDecimalDegrees();		
+				this->rxData.latitude = msgBeacon.GetLatitudeAsDecimalDegrees();				
+				this->rxData.longitude = msgBeacon.GetLongitudeAsDecimalDegrees();		
 				this->rxData.dataReady=true;
 								
 				
 				// ADSB([CALLSIGN]): [LAT],[LON] [SAT]/[FIX]/[HDOP] [BATTERY VOLTAGE]
-				String serialText = String("ADSB(ABCDEFGHI): " + String(msgBeacon->GetLatitudeAsDecimalDegrees(),6) +
-											"," + String(msgBeacon->GetLongitudeAsDecimalDegrees(),6) +
-											" " + String(msgBeacon->GetNumberOfSat()) + "/" + fix + "/" + String(this->rxData.hdop,2) + 
-											" " + String(msgBeacon->GetBatteryVoltage()));
+				String serialText = String("ADSB(ABCDEFGHI): " + String(msgBeacon.GetUTCTime()) + "," + String(msgBeacon.GetLatitudeAsDecimalDegrees(),6) +
+											"," + String(msgBeacon.GetLongitudeAsDecimalDegrees(),6) +
+											" " + String(msgBeacon.GetNumberOfSat()) + "/" + fix + "/" + String(this->rxData.hdop,2) + 
+											" " + String(msgBeacon.GetBatteryVoltage()));
 	
 				Serial.println("Serial ADSB text:" + serialText);	
-				
-																
 			}
 			break;
 
@@ -195,13 +233,15 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 			break;
 
 			case MSG_Command:
+			{
 //				SerialAUX->print("\n\r************ MSG - 3 Received!...");
-				if(msg->TelegramMatchUniqueID(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4))
+				Telegram_MSG_3 msgCMD = Telegram_MSG_3(Radio->GetRadioData());
+				if(msgCMD.TelegramMatchUniqueID(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2, SystemInformation->SerialNumber3, SystemInformation->SerialNumber4))
 				{
 //					SerialAUX->println("For us!");
 					RFProtocolStatus.SecondCounterSinceLasteGroundStationContact=0;
 					// Command received for us!
-					switch(((Telegram_MSG_3 *)msg)->GetCommand())
+					switch(msgCMD.GetCommand())
 					{
 						case CMD_Request_Transponder_Beacon:
 						{
@@ -213,7 +253,7 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 								 returnState=RX_IDLE;							
 							 }else{
 //								 SerialAUX->println("Yes!");
-								Telegram_MSG_1 msgReply = NULL;
+								//Telegram_MSG_1 msgReply = NULL;
 								/*
 								Telegram_MSG_1 msgReply = Telegram_MSG_1(SystemInformation->SerialNumber1, SystemInformation->SerialNumber2,
  																		SystemInformation->SerialNumber3, SystemInformation->SerialNumber4,
@@ -224,8 +264,9 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 																		// 100 // Debug
 																		,SystemInformation->BatteryVoltage,
 																		SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);*/
-								Radio->SendRadioData(msgReply.GetRadioData());
-								returnState=TX_WITHOUT_REPLY;
+								
+								//Radio->SendRadioData(msgReply.GetRadioData());
+								//returnState=TX_WITHOUT_REPLY;
 							 }
 						}
 						break;
@@ -249,7 +290,6 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 									}
 								}
 							}
-							
 						}
 						break;
 
@@ -277,45 +317,35 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 				else{
 //					SerialAUX->println("Not For us!");
 				}
+			}
 			break;
 			
+			case UNKOWN:
 			default:
 //				SerialAUX->println("\n\r************MSG - ? Default!....");
 			break;
-		}		
-					
-		// Save in RX FIFO:
-		if(!(rxFIFO.isFull()))
-		{
-//			SerialAUX->println("Adding MSG to RX FIFO.");	
-			rxFIFO.push(msg);
-			SaveTelegram=true;
-		}else
-		{
-//			SerialAUX->println("RX FIFO full!.");	
 		}
-		
-		if(!SaveTelegram)
-		{ // delete message if FIFO was full and telegram not saved in SavedBeacons List.
-			delete msg;
-		}
-		
-	}else{
-//		SerialAUX->println("MSG is NULL!");
-	}
-	 // if msg!=null		
+	} //if(newMSG != NULL)
 	return returnState;
 }
 
 RFProtocol::RFProtocolStates_t RFService::TXHandler(){
-	Telegram *msg = NULL;
+//	Telegram *msg = NULL;
 	RFProtocolStates_t _nextState = RX_IDLE;
 	
 	//End fast! - don't do any more TX, main system wants to sleep.
 	if(RFProtocolStatus.Sleep == true){
 		return _nextState;
 	}
-
+	
+	// Check if beacon is ready for TX:
+	if(this->beaconReady==true){
+		Radio->SendRadioData(this->beaconMSG.GetRadioData());
+		_nextState=TX_WITHOUT_REPLY;
+		this->beaconReady=false;
+	}
+	
+/*
 	if(txFIFO.pop(msg)){
 		if(msg!=NULL){
 			switch(msg->GetRadioMSG_ID())
@@ -356,9 +386,11 @@ RFProtocol::RFProtocolStates_t RFService::TXHandler(){
 				}
 				break;
 			}
-			delete msg;
+//			delete msg;
 		}
 	}
+	*/
+
 	return _nextState;
 }
 

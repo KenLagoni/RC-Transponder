@@ -36,6 +36,7 @@ public:
      *
      * Represents the physical connectivity with the radio and set callback functions on radio interrupts
      */
+	SX1280Hal();
     SX1280Hal( int nss, int busy, int dio1, int dio2, int dio3, int rst, int txEnablePin, int rxEnablePin, int ledPin);//,
                //RadioCallbacks_t *callbacks );
 			   
@@ -57,6 +58,8 @@ public:
      * \brief Wakes up the radio
      */
     virtual void Wakeup( void );
+
+	void begin(int nss, int busy, int dio1, int dio2, int dio3, int rst, int txEnablePin, int rxEnablePin, int ledPin);
 
     /*!
      * \brief Set the SPI Speed

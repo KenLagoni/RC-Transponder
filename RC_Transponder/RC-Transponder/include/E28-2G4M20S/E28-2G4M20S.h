@@ -64,7 +64,9 @@ struct RadioData_t
 class E28_2G4M20S
 {
   public:
+    E28_2G4M20S();
     E28_2G4M20S(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin, int ledPin);
+	void begin(int chipSelectPin, int resetPin, int busyPin, int dio1Pin, int dio2Pin, int dio3Pin, int txEnablePin, int rxEnablePin, int ledPin);
 	void Init(); 
 	void IRQHandler();
 	void SetRXMode(bool useTimeout); 
@@ -109,7 +111,8 @@ class E28_2G4M20S
     PacketStatus_t PacketStatus;
     ModulationParams_t modulationParams;
   	
-    SX1280Hal *Radio = nullptr; 
+    //SX1280Hal *Radio = nullptr; 
+	SX1280Hal Radio;
 	
 	RadioIRQStatus_t RadioStatus;
 	RadioData_t RadioData;

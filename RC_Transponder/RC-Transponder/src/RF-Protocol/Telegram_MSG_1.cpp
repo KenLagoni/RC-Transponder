@@ -13,6 +13,12 @@ Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uin
 							   float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay)
 							   : Telegram(MSG_Beacon_Broadcast, _Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4)
 {	
+	this->setData(_Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4,
+	_UTCTime,  _Lattitude, _Longitude, _NumberOfSat, _Fix,
+	_RunningOnBattery, _HDOP, _GroundSpeed, _SecondsSinceLastGSContact,
+	_BatteryVoltage, _FirmwareVersion, _PCBVersion, _NumberOfBeaconsToRelay);
+
+/*
 	//Payload
 	this->UTCTime = _UTCTime;
 	this->Latitude = _Lattitude;
@@ -92,6 +98,7 @@ Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uin
 	TelegramData.payload[HEADER_SIZE+21] = (uint8_t)NumberOfBeaconsToRelay;
 
 	TelegramData.payloadLength = HEADER_SIZE + 21 + 1;
+	*/
 }
 
 
@@ -126,8 +133,97 @@ Telegram_MSG_1::Telegram_MSG_1(RadioData_t *radioData) : Telegram(radioData)
 	}
 }
 
-Telegram_MSG_1::Telegram_MSG_1() : Telegram() 
+Telegram_MSG_1::Telegram_MSG_1() : Telegram(MSG_Beacon_Broadcast, 0, 0, 0, 0) 
 {}
+
+// Use this to set all the data. This is used when the Telegram is empty pree allocated using empty constructor:
+void Telegram_MSG_1::setData(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4,
+							 uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix,
+							  bool _RunningOnBattery, float _HDOP, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
+							  float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay)
+{
+	this->setup(MSG_Beacon_Broadcast, _Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4);
+	//Payload
+	this->UTCTime = _UTCTime;
+	this->Latitude = _Lattitude;
+	this->Longitude = _Longitude;
+	this->NumberOfSat = _NumberOfSat;
+	this->Fix = _Fix;
+	this->RunningOnBattery = _RunningOnBattery;
+	this->HDOP = _HDOP;
+	this->GroundSpeed = _GroundSpeed;
+	this->SecondsSinceLastGSContact = _SecondsSinceLastGSContact;
+	this->BatteryVoltage = _BatteryVoltage;
+	this->FirmwareVersion = _FirmwareVersion;
+	this->PCBVersion = _PCBVersion;
+	this->NumberOfBeaconsToRelay = _NumberOfBeaconsToRelay;
+
+	// test outside safezone:
+	//	Latitude =  55562000;
+	//	Longitude = 12281500;
+	// test inside safezone:
+	//	Latitude =  55562260;
+	//	Longitude = 12283510;
+
+	//Set TelegramData (RadioData) Payload
+	uint16_t temp_16= 0;
+	uint8_t temp_8= 0;
+
+	// UTC Time
+	TelegramData.payload[HEADER_SIZE+0] = (uint8_t)((UTCTime >> 16) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+1] = (uint8_t)((UTCTime >> 8) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+2] = (uint8_t)(UTCTime & 0xFF);
+
+	// Latitude transformed to 32bits.
+	TelegramData.payload[HEADER_SIZE+3] = (uint8_t)((Latitude >> 24) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+4] = (uint8_t)((Latitude >> 16) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+5] = (uint8_t)((Latitude >>  8) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+6] = (uint8_t)(Latitude & 0xFF);
+
+	// Longitude transformed to 32bits.
+	TelegramData.payload[HEADER_SIZE+7]  = (uint8_t)((Longitude >> 24) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+8]  = (uint8_t)((Longitude >> 16) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+9]  = (uint8_t)((Longitude >>  8) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+10] = (uint8_t)(Longitude & 0xFF);
+
+	temp_8 = NumberOfSat & 0b00011111;
+	temp_8 |= ((Fix & 0b00000011) << 5);
+	if(RunningOnBattery)
+	temp_8 |= 0b10000000;
+
+	TelegramData.payload[HEADER_SIZE+11] = temp_8;
+
+	// Pressure
+	temp_16=(uint16_t)(HDOP*100);
+	TelegramData.payload[HEADER_SIZE+12]  = (uint8_t)((temp_16 >>  8) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+13] = (uint8_t)(temp_16 & 0xFF);
+
+	// Ground speed
+	temp_16=(uint16_t)(GroundSpeed*10);
+	TelegramData.payload[HEADER_SIZE+14]  = (uint8_t)(((temp_16) >>  8) & 0xFF);
+	TelegramData.payload[HEADER_SIZE+15] = (uint8_t)((temp_16) & 0xFF);
+
+	// Seconds since last ground contact
+	TelegramData.payload[HEADER_SIZE+16] = SecondsSinceLastGSContact;
+
+	// Battery Voltage
+	temp_8=(uint8_t)((BatteryVoltage-2.0)*100);
+	TelegramData.payload[HEADER_SIZE+17] = temp_8;
+
+	// Firmware Version
+	temp_8 = (uint8_t)(FirmwareVersion);
+	TelegramData.payload[HEADER_SIZE+18] = temp_8;
+	TelegramData.payload[HEADER_SIZE+19] = (uint8_t)((FirmwareVersion*100)-temp_8*100);
+
+	// PCB Version
+	TelegramData.payload[HEADER_SIZE+20] = PCBVersion;
+
+	//Number of Beacons to Relay
+	TelegramData.payload[HEADER_SIZE+21] = (uint8_t)NumberOfBeaconsToRelay;
+
+	TelegramData.payloadLength = HEADER_SIZE + 21 + 1;
+		
+}
 
 void Telegram_MSG_1::FixedPayload( void ) // debug!
 {

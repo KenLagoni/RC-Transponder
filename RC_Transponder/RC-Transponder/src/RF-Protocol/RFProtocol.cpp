@@ -6,14 +6,26 @@
  */ 
  #include "RFProtocol.h"
 
+
+RFProtocol::RFProtocol(){
+
+}
+
  RFProtocol::RFProtocol(E28_2G4M20S *Radio){
 	this->Radio = Radio;
-
 	Radio->Init();
 	Radio->SetRXMode(false); // no timeout
 	this->RFstate = RX_IDLE;
  }
  
+ void RFProtocol::init(E28_2G4M20S *RadioModule){
+	 this->Radio = RadioModule;
+	 Radio->Init();
+	 Radio->SetRXMode(false); // no timeout
+	 this->RFstate = RX_IDLE;
+ }
+ 
+ /*
  void RFProtocol::AddData(RadioData_t *newdata)
  {
 	 // fail fast:
@@ -44,7 +56,8 @@ void RFProtocol::AddData(Telegram *msg)
 		this->txFIFO.push(msg);	//Add to TX FIFO
 	}
 }
-
+*/
+ /*
 RadioData_t * RFProtocol::GetData()
 {
 	if(this->rxFIFO.isEmpty())
@@ -83,7 +96,7 @@ RadioData_t * RFProtocol::GetDataIncludingRSSI()
 		return &rxbuffer;
 	}
 }
-
+*/
 
  int RFProtocol::Available()
  {
@@ -91,6 +104,30 @@ RadioData_t * RFProtocol::GetDataIncludingRSSI()
  }
 
 
+ProtocolMSG_t RFProtocol::getTelegramMSGType(RadioData_t *newdata) // must delete newdata to avoid memory leaks.
+{
+	if(newdata == NULL){
+		return UNKOWN;
+	}
+	
+	ProtocolMSG_t newMessageID = (ProtocolMSG_t)newdata->payload[0];
+	/*
+	Serial.print("length=" + String(newdata->payloadLength) + " ");
+	for(int a=0;a<newdata->payloadLength; a++){
+		Serial.print("0x");
+		if(newdata->payload[a] <= 0xF){
+			Serial.print("0");
+		}else{
+			Serial.print(newdata->payload[a], HEX);
+		}
+		Serial.print(" ");
+	}
+	Serial.println(" ");
+	*/
+	return newMessageID;
+}
+
+/*
 Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete newdata to avoid memory leaks.
 { 
 	 if(newdata == NULL){
@@ -127,6 +164,7 @@ Telegram * RFProtocol::ConvertToTelegram(RadioData_t *newdata) // must delete ne
 	 }
 	return msg;	
  }
+ */
 
  
 void RFProtocol::_PowerDown(){

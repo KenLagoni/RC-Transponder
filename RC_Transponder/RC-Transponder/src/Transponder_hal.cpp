@@ -74,16 +74,17 @@ void Transponder_hal::begin(){
 	// Now that the GPS has been power cycled, we know it is talking 9600.
 	this->_serialGPS = new Uart(&sercom2, GPSRxPin, GPSTxPin, SERCOM_RX_PAD_1, UART_TX_PAD_0);   // Create the new UART instance for the GPS module
 
-	// GPS INIT;
-	this->_GPS = new GPSL80Lite();
-	PowerONGPS(); // Turn on GPS. price 31uA
-	ResetGPS();
-	this->_GPS->init(this->_serialGPS, GPS_SERIAL_BAUDRATE);
-
 	// Make SerialAUX Uart:
 	this->_serialAUX = new Uart(&sercom5, auxRXPin, auxTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the AUX serial port
-	auxSerialPowerUp();	
-	
+	auxSerialPowerUp();
+
+	// GPS INIT;
+//	this->_GPS = new GPSL80Lite();
+	PowerONGPS(); // Turn on GPS. price 31uA
+	ResetGPS();
+	this->_GPS.begin(this->_serialGPS, GPS_SERIAL_BAUDRATE, this->_serialAUX);
+
+
 	// Init Frsky Smart port:
 	this->_serialfrskySPort = new Uart(&sercom3, fryskySmartPortRXPin, fryskySmartPortTXPin, SERCOM_RX_PAD_3, UART_TX_PAD_2);   // Create the new UART instance for the Frsky SPORT module
 	this->_serialfrskySPort->begin(FRSKY_SERIAL_BAUDRATE);  //Baudrate for frskys SPORT protocol.
@@ -93,7 +94,8 @@ void Transponder_hal::begin(){
 	// pinPeripheral no longer needed. PIO_SERCOM_ALT is set as default in variant.cpp. This is because each time uart->begin is used it resets to the value in variant table, thus making the Uart stop working.
 	
 	// Init E28 Radio module (SX1280 chip): When in sleep mode (all data retained, it costs ~70uA.
-	this->_radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin, led2Pin);
+	//this->_radio = new E28_2G4M20S(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin, led2Pin);
+	this->_radio.begin(chipSelectPin,resetPin,busyPin,dio1Pin,0,0,txEnPin,rxEnPin, led2Pin);
 	//	attachInterrupt(dio1Pin, Radio_isr, RISING); // Hack in mkr1000 Variant.cpp to add EXTERNAL_INTERRUPT 15 on pin 30 or EXTERNAL_INT_3 on pin 25 (PCB_VERSION 11)
 	// { PORTA,  3, PIO_DIGITAL, (PIN_ATTR_DIGITAL                                ), No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_3 }, // Added External Interrupt 3 on this pin for Transponder HW -11.
     // { PORTA, 27, PIO_DIGITAL,    (PIN_ATTR_NONE                                ), No_ADC_Channel, NOT_ON_PWM, NOT_ON_TIMER, EXTERNAL_INT_15 }, // Changed to Transponder HW to get External interrupt 15 on this pin.
@@ -113,7 +115,7 @@ void Transponder_hal::setPin(int pin, int mode, int initOutput){
 
 
 E28_2G4M20S * Transponder_hal::getRadio(void){
-	return this->_radio;
+	return &this->_radio;
 }
 
 Uart * Transponder_hal::getSerialPC(void){
@@ -137,7 +139,7 @@ Uart * Transponder_hal::getSerialSBUS(void){
 }
 
 GPSL80Lite * Transponder_hal::getGPS(void){
-	return this->_GPS;
+	return &this->_GPS;
 }
 
 
