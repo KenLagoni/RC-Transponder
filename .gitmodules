@@ -4,3 +4,6 @@
 [submodule "RC_Transponder/RC-Transponder/libraries/FlashStorage"]
 	path = RC_Transponder/RC-Transponder/libraries/FlashStorage
 	url = https://github.com/KenLagoni/FlashStorage
+[submodule "RC_Transponder/RC-Transponder/libraries/Watchdog"]
+	path = RC_Transponder/RC-Transponder/libraries/Watchdog
+	url = https://github.com/KenLagoni/Adafruit_SleepyDog
