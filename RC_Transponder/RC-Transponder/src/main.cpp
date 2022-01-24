@@ -22,9 +22,10 @@ Generic Clock Generator 3-8 - Disabled
 Arduino Setup will configure the clocks to:
 Generic Clock Generator 0	- Enabled running 48MHz with GCG1 as reference to closed loop. (Used for USB, SERCOM, timers, GCM_EIC*, ADC, DAC)
 Generic Clock Generator 1	- Enabled running from External 32KHz. (used for closed loop multiplier for GCG0) 
-Generic Clock Generator 2	- Enabled running from internal 32KHz.
+Generic Clock Generator 2	- Enabled running from internal 32KHz. Used for Timer 3 (1 Hz interrupt).
 Generic Clock Generator 3	- Enabled running from internal 8MHz.
-Generic Clock Generator 4-8 - Disabled
+Generic Clock Generator 4   - Enabled running from internal 32KHz. (Used for Watchdog)
+Generic Clock Generator 5-8 - Disabled
 
 *If set to sleep, and GCM_EIC clock is stopped, wakeup on external interrupt is not possible. GCM_EIC should be set to running clock (32khz) or so.
 
@@ -34,8 +35,9 @@ Generic Clock Generator 4-8 - Disabled
 #include "Transponder_hal.h"
 #include "timer.h"
 #include "RFService.h"
-//#include "PCProtocol.h"
+#include "PCProtocol.h"
 #include "FlashStorage.h"
+#include "Adafruit_SleepyDog.h"
 
 // for SPORT
 #include "FrSkySportSensor.h"
@@ -73,7 +75,7 @@ MavlinkHandler MavlinkData;				  // Create Mavlink class to handle Mavlink from 
 RFService RadioService;
 
 // Object for PC/User communication
-// PCProtocol *SerialProtocol = NULL;
+PCProtocol serviceInterface;
 
 /*
 #define POWER_DOWN_DELAY  60 // Wait 60 seconds after power is lost before go to low power mode.
@@ -81,17 +83,55 @@ RFService RadioService;
 #define GPS_OFF_TIME     600 // 600 seconds (10min)
 */
 // DEBUG
-#define POWER_DOWN_DELAY  10 // Wait 60 seconds after power is lost before go to low power mode.
-#define GPS_ON_TIME       60 //  60 seconds
-#define GPS_OFF_TIME      10 // 600 seconds (10min)
+//#define POWER_DOWN_DELAY  10 // Wait 60 seconds after power is lost before go to low power mode.
+//#define GPS_ON_TIME       60 //  60 seconds
+//#define GPS_OFF_TIME      10 // 600 seconds (10min)
 
 
 void setup() {	
 	// Init USB serial debug /setup:
+	systemHardware.begin(); // Setup all pins according to hardware.
 	Serial.begin(115200);
-	delay(100);
+
+	uint32_t tempWDTCause = Watchdog.resetCause();
+	/// Debug:
+/*
+	systemHardware.getSerialAUX()->println("");
+	systemHardware.getSerialAUX()->print("Reset cause:" + String(tempWDTCause) + " ->");
+	if(tempWDTCause == 1){
+		systemHardware.getSerialAUX()->println("Power On Reset");
+		}else if(tempWDTCause == 2){
+		systemHardware.getSerialAUX()->println("1.2V Brownout!");
+		}else if(tempWDTCause == 4){
+		systemHardware.getSerialAUX()->println("3.3V Brownout!");
+		}else if(tempWDTCause == 4){
+		systemHardware.getSerialAUX()->println("3.3V Brownout!");
+		}else if(tempWDTCause == 16){
+		systemHardware.getSerialAUX()->println("External reset!");
+		}else if(tempWDTCause == 32){
+		systemHardware.getSerialAUX()->println("Watchdog!");
+		/*
+		do{
+			systemHardware.LEDON();
+			delay(50);
+			systemHardware.LEDOFF();
+			delay(50);
+		}while(1);
+		*//*
+		}else if(tempWDTCause == 64){
+		systemHardware.getSerialAUX()->println("System reset");
+		}else{
+		systemHardware.getSerialAUX()->println("Unknown");
+	}
+*/
+	systemHardware.setBrownOut();
+	
 	SystemInformation.savedSettings = storedConfiguration.read();
 	if(SystemInformation.savedSettings.valid == false){ // use default settings
+		SystemInformation.savedSettings.POWER_DOWN_DELAY=60;   // Wait 60 seconds after power is lost before go to low power mode.
+		SystemInformation.savedSettings.GPS_ON_TIME=60;		   //  60 seconds
+		SystemInformation.savedSettings.GPS_OFF_TIME=600;	   // 600 seconds (10min)
+		SystemInformation.savedSettings.BEACON_INTERVAL=10;   // every 10 seconds
 		SystemInformation.savedSettings.callsign[0] = 'A'; 
 		SystemInformation.savedSettings.callsign[1] = 'B'; 
 		SystemInformation.savedSettings.callsign[2] = 'C'; 
@@ -103,8 +143,10 @@ void setup() {
 		SystemInformation.savedSettings.callsign[8] = 0;
 	}	
 	String callsign = String("ADSB using callsign:" + String(SystemInformation.savedSettings.callsign));
-	systemHardware.begin(); // Setup all pins according to hardware.
 	systemHardware.LEDSaftySwitchON();
+	
+	
+	String resetCause = String("Watchdog reset cause:" + String(tempWDTCause));
 	
     // ADSB Initializing (ver. 2.00) 
 	String startMSG = String("ADSB Initializing (ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)) + ") ");	
@@ -154,6 +196,7 @@ void setup() {
 
 	// Set Timer 3 as 1 sec interrupt.
 	startTimer3(1); // 1Hz
+	//startTimer3(50); // 50Hz
 	
 	SystemInformation.state=STARTING_UP;
 	systemHardware.PowerON(); // Ensure transponder keeps running from battery if external power is lost.
@@ -164,6 +207,7 @@ void setup() {
 
 
 	Serial.println(startMSG);
+	Serial.println(resetCause);
 	Serial.println(base64MSG);
 	Serial.println(callsign);
 	Serial.println(auxSettings);
@@ -171,29 +215,57 @@ void setup() {
 	FrskyPASS.setDataTextMSG((char*)base64MSG.c_str(), 7); // ADSB ID: "[BASE64CODE]"
 	FrskyPASS.setDataTextMSG((char*)callsign.c_str(), 7);  // ADSB using callsign [callsign]
 	FrskyPASS.setDataTextMSG((char*)auxSettings.c_str(), 7); // ADSB Mavlink Baud@115200
+	
+	serviceInterface.begin(&SystemInformation);
+	
+//	systemHardware.getSerialAUX()->println("Debug start!");
+//	delay(5000);
+	Watchdog.enable(5000);
 }
 
 void loop() {
-  
+
      //LowPowerTest();
+/*
+	 systemHardware.getSerialAUX()->println("Going to sleep!");
+	 delay(100);
+	 SystemInformation.SecondsSinceStart=20;
+	 bool led = false;
+	 systemHardware.PowerOFF();
+	 do{
+		Watchdog.reset();
+		SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
+		if(led){ systemHardware.LEDON(); led=false;}else{ systemHardware.LEDOFF();led=true;}
+		__DSB();
+		__WFI();
+		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;		 
+	 }while(1);
+
+	 
+	 systemHardware.getSerialAUX()->println("Awake! -should not happen!");
+	*/ 
 	  
 	do{
-		systemHardware.getSerialAUX()->println("");
-		systemHardware.getSerialAUX()->print("1");
 		One_second_Update();
-		systemHardware.getSerialAUX()->print("2");
 		systemHardware.getGPS()->update();  // Function empty serial buffer and analyzes string.
-		systemHardware.getSerialAUX()->print("3");
 		RadioService.Service();			    // Service the Radio module
-		systemHardware.getSerialAUX()->print("4");
 		MavlinkData.service();				// Service the Mavlink data.
-		systemHardware.getSerialAUX()->print("5");
 		BeaconService();				    // Time to make beacon for radio tx?
-		systemHardware.getSerialAUX()->print("6");
-	
+		if(serviceInterface.service()){
+			Serial.println("Updating NVM parameters");
+			SystemInformation.savedSettings.valid = true;
+			storedConfiguration.write(SystemInformation.savedSettings);
+		}
+			
+		
+//		if(Serial.available()>0){
+//			Serial.write(Serial.read());
+//		}
+			
+		
 		if(SystemInformation.SaftySwitchPushed == true){
 			SystemInformation.state=POWER_OFF;
-			systemHardware.getSerialAUX()->print("A");
 		}
 
 		switch(SystemInformation.state)
@@ -201,7 +273,6 @@ void loop() {
 			case NORMAL: 
 			{
 				////// Below this line, code is executed fast!
-
 				if(SystemInformation.SecondsBatteryLowCounter > 2){ // filter.
 					SystemInformation.state=GET_READY_TO_RUN_ON_BATTERY;
 				}else{
@@ -220,7 +291,7 @@ void loop() {
 				}
 				else{
 					// check if it is time to go to battery 
-					if(SystemInformation.SecondsBatteryLowCounter > POWER_DOWN_DELAY){
+					if(SystemInformation.SecondsBatteryLowCounter > SystemInformation.savedSettings.POWER_DOWN_DELAY){
 						systemHardware.PowerONGPSBackup(); // Ensure backup power is enabled for GPS.
 						SystemInformation.GPSActiveCounter=0; // ensure GPS active counter is reset.
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
@@ -234,24 +305,17 @@ void loop() {
 			
 			case RUNNING_ON_BATTERY_GPS_ON:
 			{
-				systemHardware.getSerialAUX()->print("8");
 				if(SystemInformation.InputVoltage > 4.3 && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
 				}else if(SystemInformation.BatteryVoltage <= 3.0){
 					SystemInformation.state=POWER_OFF;
 				}else{
-					systemHardware.getSerialAUX()->print("a");
-					delay(50); // DEBUG
 					GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
-					if(++SystemInformation.GPSActiveCounter > GPS_ON_TIME){ // power off GPS after 1 min.
+					if(++SystemInformation.GPSActiveCounter > SystemInformation.savedSettings.GPS_ON_TIME){ // power off GPS after 1 min.
 						SystemInformation.GPSActiveCounter=0;
-						systemHardware.getSerialAUX()->print("b");
 						delay(2000); // busy wait while GPS serial gets time to receive data from GPS (Unable in sleep mode).
-						systemHardware.getSerialAUX()->print("c");
 						systemHardware.getGPS()->update();  // Service the GPS.
-						systemHardware.getSerialAUX()->print("d");		
 						systemHardware.PowerOFFGPS();// Turn OFF GPS main power.
-						systemHardware.getSerialAUX()->println("GPS Power OFF!");
 						SystemInformation.state=RUNNING_ON_BATTERY_GPS_OFF;
 					}
 				}
@@ -260,20 +324,15 @@ void loop() {
 
 			case RUNNING_ON_BATTERY_GPS_OFF:
 			{
-				systemHardware.getSerialAUX()->print("9");
 				if( ((SystemInformation.InputVoltage > 4.3) || (SystemInformation.USBVoltage > 2.0 )) && (!SystemInformation.SimulateRunningOnBattery)){ // in debug mode force running on battery mode.
 					SystemInformation.state=STARTING_UP;
 					}else if(SystemInformation.BatteryVoltage <= 3.0){
 						SystemInformation.state=POWER_OFF;
 					}else{
-						systemHardware.getSerialAUX()->print("a");
-						delay(50); // DEBUG
 						GoToSleep(); // Sleep until 1 sec interrupt will wake us up.
-						if(++SystemInformation.GPSActiveCounter > GPS_OFF_TIME){ // Turn on GPS every 10 mins.
+						if(++SystemInformation.GPSActiveCounter > SystemInformation.savedSettings.GPS_OFF_TIME){ // Turn on GPS if off time is meet.
 							SystemInformation.GPSActiveCounter=0;
-							systemHardware.getSerialAUX()->print("b");
 							systemHardware.PowerONGPS();// Turn OFF GPS main power.
-							systemHardware.getSerialAUX()->println("GPS Power ON!");
 							SystemInformation.state=RUNNING_ON_BATTERY_GPS_ON;
 						}
 				}
@@ -320,11 +379,14 @@ void GoToSleep(void){
 	systemHardware.auxSerialPowerDown();
 	systemHardware.PowerOFFFrSkySmartPort();
 
-	if(SystemInformation.SecondsSinceStart > 10){ // Don't sleep the first 10 seconds af power on.
+	if(SystemInformation.SecondsSinceStart > 10){ // Don't sleep the first 10 seconds after power on.
 		USBDevice.detach();
 		SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+		
+		SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
 		__DSB();
 		__WFI();
+		SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
 	
 		// Wake up:
 		USBDevice.attach();
@@ -349,11 +411,20 @@ void LowPowerTest(void){
 
 // Ensure a beacon is transmitted every N second.
 void BeaconService(void){
-	if(SystemInformation.BeaconSecondCounter >= 10){ // SystemInformation.BeaconSecondCounter is counted up en Timer3 (1Hz) ISR.
+	if(SystemInformation.BeaconSecondCounter >= SystemInformation.savedSettings.BEACON_INTERVAL){ // SystemInformation.BeaconSecondCounter is counted up en Timer3 (1Hz) ISR.
 //		SerialAUX->print("Time to make beacon message...");
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
 		if(SystemInformation.IsGroundStation==false){
+			// Serial print status:
+			Serial.print("Transponder Status: Battery=" + String(SystemInformation.BatteryVoltage,2) + "V ");
+			if(systemHardware.GetChargeState() == HIGH){
+				Serial.print("(Complete)");
+				}else{
+				Serial.print("(Charging)");
+			}
+			Serial.println(" SaftySwitch:" + String(systemHardware.SaftySwitchPushed()) + "|" + String(SystemInformation.SafteSwitchPushedTimer) + "|" + String(SystemInformation.SaftySwitchFirstTimePushed));
+			
 			// update system with latest GPS values;
 //			Serial.println("Sending Beacon: " + String(systemHardware.getGPS()->getLatitude()) + "," + String(systemHardware.getGPS()->getLongitude()));
 			SystemInformation.UTCTime = systemHardware.getGPS()->getUTCTime();
@@ -374,6 +445,7 @@ void BeaconService(void){
 			FrskyPASS.setDataTextMSG(temp->data, temp->servirity);
 
 			// Make Mavlink ADSB msg:
+	//		systemHardware.getSerialAUX()->println("Data ready for Mavlink:");
 			mavlinkSendADSB(temp->latitude,temp->longitude,temp->servirity, SystemInformation.savedSettings.callsign);
 			temp->dataReady=false;
 		}
@@ -383,6 +455,7 @@ void BeaconService(void){
 void One_second_Update(void){
 	//// only every second (check status)
 	while(SystemInformation.SecondCounter){
+		Watchdog.reset();
 		SystemInformation.SecondCounter--;
 		SystemInformation.BatteryVoltage = systemHardware.getBatteryVoltage();
 		SystemInformation.InputVoltage = systemHardware.getInputVoltage();
@@ -437,7 +510,7 @@ void One_second_Update(void){
 			}
 		}
 		/*
-		Serial.print("ADSB Status: Battery=" + String(SystemInformation.BatteryVoltage,2) + "V ");
+		Serial.print("Transponder Status: Battery=" + String(SystemInformation.BatteryVoltage,2) + "V ");
 		if(systemHardware.GetChargeState() == HIGH){
 			Serial.print("(Complete)");		
 		}else{
@@ -515,11 +588,10 @@ void mavlinkSendADSB(float latitude, float longitude, uint8_t serverity, char *c
 	uint16_t totalLength=0;
 	bzero(txBuffer, 512);
 	totalLength = mavlink_msg_to_send_buffer(txBuffer, &msg);
-/*
+
 	for(int a=0;a<totalLength;a++){
 		systemHardware.getSerialAUX()->write(txBuffer[a]);
 	}		
-	*/
 }
 	
 	

@@ -59,7 +59,7 @@ void RFService::SendBeacon()
 							((SystemInformation->state==RUNNING_ON_BATTERY_GPS_ON) || (SystemInformation->state==GET_READY_TO_RUN_ON_BATTERY) || (SystemInformation->state==RUNNING_ON_BATTERY_GPS_OFF)),
 							SystemInformation->hdop, SystemInformation->groundspeed,
 							RFProtocolStatus.SecondCounterSinceLasteGroundStationContact, SystemInformation->BatteryVoltage,
-							SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay);
+							SystemInformation->FIRMWARE_VERSION, SystemInformation->pcbVersion, RFProtocolStatus.NumberOfBeaconsToRelay, &SystemInformation->savedSettings.callsign[0]);
 
 	this->beaconReady=true;
 /*
@@ -183,8 +183,8 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 				// ADSB([CALLSIGN]): [LAT],[LON] [SAT]/[FIX]/[HDOP]
 				// ADSB(ABCDEFGHI): 55.1234567,12.1234567 15/3D/1.00	
 				this->rxData.hdop = msgBeacon.GetHDOP();				
-				
-				String adsbText = String("ADSB(ABCDEFGHI): " + String(msgBeacon.GetLatitudeAsDecimalDegrees(),6) + "," + String(msgBeacon.GetLongitudeAsDecimalDegrees(),6) + 
+				String callsign = String(msgBeacon.GetCallsign());
+				String adsbText = String("ADSB("+ callsign + "): " + String(msgBeacon.GetLatitudeAsDecimalDegrees(),6) + "," + String(msgBeacon.GetLongitudeAsDecimalDegrees(),6) + 
 										 " " + String(msgBeacon.GetNumberOfSat()) + "/" + fix + "/" + String(this->rxData.hdop,2) );
 				
 //				Serial.println("ADSB text length:" + String(adsbText.length()) + " Text:" + adsbText.c_str());
@@ -217,13 +217,15 @@ RFProtocol::RFProtocolStates_t RFService::RXHandler()
 				this->rxData.dataReady=true;
 								
 				
+				
 				// ADSB([CALLSIGN]): [LAT],[LON] [SAT]/[FIX]/[HDOP] [BATTERY VOLTAGE]
-				String serialText = String("ADSB(ABCDEFGHI): " + String(msgBeacon.GetUTCTime()) + "," + String(msgBeacon.GetLatitudeAsDecimalDegrees(),6) +
+				String serialText = String("ADSB(" + callsign + "): " + String(msgBeacon.GetUTCTime()) + "," + String(msgBeacon.GetLatitudeAsDecimalDegrees(),6) +
 											"," + String(msgBeacon.GetLongitudeAsDecimalDegrees(),6) +
 											" " + String(msgBeacon.GetNumberOfSat()) + "/" + fix + "/" + String(this->rxData.hdop,2) + 
 											" " + String(msgBeacon.GetBatteryVoltage()));
 	
-				Serial.println("Serial ADSB text:" + serialText);	
+				//Serial.println("Serial ADSB text:" + serialText);	
+				Serial.println(serialText);	
 			}
 			break;
 

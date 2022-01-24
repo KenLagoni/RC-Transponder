@@ -10,13 +10,13 @@
 Telegram_MSG_1::Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, 
 							   uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix,
 							   bool _RunningOnBattery, float _HDOP, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
-							   float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay)
+							   float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay, char *_callsign)
 							   : Telegram(MSG_Beacon_Broadcast, _Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4)
 {	
 	this->setData(_Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4,
 	_UTCTime,  _Lattitude, _Longitude, _NumberOfSat, _Fix,
 	_RunningOnBattery, _HDOP, _GroundSpeed, _SecondsSinceLastGSContact,
-	_BatteryVoltage, _FirmwareVersion, _PCBVersion, _NumberOfBeaconsToRelay);
+	_BatteryVoltage, _FirmwareVersion, _PCBVersion, _NumberOfBeaconsToRelay, _callsign);
 
 /*
 	//Payload
@@ -130,6 +130,15 @@ Telegram_MSG_1::Telegram_MSG_1(RadioData_t *radioData) : Telegram(radioData)
 			
 		PCBVersion      = (uint8_t)TelegramData.payload[HEADER_SIZE+20];
 		NumberOfBeaconsToRelay = (uint8_t)TelegramData.payload[HEADER_SIZE+21];
+		callsign[0] = (char)TelegramData.payload[HEADER_SIZE+22];
+		callsign[1] = (char)TelegramData.payload[HEADER_SIZE+23];
+		callsign[2] = (char)TelegramData.payload[HEADER_SIZE+24];
+		callsign[3] = (char)TelegramData.payload[HEADER_SIZE+25];
+		callsign[4] = (char)TelegramData.payload[HEADER_SIZE+26];
+		callsign[5] = (char)TelegramData.payload[HEADER_SIZE+27];
+		callsign[6] = (char)TelegramData.payload[HEADER_SIZE+28];
+		callsign[7] = (char)TelegramData.payload[HEADER_SIZE+29];
+		callsign[8] = 0;
 	}
 }
 
@@ -140,7 +149,7 @@ Telegram_MSG_1::Telegram_MSG_1() : Telegram(MSG_Beacon_Broadcast, 0, 0, 0, 0)
 void Telegram_MSG_1::setData(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4,
 							 uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix,
 							  bool _RunningOnBattery, float _HDOP, float _GroundSpeed, uint8_t _SecondsSinceLastGSContact,
-							  float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay)
+							  float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay, char *_callsign)
 {
 	this->setup(MSG_Beacon_Broadcast, _Unique_ID_1, _Unique_ID_2, _Unique_ID_3, _Unique_ID_4);
 	//Payload
@@ -157,7 +166,16 @@ void Telegram_MSG_1::setData(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint3
 	this->FirmwareVersion = _FirmwareVersion;
 	this->PCBVersion = _PCBVersion;
 	this->NumberOfBeaconsToRelay = _NumberOfBeaconsToRelay;
+	
+	for(int a=0;a<9;a++) {this->callsign[0]=0;} // clear callsign
 
+	for(int a=0;a<9;a++){
+		if(_callsign != 0){
+			this->callsign[a]=*_callsign;
+			_callsign++;
+		}
+	}
+	
 	// test outside safezone:
 	//	Latitude =  55562000;
 	//	Longitude = 12281500;
@@ -221,8 +239,19 @@ void Telegram_MSG_1::setData(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint3
 	//Number of Beacons to Relay
 	TelegramData.payload[HEADER_SIZE+21] = (uint8_t)NumberOfBeaconsToRelay;
 
-	TelegramData.payloadLength = HEADER_SIZE + 21 + 1;
-		
+	//Callsign
+	TelegramData.payload[HEADER_SIZE+22] = (uint8_t)callsign[0];
+	TelegramData.payload[HEADER_SIZE+23] = (uint8_t)callsign[1];
+	TelegramData.payload[HEADER_SIZE+24] = (uint8_t)callsign[2];
+	TelegramData.payload[HEADER_SIZE+25] = (uint8_t)callsign[3];
+	TelegramData.payload[HEADER_SIZE+26] = (uint8_t)callsign[4];
+	TelegramData.payload[HEADER_SIZE+27] = (uint8_t)callsign[5];
+	TelegramData.payload[HEADER_SIZE+28] = (uint8_t)callsign[6];
+	TelegramData.payload[HEADER_SIZE+29] = (uint8_t)callsign[7];	
+
+
+	//TelegramData.payloadLength = HEADER_SIZE + 21 + 1;
+	TelegramData.payloadLength = HEADER_SIZE + 29 + 1;
 }
 
 void Telegram_MSG_1::FixedPayload( void ) // debug!
@@ -368,6 +397,11 @@ uint8_t Telegram_MSG_1::GetPCBVersion( void )
 uint8_t Telegram_MSG_1::GetNumberOfBeaconsToRelay( void )
 {
 	return NumberOfBeaconsToRelay;
+}
+
+char * Telegram_MSG_1::GetCallsign( void )
+{
+	return &callsign[0];
 }
 
 

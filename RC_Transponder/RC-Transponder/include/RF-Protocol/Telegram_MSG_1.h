@@ -24,14 +24,14 @@ class Telegram_MSG_1 : public Telegram
 	Telegram_MSG_1();
 	
 	// Constructor to create message from variables. (Here Unique ID is From)
-	Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix, bool _RunningOnBattery,float _HDOP, float _GroundSpeed ,uint8_t _SecondsSinceLastGSContact, float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay);
+	Telegram_MSG_1(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix, bool _RunningOnBattery,float _HDOP, float _GroundSpeed ,uint8_t _SecondsSinceLastGSContact, float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay, char *_callsign);
 
 	// Constructor to create messages from Radio data struct.
 	Telegram_MSG_1(RadioData_t *radioData);
 
 	
 	virtual	~Telegram_MSG_1(){};	// destructor.
-	void setData(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix, bool _RunningOnBattery,float _HDOP, float _GroundSpeed ,uint8_t _SecondsSinceLastGSContact, float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay);
+	void setData(uint32_t _Unique_ID_1, uint32_t _Unique_ID_2, uint32_t _Unique_ID_3, uint32_t _Unique_ID_4, uint32_t _UTCTime,  int32_t _Lattitude, int32_t _Longitude, uint8_t _NumberOfSat, uint8_t _Fix, bool _RunningOnBattery,float _HDOP, float _GroundSpeed ,uint8_t _SecondsSinceLastGSContact, float _BatteryVoltage, float _FirmwareVersion, uint8_t _PCBVersion, uint8_t _NumberOfBeaconsToRelay, char *_callsign);
 	uint8_t GetNumberOfSecondsSinceLastGroundStationCom(); // function which returns Number Of Seconds Since Last Ground Station Communication.
 	uint32_t GetUTCTime();
 	int32_t GetLatitude();
@@ -49,6 +49,7 @@ class Telegram_MSG_1 : public Telegram
 	float GetFirmwareVersion();
 	uint8_t GetPCBVersion();
 	uint8_t GetNumberOfBeaconsToRelay();	
+	char * GetCallsign( void );
 
 	protected:
 	void FixedPayload(); // debug
@@ -67,6 +68,7 @@ class Telegram_MSG_1 : public Telegram
 	float FirmwareVersion;
 	uint8_t PCBVersion;
 	uint8_t NumberOfBeaconsToRelay;
+	char callsign[9];
 };
 
 
