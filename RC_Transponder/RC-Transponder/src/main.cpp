@@ -22,9 +22,9 @@ Generic Clock Generator 3-8 - Disabled
 Arduino Setup will configure the clocks to:
 Generic Clock Generator 0	- Enabled running 48MHz with GCG1 as reference to closed loop. (Used for USB, SERCOM, timers, GCM_EIC*, ADC, DAC)
 Generic Clock Generator 1	- Enabled running from External 32KHz. (used for closed loop multiplier for GCG0) 
-Generic Clock Generator 2	- Enabled running from internal 32KHz. Used for Timer 3 (1 Hz interrupt).
+Generic Clock Generator 2	- Enabled running from internal 32KHz. (Used for Watchdog)
 Generic Clock Generator 3	- Enabled running from internal 8MHz.
-Generic Clock Generator 4   - Enabled running from internal 32KHz. (Used for Watchdog)
+Generic Clock Generator 4   - Enabled running from internal 32KHz.  Used for Timer 3 (1 Hz interrupt).
 Generic Clock Generator 5-8 - Disabled
 
 *If set to sleep, and GCM_EIC clock is stopped, wakeup on external interrupt is not possible. GCM_EIC should be set to running clock (32khz) or so.

@@ -28,14 +28,14 @@ void setTimerFrequency(int frequencyHz) {
 void startTimer3(int frequencyHz){
 	// Setup Timer 3 to use internal 32khz, and ensure it runs in standby.
 
-	// Put Generic Clock Generator 2 (32Khz) as source for Timer 3 (and 2)
+	// Put Generic Clock Generator 4 (32Khz) as source for Timer 3 (and 2)
 	GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID(GCM_TCC2_TC3)     | // Timer 2 and Timer 3
-						GCLK_CLKCTRL_GEN_GCLK2			  | // Generic Clock Generator 2 is source (Internal 32khz).
+						GCLK_CLKCTRL_GEN_GCLK4			  | // Generic Clock Generator 4 is source (Internal 32khz).
 						GCLK_CLKCTRL_CLKEN;
 	
 	while ( GCLK->STATUS.bit.SYNCBUSY == 1 ); // wait for sync
 
-	GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(2)				   | // Generic Clock Generator 2
+	GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(4)				   | // Generic Clock Generator 4
 						GCLK_GENCTRL_SRC_OSCULP32K		   | // Use internal 32 Khz oscilator
 						GCLK_GENCTRL_GENEN				   | // Clock Generator Enabled
 						GCLK_GENCTRL_RUNSTDBY;				 // Run in standtby.
