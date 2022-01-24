@@ -68,6 +68,7 @@ class Transponder_hal
 	void PowerOFFFrSkySmartPort(void);
 	void PowerONFrSkySmartPort(void);
 	
+	void setBrownOut(void);
 		
 	
 	private:

@@ -28,7 +28,7 @@ void setTimerFrequency(int frequencyHz) {
 void startTimer3(int frequencyHz){
 	// Setup Timer 3 to use internal 32khz, and ensure it runs in standby.
 
-	// Put Generic Clock Generator 1 (32Khz) as source for Timer 3 (and 2)
+	// Put Generic Clock Generator 2 (32Khz) as source for Timer 3 (and 2)
 	GCLK->CLKCTRL.reg = GCLK_CLKCTRL_ID(GCM_TCC2_TC3)     | // Timer 2 and Timer 3
 						GCLK_CLKCTRL_GEN_GCLK2			  | // Generic Clock Generator 2 is source (Internal 32khz).
 						GCLK_CLKCTRL_CLKEN;
