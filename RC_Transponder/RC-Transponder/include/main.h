@@ -22,6 +22,10 @@ enum TRANSPONDER_STATES {
 
 typedef struct {
 	boolean valid;
+	uint32_t POWER_DOWN_DELAY;
+	uint32_t GPS_ON_TIME;
+	uint32_t GPS_OFF_TIME;
+	uint8_t BEACON_INTERVAL;
 	char callsign[9];
 }Configuration_t;
 
