@@ -370,7 +370,7 @@ void GPSL80Lite::update()
 		if(dataReady)
 		{
 			_newChar=SerialGPS->read(); // read char from input buffer
-			debugUART->write(_newChar);
+			//debugUART->write(_newChar);
 			//Serial.write(_newChar);
 								
 			switch (state)
