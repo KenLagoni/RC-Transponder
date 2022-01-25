@@ -1,0 +1,16 @@
+***************************************************************************
+*
+* Pick and place data for THR on Top Layer
+*
+* Design name is: "RC-TranponderV12"
+*
+* Date: 21 May 2019
+*
+* Data units = millimeters
+*
+***************************************************************************
+REFDES  X        Y        ROT      FOOTPRINT                     VALUE                      
+---------------------------------------------------------------------------
+J2      -39.460  6.460    180.000  L_CONN_1X3WAY-2_54MM_ANGLED   3x2.54mm                   
+J4      -39.000  1.150    180.000  L_CONN_DF13-3P-1_25DS         3x1_1.25mm DF13 connector  
+J5      -39.000  14.350   180.000  L_CONN_DF13-3P-1_25DS         3x1_1.25mm DF13 connector  

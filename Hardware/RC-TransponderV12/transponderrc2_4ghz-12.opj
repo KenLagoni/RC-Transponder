@@ -1,0 +1,179 @@
+(ExpressProject ""
+  (ProjectVersion "19981106")
+  (ProjectType "PCB")
+  (Folder "Design Resources"
+    (Folder "Library")
+    (File ".\transponderrc2_4ghz-12.dsn"
+      (Type "Schematic Design")
+      (DisplayName ".\transponderrc2_4ghz-12.DSN"))
+    (BuildFileAddedOrDeleted "x")
+    (CompileFileAddedOrDeleted "x")
+    (NoModify)
+    ("Create Allegro Netlist" "TRUE")
+    ("Allegro Netlist Directory" "\allegro")
+    ("View Allegro Netlist Files" "FALSE")
+    ("Allegro Netlist Create DCF File" "FALSE")
+    ("Update Allegro Board" "TRUE")
+    ("Allegro Netlist Output Board File" "allegro\RC-TranponderV12.brd")
+    ("Allegro Netlist Remove Etch" "FALSE")
+    ("Allegro Netlist Place Changed Component" "ALWAYS_REPLACE")
+    ("Allegro Netlist Open Board in Allegro" "NEITHER")
+    ("Allegro Setup Backup Versions" "3")
+    ("Allegro Setup Output Warnings" "TRUE")
+    ("Allegro Setup Ignore Constraints" "FALSE")
+    ("Allegro Setup Part Type Length" "31")
+    ("Allegro Netlist Combine Property String" "PCB Footprint")
+    ("Allegro Netlist Ignore Fixed Property" "FALSE")
+    ("Allegro Netlist User Defined Property" "FALSE")
+    (Netlist_TAB "0")
+    (ANNOTATE_Scope "0")
+    (ANNOTATE_Mode "0")
+    (ANNOTATE_Action "3")
+    (Annotate_Page_Order "0")
+    (ANNOTATE_Reset_References_to_1 "FALSE")
+    (ANNOTATE_No_Page_Number_Change "FALSE")
+    (ANNOTATE_Property_Combine "{Value}{Source Package}{POWER_GROUP}")
+    (ANNOTATE_IncludeNonPrimitive "FALSE")
+    (ANNOTATE_PreserveDesignator "FALSE")
+    (ANNOTATE_PreserveUserEdits "FALSE")
+    (ANNOTATE_Refdes_Control_Required "FALSE")
+    (Update_Instace_for_External_Design "FALSE")
+    (Annotate_type "Default")
+    (width_pages "100")
+    (width_start "80")
+    (width_End "80")
+    (Board_sim_option "VHDL_flow")
+    (BOM_Scope "0")
+    (BOM_Mode "1")
+    (BOM_Report_File "C:\Users\klo\Documents\BOM.bom")
+    (BOM_Merge_Include "FALSE")
+    (BOM_Property_Combine_7.0
+       "{Item}\t{Quantity}\t{Reference}\t{Value}\t{PCB Footprint}\t{Manufacturer}\t{Manufacturer PN}\t{FarnellPartNumber}\t{FarnellPrice(dkr)}")
+    (BOM_Header
+       "Item\tQuantity\tReference\tPart\tPCB\tManufacturer\tManufacturer PN\tFarnell Part Number\tFarnell Price")
+    (BOM_Include_File
+       "C:\USERS\KLO\DESKTOP\CLOUDSTATION\NFK\TRANSPONDERRC-MICRO\TRANSPONDERRC-11.INC")
+    (BOM_Include_File_Combine_7.0 "{Item}\t{Quantity}\t{Reference}\t{Value}")
+    (BOM_One_Part_Per_Line "FALSE")
+    (Open_BOM_in_Excel "TRUE")
+    (BOM_View_Output "FALSE")
+    ("Allegro Netlist Input Board File" "allegro\RC-TranponderV12.brd")
+    (DOCKED "TRUE")
+    (DOCKING_POSITION "59420")
+    (IREFReportFile "C:\Users\klo\Desktop\teset.csv")
+    (IREFViewOutput "0"))
+  (Folder "Outputs"
+    (File ".\pstxnet.dat"
+      (Type "Report")
+      (DisplayName "pstxnet.dat"))
+    (File ".\pstxprt.dat"
+      (Type "Report")
+      (DisplayName "pstxprt.dat"))
+    (File ".\pstchip.dat"
+      (Type "Report")
+      (DisplayName "pstchip.dat"))
+    (File ".\allegro\pstxnet.dat"
+      (Type "Report")
+      (DisplayName "pstxnet.dat"))
+    (File ".\allegro\pstxprt.dat"
+      (Type "Report")
+      (DisplayName "pstxprt.dat"))
+    (File ".\allegro\pstchip.dat"
+      (Type "Report")
+      (DisplayName "pstchip.dat"))
+    (File ".\allegro-std\pstxnet.dat"
+      (Type "Report")
+      (DisplayName "pstxnet.dat"))
+    (File ".\allegro-std\pstxprt.dat"
+      (Type "Report")
+      (DisplayName "pstxprt.dat"))
+    (File ".\allegro-std\pstchip.dat"
+      (Type "Report")
+      (DisplayName "pstchip.dat"))
+    (File ".\transponderrc-11.bom"
+      (Type "Report")
+      (DisplayName ".\transponderrc-11.bom"))
+    (File ".\bom.bom"
+      (Type "Report")
+      (DisplayName ".\bom.bom"))
+    (File "..\version 10\hardware\bom.bom"
+      (Type "Report"))
+    (File ".\transponderrc2_4ghz-12.csv"
+      (Type "Report"))
+    (File "c:\users\klo\desktop\teset.csv"
+      (Type "Report"))
+    (File "c:\users\klo\documents\bom.bom"
+      (Type "Report")))
+  (Folder "Referenced Projects")
+  (PartMRUSelector
+    (LED
+      (FullPartName "LED.Normal")
+      (LibraryName "C:\CADENCE\SPB_17.2\TOOLS\CAPTURE\LIBRARY\DISCRETE.OLB")
+      (DeviceIndex "0"))
+    (OFFPAGE_OUT_R
+      (LibraryName "D:\DOCS\CADENCE\SCHLIB\DIDISYM.OLB")
+      (DeviceIndex "0"))
+    (OFFPAGELEFT-L
+      (LibraryName "C:\CADENCE\SPB_17.2\TOOLS\CAPTURE\LIBRARY\CAPSYM.OLB")
+      (DeviceIndex "0"))
+    (OFFPAGELEFT-R
+      (LibraryName "C:\CADENCE\SPB_17.2\TOOLS\CAPTURE\LIBRARY\CAPSYM.OLB")
+      (DeviceIndex "0"))
+    (1.3V
+      (LibraryName
+         "D:\ADI\INTEL\COYANOSA\HARDWARE\WORKING\R120\INTEL_LRH_LIB.OLB")
+      (DeviceIndex "0"))
+    (POT
+      (FullPartName "POT.Normal")
+      (LibraryName "C:\CADENCE\SPB_16.6\TOOLS\CAPTURE\LIBRARY\DISCRETE.OLB")
+      (DeviceIndex "0")))
+  (GlobalState
+    (FileView
+      (Path "Design Resources")
+      (Path "Design Resources" ".\transponderrc2_4ghz-12.dsn")
+      (Path "Design Resources" ".\transponderrc2_4ghz-12.dsn" "Topsheet")
+      (Path "Design Resources" ".\transponderrc2_4ghz-12.dsn" "OldParts")
+      (Path "Outputs")
+      (Select "Design Resources" ".\transponderrc2_4ghz-12.dsn" "Topsheet"
+         "01_History"))
+    (HierarchyView)
+    (Doc
+      (Type "COrCapturePMDoc")
+      (Frame
+        (Placement "44 0 1 -1 -1 -1 -1 0 250 0 866"))
+      (Tab 0))
+    (Doc
+      (Type "COrSchematicDoc")
+      (Frame
+        (Placement "44 0 1 -1 -1 -8 -31 0 1379 0 441")
+        (Scroll "0 0")
+        (Zoom "100")
+        (Occurrence "/"))
+      (Path
+         "\\192.168.0.3\HOME\CLOUDSTATION\MODELFLYVNING\TRANSPONDER 2.4GHZ\VERSION 12\TRANSPONDERRC2_4GHZ-12.DSN")
+      (Schematic "Topsheet")
+      (Page "02_CPU"))
+    (Doc
+      (Type "COrSchematicDoc")
+      (Frame
+        (Placement "44 0 1 -1 -1 -8 -31 26 1405 26 467")
+        (Scroll "0 0")
+        (Zoom "100")
+        (Occurrence "/"))
+      (Path
+         "\\192.168.0.3\HOME\CLOUDSTATION\MODELFLYVNING\TRANSPONDER 2.4GHZ\VERSION 12\TRANSPONDERRC2_4GHZ-12.DSN")
+      (Schematic "Topsheet")
+      (Page "03_Power"))
+    (Doc
+      (Type "COrSchematicDoc")
+      (Frame
+        (Placement "44 2 3 -1 -1 -8 -31 104 1483 104 563")
+        (Scroll "98 534")
+        (Zoom "100")
+        (Occurrence "/"))
+      (Path
+         "\\192.168.0.3\HOME\CLOUDSTATION\MODELFLYVNING\TRANSPONDER 2.4GHZ\VERSION 12\TRANSPONDERRC2_4GHZ-12.DSN")
+      (Schematic "Topsheet")
+      (Page "01_History")))
+  (ISPCBBASICLICENSE "false")
+  (MPSSessionName "klo"))

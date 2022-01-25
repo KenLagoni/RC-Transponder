@@ -1,0 +1,16 @@
+***************************************************************************
+*
+* Pick and place data for SMD on Top Layer
+*
+* Design name is: "RC-TranponderV12"
+*
+* Date: 21 May 2019
+*
+* Data units = millimeters and Data are space separated
+*
+***************************************************************************
+REFDES  X        Y        ROT      FOOTPRINT                     VALUE                      
+---------------------------------------------------------------------------
+D4      -1.350   0.800    180.000  R_0603                        RED                        
+U10     -28.000  9.450    0.000    R_L80_GPS                     Quectel-L80                
+U8      -3.900   9.350    90.000   R_RFE28-2G4M20S               E28-2G4M20S                
