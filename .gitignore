@@ -238,3 +238,6 @@ RC_Transponder/RC-Transponder/Debug/src/RF-Protocol/Telegram_MSG_3.o
 RC_Transponder/RC-Transponder/Debug/src/RF-Protocol/Telegram_MSG_3.d
 *.o
 *.d
+RC_Transponder/RC-Transponder/include/FrskySPORT/old/
+RC_Transponder/RC-Transponder/src/FrskySPORT/old/
+Hardware/transponderPowerTest.txt
