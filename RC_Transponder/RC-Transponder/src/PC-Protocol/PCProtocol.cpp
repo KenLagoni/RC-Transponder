@@ -95,6 +95,9 @@ bool PCProtocol::handlecommand(void){
 		Serial.println("");
 		Serial.print("Callsign:"); Serial.write(systemData->savedSettings.callsign); Serial.println(":");
 		Serial.println("Beacon Interval="+String(systemData->savedSettings.BEACON_INTERVAL));
+		Serial.println("GPS ON TIME="+String(systemData->savedSettings.GPS_ON_TIME));
+		Serial.println("GPS OFF TIME="+String(systemData->savedSettings.GPS_OFF_TIME));
+		Serial.println("Power Down Delay="+String(systemData->savedSettings.POWER_DOWN_DELAY));
 	}else if(command.compare("setcallsign") == 0){
 		if(parameter.length() == 0){
 			Serial.println("callsign length can't be 0");
