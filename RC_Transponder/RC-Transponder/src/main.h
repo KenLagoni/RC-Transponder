@@ -32,7 +32,7 @@ typedef struct {
 extern struct SystemInformation_t
 {	
 	// Hardware and Software version defines
-	const float FIRMWARE_VERSION = 2.00;
+	const float FIRMWARE_VERSION = 2.09;
 	//const uint8_t pcbVersion = PCB_VERSION;
 	const uint8_t pcbVersion = PCB_VERSION;
 	
