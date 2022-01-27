@@ -7,3 +7,6 @@
 [submodule "RC_Transponder/RC-Transponder/libraries/Watchdog"]
 	path = RC_Transponder/RC-Transponder/libraries/Watchdog
 	url = https://github.com/KenLagoni/Adafruit_SleepyDog
+[submodule "RC_Transponder/RC-Transponder/libraries/FrskySPORT"]
+	path = RC_Transponder/RC-Transponder/libraries/FrskySPORT
+	url = https://github.com/KenLagoni/FrSky-S-Port-telemetry-library
