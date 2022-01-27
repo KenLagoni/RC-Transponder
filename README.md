@@ -1,43 +1,55 @@
 # RC Transponder (Locator Beacon)
-After spending hours/days/weeks searching for lost RC Planes, I decided to design a single piece of hardware which should be able to survive a crash and keep transmitting the GPS location.
+After spending hours/days/weeks searching for lost RC Planes, I decided to design a single piece of hardware which can survive a crash and keep transmitting the GPS location.
 
 ## Design
-The latest version is version 11, but I'm pending the new hardware.
+<h4>The latest hardware version 12:</h4>
 
-### Goals
-The hardware must:
+<p align="center"><img src="Images/hardware-v12.jpg" width="600"></p>
 
+### Features (Crashed mode)
 1. Get GPS coordinates from on-board GPS sensor.
-2. Keep operating if power from plane is lost. (Have its own battery)
-3. Continue to operate after a crash for minimum of 24h with a beacon transmitted every 30 second.
-4. Recharge onboard battery from planes power supply.
-5. Transmit GPS position on license free band up to 2km range.
-6. Be firmware upgradeable from USB.
-7. Operate as Frsky GPS sensor on SMART Port when powered from plane.
-8. Relay other transponder beacons to ground via Frsky SMART Port. (Using other planes to search/listen for downed planes beacon.)
-9. Be of smallest/lightest size as possible.
-10. Have embedded antenna in PCB if possible.
-11. Plug into PC via USB to display other transponders. 
+2. Keeps operating if power from plane is lost (like in a crash). 
+3. Continue to operate after a crash for ~14h with a beacon transmitted every 10 second.
+4. Recharge onboard battery from planes power supply. (50mAh Lipo cell)
+
+### Features (Normal mode)
+1. Operate as primary Frsky GPS sensor ID4 on SMART Port (using [pawelsky's](https://www.rcgroups.com/forums/showthread.php?2245978-FrSky-S-Port-telemetry-library-easy-to-use-and-configurable) library).
+2. Opperate as Mavlink to Passthrough converter for [Yaapu](https://github.com/yaapu/FrskyTelemetryScript) telemetry script for OpenTX.
+3. Outputs other transponders location as StatusText messages via Passthrough to the Yaapu script. This means that when flying it can be used to listen for a crashed plane. This way other transponders will be displayed on the Radio:<br>*"ADSB([CALLSIGN]): [GPS_LATITUDE],[GPS_LONGITUDE],[NUMBEROFSAT],[FIX(2d/3d)],[HDOP]"*
+
+### Features (Locator mode)
+1. When placed in module bay of a radio running OpenTX, it will listen for other transponder beacons and send there coordinats to the Radio as seconday GPS sensor (ID5).
+ 
+
+### Settings*
+1. When connected via USB to a PC, it will show as Serial(COM) port and simple commands can be sent.
+2. A unique callsign (up to 8 charactors) can be set via USB port (setcallsign [callsign]). 
+<br>*(Settings are stored in NVM and only cleared when flashing new firmware).
+
 
 ### CPU (ATSAMD21 - ARM Cortex-M0+):
-I started out using the standard Arduino ATMEGA-328P 8-bit microprocessor, however after working with the Arduino MKRZERO (32-bit ARM Cortex-M0+) I quickly changed to this platform. It all-ready had a USB bootloader. 
+This project uses the SAMD21 MCU from the the Arduino MKRZero.
+
 
 ### Radio module (EBYTE E28-2G4M20S 100mW Lora):
-I started out using a 433MHz GFSK 100mW module, but the size of the antenna and the complexity of the hardware made me look for other modules.
-
 In order to reduce size of the antenna, I tired the 2.4GHz modules from EBYTE.
-I tested the EBYTE E28-2G4M20S (100mW) found that when using Lora modulation with SF7, BW= 400KHz and CR=4/5, I could get a range of 2km.
+I tested the EBYTE E28-2G4M20S (100mW) found that when using Lora modulation with SF7, BW= 400KHz and CR=4/5, I could get a range of ~2km between two modules.
  
-### GPS Sensor selection (Sierra Wireless PA6H):
+ 
+### GPS Sensor (Sierra Wireless PA6H or Quectel-L80-R):
 The PA6H from Global Tech (now Sierra Wireless) was the smallest GPS I could find with a decent chip antenna. (UBLOX CAM-M8 was not tested but could also be relevant).
 The PA6H only transmit NMEA strings, so the CPU has some extra Work here.
+On Hardware version 12 the GPS was changed to Quectel-L80-R due to availablilty. 
 
 
+## Hardware Versions
+1. Version 12 Latest HW, USB on side, 2xDF13_3PINS + 1xSIL3. (size: 46.6mmx18.6mm).
+2. Version 11 10pin DF13 as input connector. (size: 43.5mmx18.0mm).
+3. Version 10 (first prototype) now obsolete. (size: 44.0mmx20.0mm).
+ 
 ## Hardware Layout and manufacturing
-Schematic and layout is done in Cadence/Allegro. The version 10 has a size of (44mmx20mm) and Version 11 is (43.5mmx18mm).
-
+Schematic and layout is done in Cadence/Allegro. This section is shown with now obsolete version 10 harwdare.
 10 prototypes PCB was ordered with stencil and then it's "just" pick and place the components (I only made two).
-
 Board after pick and place but before reflow (see [RocketScream for DIY reflow own](http://www.rocketscream.com/blog/product/tiny-reflow-controller/)).
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-solderpaste-with-components.png)
@@ -55,7 +67,7 @@ Finished unit with heat shrink (alongside the first 433MHz prototype):
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-back.png)
 
 ## Range Testing
-I did some tests at my local flying club. One transponder was mounted on a chair with a laptop on the field and the other was mounted in a plane.
+One transponder was mounted on a chair with a laptop on the field and the other was mounted in a plane.
 The transponder in the plane was set to send every second and the PC on the ground logged all the data.
 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-second-flight-test.png)
@@ -66,10 +78,10 @@ To push the system to the limits, I then mounted the transponder from the plane 
 ![alt text](http://lagoni.org/Github/RCtransponder-pictures/RCtransponderV10-car-test.png)
 
 ## Low Power Test
-TBD (Pending hardware version 11)
+When running firmware v2.00 on harware version 12, the opperating time was 14.5hours. (Beacon every 10sec. GPS update every 10mins).
 
 ## Low Temperature Test
-TBD (Pending hardware version 11)
+TBD (Pending hardware version 12)
 
 # Software
 The Software reflects that I started out using Arduino MKRZERO and the Arduino program and then imported it to Atmel Studio.
@@ -82,4 +94,4 @@ Was a library I once made for the Arduino ATMEGA328P, so i reused it and added s
 
 ## Frsky SPORT library
 I used this great library from [pawelsky](https://www.rcgroups.com/forums/showthread.php?2245978-FrSky-S-Port-telemetry-library-easy-to-use-and-configurable) However the ATSAMD21 chip is not supported and furthermore, I don't use single wire serial.
-I did some dirty changes to his library to get it to work with my hardware. One of which is the single wire serial, where I just disable the RX input when transmitting, to avoid loopback.
+I did some changes to his library, including adding a passthoruth sensor for the Yaapu script. Please see the submodule [FrSky-S-Port-telemetry-library](https://github.com/KenLagoni/FrSky-S-Port-telemetry-library).
