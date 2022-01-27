@@ -711,6 +711,14 @@ int32_t GPSL80Lite::getLongitude(void){
 	return this->dataOut.Longitude;
 }
 
+float GPSL80Lite::getLatitudeAsDecimal(void){
+	return this->dataOut.LatitudeDecimal;
+}
+
+float GPSL80Lite::getLongitudeAsDecimal(void){
+	return this->dataOut.LongitudeDecimal;
+}
+
 uint8_t GPSL80Lite::getFix(void){
 	return this->dataOut.FixDecimal;
 }

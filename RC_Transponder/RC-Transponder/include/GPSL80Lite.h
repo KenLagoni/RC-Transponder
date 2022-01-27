@@ -40,6 +40,8 @@ class GPSL80Lite
 	uint32_t getUTCTime(void);
 	int32_t getLatitude(void);
 	int32_t getLongitude(void);
+	float getLatitudeAsDecimal(void);
+	float getLongitudeAsDecimal(void);
 	uint8_t getFix(void);
 	uint8_t  getNumberOfSat(void);
 	float getHDOP(void);
