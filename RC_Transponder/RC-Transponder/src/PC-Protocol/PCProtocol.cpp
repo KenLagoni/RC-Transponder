@@ -93,6 +93,12 @@ bool PCProtocol::handlecommand(void){
 	
 	if (command.compare("print") == 0){
 		Serial.println("");
+		Serial.print("RC-Transponder is System is running as ");
+		if(systemData->savedSettings.isGroundstation){
+			Serial.println("Groundstation");
+		}else{
+			Serial.println("Beacon");
+		}
 		Serial.print("Callsign:"); Serial.write(systemData->savedSettings.callsign); Serial.println(":");
 		Serial.println("Beacon Interval="+String(systemData->savedSettings.BEACON_INTERVAL));
 		Serial.println("GPS ON TIME="+String(systemData->savedSettings.GPS_ON_TIME));
@@ -116,7 +122,16 @@ bool PCProtocol::handlecommand(void){
 	}else if(command.compare("setbeaconinterval") == 0){
 		Serial.println("beacon interval");
 	}else if(command.compare("setgpsontime") == 0){
-	}else if(command.compare("setgpsofftime") == 0){
+	}else if(command.compare("setmode") == 0){
+		if(parameter[0] == 0){
+			systemData->savedSettings.isGroundstation = false;
+			Serial.println("Transponder set to Beacon mode!");
+		}else{
+			systemData->savedSettings.isGroundstation = true;
+			Serial.println("Transponder set to groundstation mode!");
+		}
+		return true;
+	}else if(command.compare("setgpsofftime") == 0){		
 	}else if(command.compare("help") == 0){
 		Serial.println("");
 		Serial.println("Use:");

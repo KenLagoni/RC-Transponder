@@ -40,6 +40,7 @@ Generic Clock Generator 5-8 - Disabled
 #include "Adafruit_SleepyDog.h"
 
 // for SPORT
+#include "FrSkySportPollingDynamic.h"
 #include "FrSkySportSensor.h"
 #include "FrSkySportSensorGps.h"
 #include "FrSkySportSensorPassthrough.h"
@@ -66,8 +67,10 @@ SystemInformation_t SystemInformation;
 
 // FRSKY SPORT 
 FrSkySportSensorGps FrskyGPS;             // Create GPS sensor with default ID
+FrSkySportSensorGps FrskyGPS2(FrSkySportSensor::ID5);     // Create second GPS sensor (to be used in modulebay)
 FrSkySportSensorPassthrough FrskyPASS;    // Create DIY sensor with default ID for Passthrough 
 FrSkySportTelemetry FrskySport;           // Create telemetry object without polling
+FrSkySportTelemetry FrskySportInModuleBay(new FrSkySportPollingDynamic(false));  // Create telemetry object with polling but disable the rxstatus (RSSI and Vbat tx part to radio)
 MavlinkHandler MavlinkData;				  // Create Mavlink class to handle Mavlink from FC and pass it to Frsky Passthrough.
 
 // Object for Radio communication
@@ -128,6 +131,7 @@ void setup() {
 	
 	SystemInformation.savedSettings = storedConfiguration.read();
 	if(SystemInformation.savedSettings.valid == false){ // use default settings
+		SystemInformation.savedSettings.isGroundstation = false;
 		SystemInformation.savedSettings.POWER_DOWN_DELAY=60;   // Wait 60 seconds after power is lost before go to low power mode.
 		SystemInformation.savedSettings.GPS_ON_TIME=60;		   //  60 seconds
 		SystemInformation.savedSettings.GPS_OFF_TIME=600;	   // 600 seconds (10min)
@@ -148,8 +152,14 @@ void setup() {
 	
 	String resetCause = String("Watchdog reset cause:" + String(tempWDTCause));
 	
-    // ADSB Initializing (ver. 2.00) 
-	String startMSG = String("ADSB Initializing (ver. " + String((int)SystemInformation.FIRMWARE_VERSION) + "." + String((int)((SystemInformation.FIRMWARE_VERSION-((int)SystemInformation.FIRMWARE_VERSION))*100)) + ") ");	
+	int firmwareMinor = round((SystemInformation.FIRMWARE_VERSION-(int)SystemInformation.FIRMWARE_VERSION)*100);	
+	String firmwareVersion;
+	if(firmwareMinor<10){
+		firmwareVersion = String(String((int)SystemInformation.FIRMWARE_VERSION) + ".0" + String(firmwareMinor));
+	}else{
+		firmwareVersion = String(String((int)SystemInformation.FIRMWARE_VERSION) + "." + String(firmwareMinor));
+	}	
+	String startMSG = String("ADSB Initializing (ver. " + firmwareVersion + ") ");	
 
 	// Init Auxiliary serial port:
 	systemHardware.getSerialAUX()->begin(AUX_SERIAL_BAUDRATE);
@@ -187,9 +197,17 @@ void setup() {
 //	RadioService = new RFService(systemHardware.getRadio(), &SystemInformation);
 	RadioService.begin(systemHardware.getRadio(), &SystemInformation);
 //	SerialProtocol = new PCProtocol(RadioService, Radio);
-	
-	// Start the FrSky SPort library with Serial port and the two sensors (GPS and Passthrought):	
-	FrskySport.begin(systemHardware.getSerialFrSkySPort(), &FrskyGPS, &FrskyPASS);
+
+	String opperationMode;
+	if(SystemInformation.savedSettings.isGroundstation){
+		// Start the FrSky SPort library with polling using Serial port and only GPS2 second GPS:
+		FrskySportInModuleBay.begin(systemHardware.getSerialFrSkySPort(), &FrskyGPS2);
+		opperationMode = String("ADSB operating as groundstation");
+	}else{
+		// Start the FrSky SPort library with Serial port and the two sensors (GPS and Passthrought):
+		FrskySport.begin(systemHardware.getSerialFrSkySPort(), &FrskyGPS, &FrskyPASS);		
+		opperationMode = String("ADSB operating as transponder beacon");
+	}
 		
 	// Start the Mavlink decoder and link it to FrSky GSP and Passthrough sensors for data update:
 	MavlinkData.begin(systemHardware.getSerialAUX(), &FrskyGPS, &FrskyPASS);		
@@ -209,9 +227,11 @@ void setup() {
 	Serial.println(startMSG);
 	Serial.println(resetCause);
 	Serial.println(base64MSG);
+	Serial.println(opperationMode);
 	Serial.println(callsign);
 	Serial.println(auxSettings);
 	FrskyPASS.setDataTextMSG((char*)startMSG.c_str(), 7);  // ADSB Initializing (ver. 2.00)
+	FrskyPASS.setDataTextMSG((char*)opperationMode.c_str(), 4);  // ADSB Mode (Groundstation or Beacon).	
 	FrskyPASS.setDataTextMSG((char*)base64MSG.c_str(), 7); // ADSB ID: "[BASE64CODE]"
 	FrskyPASS.setDataTextMSG((char*)callsign.c_str(), 7);  // ADSB using callsign [callsign]
 	FrskyPASS.setDataTextMSG((char*)auxSettings.c_str(), 7); // ADSB Mavlink Baud@115200
@@ -278,7 +298,11 @@ void loop() {
 				}else{
 				    // normal fast loop.
 //					SerialProtocol->Service(); // Comunincation to PC.
-					FrskySport.send(); // Service the Serial for SPORT.
+					if(SystemInformation.savedSettings.isGroundstation){
+						FrskySportInModuleBay.send(); // FrskySport with pollling.					
+					}else{
+						FrskySport.send(); // Service the Serial for SPORT.
+					}
 				}			
 			}
 			break;
@@ -415,7 +439,7 @@ void BeaconService(void){
 //		SerialAUX->print("Time to make beacon message...");
 		// Send a Standard beacon:
 		SystemInformation.BeaconSecondCounter =  0; // Reset Beacon counter.
-		if(SystemInformation.IsGroundStation==false){
+		if(SystemInformation.savedSettings.isGroundstation==false){
 			// Serial print status:
 			Serial.print("Transponder Status: Battery=" + String(SystemInformation.BatteryVoltage,2) + "V ");
 			if(systemHardware.GetChargeState() == HIGH){
@@ -447,6 +471,7 @@ void BeaconService(void){
 			// Make Mavlink ADSB msg:
 	//		systemHardware.getSerialAUX()->println("Data ready for Mavlink:");
 			mavlinkSendADSB(temp->latitude,temp->longitude,temp->servirity, SystemInformation.savedSettings.callsign);
+			FrskyGPS2.setData(temp->latitude,temp->longitude,0,0,0,0,0,0,0,0,0); // Set second GPS data on SPORT (for module bay) when groundstation.
 			temp->dataReady=false;
 		}
 	}	

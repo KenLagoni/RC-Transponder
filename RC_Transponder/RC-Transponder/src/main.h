@@ -22,6 +22,7 @@ enum TRANSPONDER_STATES {
 
 typedef struct {
 	boolean valid;
+	boolean isGroundstation;
 	uint32_t POWER_DOWN_DELAY;
 	uint32_t GPS_ON_TIME;
 	uint32_t GPS_OFF_TIME;
@@ -58,7 +59,6 @@ extern struct SystemInformation_t
 	volatile uint32_t *AddrSerialNumber4 = (volatile uint32_t *)0x0080A048;
 	uint32_t SerialNumber4= *AddrSerialNumber4;	
 
-	bool IsGroundStation = false;
 	uint8_t SecondsBatteryLowCounter = 0;
 	bool SimulateRunningOnBattery = false;
 	uint16_t GPSActiveCounter = 0;
